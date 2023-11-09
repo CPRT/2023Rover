@@ -4,12 +4,12 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 
-class MinimalPublisher(Node):
+class Humidity(Node):
 
     def __init__(self):
-        super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(String, 'topic', 10)
-        timer_period = 0.5  # seconds
+        super().__init__('humidity')
+        self.publisher_ = self.create_publisher(String, 'humidity', 10)
+        timer_period = 1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
 
@@ -24,9 +24,9 @@ class MinimalPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    minimal_publisher = MinimalPublisher()
+    humidity_publish = Humidity()
 
-    rclpy.spin(minimal_publisher)
+    rclpy.spin(humidity_publish)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
@@ -40,7 +40,3 @@ if __name__ == '__main__':
 
 
 
-
-
-if __name__ == '__main__':
-    main()
