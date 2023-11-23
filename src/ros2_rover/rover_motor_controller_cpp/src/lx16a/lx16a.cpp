@@ -19,6 +19,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#define BOOST_BIND_NO_PLACEHOLDERS
 
 #include "lx16a/lx16a.hpp"
 #include "lx16a/lx16a_consts.hpp"

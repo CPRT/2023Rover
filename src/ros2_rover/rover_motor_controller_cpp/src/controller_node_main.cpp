@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <memory>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 #include "motor_controller/controller_node.hpp"
 

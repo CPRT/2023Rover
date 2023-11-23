@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#define BOOST_BIND_NO_PLACEHOLDERS
 
 #include "lx16a/serial.hpp"
 

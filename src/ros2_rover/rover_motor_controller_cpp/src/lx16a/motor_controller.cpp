@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <vector>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 #include "lx16a/lx16a.hpp"
 #include "lx16a/lx16a_consts.hpp"
