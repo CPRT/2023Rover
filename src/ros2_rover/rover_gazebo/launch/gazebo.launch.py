@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# Must add absolute path for the models directory to env var GZ_SIM_RESOURCE_PATH. 
 
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -27,7 +28,7 @@ from launch.conditions import IfCondition
 def generate_launch_description():
 
     pkg_path = get_package_share_directory("rover_gazebo")
-    pkg_gazebo_ros = get_package_share_directory("gazebo_ros")
+    pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
     pkg_rover_localization = get_package_share_directory("rover_localization")
     pkg_rover_navigation = get_package_share_directory("rover_navigation")
 
@@ -42,12 +43,6 @@ def generate_launch_description():
         "world",
         default_value=os.path.join(pkg_path, "worlds", "empty.world"),
         description="Gazebo world")
-
-    launch_gui = LaunchConfiguration("launch_gui")
-    launch_gui_cmd = DeclareLaunchArgument(
-        "launch_gui",
-        default_value="True",
-        description="Whether launch gzclient")
 
     pause_gz = LaunchConfiguration("pause_gz")
     pause_gz_cmd = DeclareLaunchArgument(
@@ -95,19 +90,10 @@ def generate_launch_description():
         condition=IfCondition(PythonExpression([launch_rviz])),
     )
 
-    ### LAUNCHS ###
-    gazebo_client_cmd = IncludeLaunchDescription(
+    gz_sim_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_gazebo_ros, "launch", "gzclient.launch.py")
-        ),
-        condition=IfCondition(PythonExpression([launch_gui]))
-    )
-
-    gazebo_server_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_gazebo_ros, "launch", "gzserver.launch.py")
-        ),
-        launch_arguments={"world": world, "pause": pause_gz}.items()
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+        launch_arguments={'gz_args':world}.items()
     )
 
     localization_cmd = IncludeLaunchDescription(
@@ -147,7 +133,6 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
-    ld.add_action(launch_gui_cmd)
     ld.add_action(pause_gz_cmd)
     ld.add_action(launch_rviz_cmd)
     ld.add_action(world_cmd)
@@ -156,8 +141,7 @@ def generate_launch_description():
     ld.add_action(initial_pose_z_cmd)
     ld.add_action(initial_pose_yaw_cmd)
 
-    ld.add_action(gazebo_client_cmd)
-    ld.add_action(gazebo_server_cmd)
+    ld.add_action(gz_sim_cmd)
     ld.add_action(localization_cmd)
     ld.add_action(navigation_cmd)
     ld.add_action(cmd_vel_cmd)
