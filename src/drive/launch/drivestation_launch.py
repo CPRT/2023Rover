@@ -9,6 +9,10 @@ def generate_launch_description():
             executable='joystick_drive',
             name='joystick_drive_station'),
         launch_ros.actions.Node(
+            package='joy',
+            executable='joy_node',
+            name='joystick'),
+        launch_ros.actions.Node(
             package='drive',
             executable='roboclaw_node',
             name='roboclaw_node',
