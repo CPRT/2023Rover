@@ -1,4 +1,5 @@
 #include <memory>
+#include <unistd.h>
 #include <iostream>
 
 #include <rclcpp/rclcpp.hpp>
@@ -25,8 +26,7 @@ int main(int argc, char * argv[])
   auto move_group_interface = MoveGroupInterface(node, "rover_arm");
 
   // Set a target Pose
-  std::cout<<"Move"<<std::endl;
-	auto const target_pose = []{
+  auto const target_pose = []{
 		geometry_msgs::msg::Pose msg;
 		msg.orientation.w = 1.0;
 		msg.position.x = 0.636922;
@@ -50,19 +50,42 @@ int main(int argc, char * argv[])
 		RCLCPP_ERROR(logger, "Planing failed!");
 	}//*/
 	
-	// print current pose
-  geometry_msgs::msg::Pose current_pose =
-    move_group_interface.getCurrentPose().pose;
+	//cartesian things
+  for (int i = 0; i < 3; i++)
+  {
+    std::vector<geometry_msgs::msg::Pose> points;
+		// print current pose
+		geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
+		
+		points.push_back(current_pose);
 
-  // Print the current pose of the end effector
-  RCLCPP_INFO(node->get_logger(), "Current pose: %f %f %f %f %f %f %f",
-    current_pose.position.x,
-    current_pose.position.y,
-    current_pose.position.z,
-    current_pose.orientation.x,
-    current_pose.orientation.y,
-    current_pose.orientation.z,
-    current_pose.orientation.w);
+		// Print the current pose of the end effector
+		RCLCPP_INFO(node->get_logger(), "Current pose: %f %f %f %f %f %f %f",
+		  current_pose.position.x,
+		  current_pose.position.y,
+		  current_pose.position.z,
+		  current_pose.orientation.x,
+		  current_pose.orientation.y,
+		  current_pose.orientation.z,
+		  current_pose.orientation.w);
+		  
+		auto const new_pose = [&]{
+			geometry_msgs::msg::Pose msg = current_pose;
+			msg.position.y += 0.2;
+			return msg;
+		}();
+		
+		points.push_back(new_pose);
+		
+		moveit_msgs::msg::RobotTrajectory trajectory;
+		const double jump_threshold = 0.00;
+		const double eef_step = 0.01;
+		double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+		//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
+		move_group_interface.execute(trajectory);
+		//sleep(1000);
+		
+  }
   // Shutdown ROS
   rclcpp::shutdown();
   return 0;
