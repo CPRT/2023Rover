@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
 		points.push_back(new_pose);
 		
 		moveit_msgs::msg::RobotTrajectory trajectory;
-		const double jump_threshold = 0.00;
+		const double jump_threshold = 0;
 		const double eef_step = 0.01;
 		double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 		//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
