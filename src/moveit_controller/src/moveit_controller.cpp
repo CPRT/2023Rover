@@ -95,11 +95,13 @@ class MinimalSubscriber : public rclcpp::Node
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MinimalSubscriber>());
+  //rclcpp::spin(std::make_shared<MinimalSubscriber>());
   
-  /*rclcpp::executors::SingleThreadedExecutor executor;
-  executor.add_node(std::make_shared<MinimalSubscriber>());
-  auto spinner = std::thread([&executor]() {executor.spin(); });*/
+  rclcpp::executors::SingleThreadedExecutor executor;
+  auto node = std::make_shared<MinimalSubscriber>();
+  executor.add_node(node);
+  auto spinner = std::thread([&executor]() {executor.spin(); });//*/
+  spinner.join();
   rclcpp::shutdown();
   return 0;
 }//*/

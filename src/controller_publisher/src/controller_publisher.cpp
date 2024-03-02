@@ -57,7 +57,13 @@ class MinimalPublisher : public rclcpp::Node
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MinimalPublisher>());
+  //rclcpp::spin(std::make_shared<MinimalPublisher>());
+  
+  rclcpp::executors::MultiThreadedExecutor executor;
+  auto node = std::make_shared<MinimalPublisher>();
+  executor.add_node(node);
+  auto spinner = std::thread([&executor]() {executor.spin(); });//*/
+  spinner.join();
   rclcpp::shutdown();
   return 0;
 }
