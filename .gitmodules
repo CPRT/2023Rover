@@ -1,3 +1,6 @@
 [submodule "src/ros_phoenix_humble"]
 	path = src/ros_phoenix_humble
 	url = https://github.com/ChrisRusu1/ros_phoenix_humble.git
+[submodule "src/lidarslam_ros2"]
+	path = src/lidarslam_ros2
+	url = https://github.com/CPRT/lidarslam_ros2.git
