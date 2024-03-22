@@ -21,15 +21,11 @@ from launch_ros.actions import Node
 def generate_launch_description():
     parameters = [{
         "frame_id": "base_link",
-        "subscribe_depth": True,
-        "subscribe_rgb": True,
-        "approx_sync": True,
-        "approx_sync_max_interval": 0.01,
         "publish_tf": False,
         "wait_imu_to_init": False,
         "publish_null_when_lost": False,
+        "deskewing": False,
         "qos": 2,
-        "qos_camera_info": 2,
 
         # 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres
         "Optimizer/Strategy": "2",
@@ -90,18 +86,17 @@ def generate_launch_description():
     }]
 
     remappings = [
-        ("rgb/image", "camera/image_raw"),
-        ("rgb/camera_info", "camera/camera_info"),
-        ("depth/image", "camera/depth/image_raw"),
+        ("scan_cloud", "XXXlidarPointCloudTopic"),
+        ("scan", "dummy"),
         ("imu", "imu"),
-        ("odom", "odom_rgbd")
+        ("odom", "icp/odom")
     ]
 
     return LaunchDescription([
 
         Node(
             package="rtabmap_odom",
-            executable="rgbd_odometry",
+            executable="icp_odometry",
             output="log",
             parameters=parameters,
             remappings=remappings,

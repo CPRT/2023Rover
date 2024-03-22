@@ -31,30 +31,47 @@ def generate_launch_description():
         default_value="False",
         description="Use simulation (Gazebo) clock if True")
 
-    params_file = os.path.join(get_package_share_directory(
-        "rover_localization"), "config", "ekf.yaml")
+    local_params_file = os.path.join(get_package_share_directory(
+        "rover_localization"), "config", "ekf_local.yaml")
+    global_params_file = os.path.join(get_package_share_directory(
+        "rover_localization"), "config", "ekf_global.yaml")
 
     param_substitutions = {
         "use_sim_time": use_sim_time}
 
-    configured_params = RewrittenYaml(
-        source_file=params_file,
+    configured_local_params = RewrittenYaml(
+        source_file=local_params_file,
         param_rewrites=param_substitutions,
         convert_types=True)
 
-    ekf_cmd = Node(
+    configured_global_params = RewrittenYaml(
+        source_file=global_params_file,
+        param_rewrites=param_substitutions,
+        convert_types=True)
+
+    local_ekf_cmd = Node(
         package="robot_localization",
         executable="ekf_node",
         name="ekf_filter_node",
         output="log",
-        parameters=[configured_params],
-        remappings=[("odometry/filtered", "/odom"),
+        parameters=[configured_local_params],
+        remappings=[("odometry/filtered", "odometry/filtered/local"),
+                    ("accel/filtered", "/accel")])
+    global_ekf_cmd = Node(
+        package="robot_localization",
+        executable="ekf_node",
+        name="ekf_filter_node",
+        output="log",
+        parameters=[configured_global_params],
+        remappings=[("odometry/filtered", "odometry/filtered/global"),
                     ("accel/filtered", "/accel")])
 
     ld = LaunchDescription()
 
     ld.add_action(use_sim_time_cmd)
 
-    ld.add_action(ekf_cmd)
+    ld.add_action(local_ekf_cmd)
+
+    ld.add_action(global_ekf_cmd)
 
     return ld

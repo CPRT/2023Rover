@@ -37,14 +37,12 @@ def generate_launch_description():
 
     parameters = [{
         "frame_id": "base_link",
-        "subscribe_depth": True,
-        "subscribe_rgb": True,
-        "subscribe_scan": False,
+        "subscribe_depth": False,
+        "subscribe_rgb": False,
+        "subscribe_scan_cloud": True,
         "approx_sync": True,
-        "publish_tf": True,
+        "publish_tf": False,
         "use_sim_time": use_sim_time,
-        "qos_image": 2,
-        "qos_camera_info": 2,
         "qos_imu": 2,
 
         "Optimizer/Strategy": "1",
