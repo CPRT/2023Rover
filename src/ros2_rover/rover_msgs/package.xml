@@ -7,7 +7,10 @@
   <maintainer email="mgons@unileon.es">Miguel Ángel González Santamarta</maintainer>
   <license>GPL-3</license>
 
+  <depend>std_msgs</depend>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
