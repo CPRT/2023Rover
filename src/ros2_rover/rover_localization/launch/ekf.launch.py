@@ -52,7 +52,7 @@ def generate_launch_description():
     local_ekf_cmd = Node(
         package="robot_localization",
         executable="ekf_node",
-        name="ekf_filter_node",
+        name="local_ekf",
         output="log",
         parameters=[configured_local_params],
         remappings=[("odometry/filtered", "odometry/filtered/local"),
@@ -60,18 +60,14 @@ def generate_launch_description():
     global_ekf_cmd = Node(
         package="robot_localization",
         executable="ekf_node",
-        name="ekf_filter_node",
+        name="global_ekf",
         output="log",
         parameters=[configured_global_params],
         remappings=[("odometry/filtered", "odometry/filtered/global"),
                     ("accel/filtered", "/accel")])
 
-    ld = LaunchDescription()
-
-    ld.add_action(use_sim_time_cmd)
-
-    ld.add_action(local_ekf_cmd)
-
-    ld.add_action(global_ekf_cmd)
-
-    return ld
+    return LaunchDescription([
+        use_sim_time_cmd,
+        local_ekf_cmd,
+        global_ekf_cmd
+    ])

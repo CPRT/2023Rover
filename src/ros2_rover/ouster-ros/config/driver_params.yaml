@@ -49,7 +49,8 @@ ouster/os_driver:
     # sensor_frame[optional]: name to use when referring to the sensor frame.
     sensor_frame: os_sensor
     # lidar_frame[optional]: name to use when referring to the lidar frame.
-    lidar_frame: os_lidar
+    # must change with new
+    lidar_frame: base_link
     # imu_frame[optional]: name to use when referring to the imu frame.
     imu_frame: os_imu
     # point_cloud_frame[optional]: which frame of reference to use when

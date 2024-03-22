@@ -43,4 +43,4 @@ velocity_controller:
 joint_state_broadcaster:
   ros__parameters:
     publish_rate: 100.0
-    use_sim_time: true
+    use_sim_time: false

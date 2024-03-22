@@ -28,7 +28,7 @@ def generate_launch_description():
 
     doc = xacro.parse(open(xacro_file))
     xacro.process_doc(doc)
-    params = {"robot_description": doc.toxml(), "use_sim_time": True}
+    params = {"robot_description": doc.toxml(), "use_sim_time": False}
 
     robot_state_publisher_cmd = Node(
         name="robot_state_publisher",

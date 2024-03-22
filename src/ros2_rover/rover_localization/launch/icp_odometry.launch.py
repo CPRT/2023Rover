@@ -15,16 +15,26 @@
 
 
 from launch import LaunchDescription
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+
+    use_sim_time = LaunchConfiguration("use_sim_time")
+    use_sim_time_cmd = DeclareLaunchArgument(
+        "use_sim_time",
+        default_value="False",
+        description="Use simulation (Gazebo) clock if True")
+
     parameters = [{
         "frame_id": "base_link",
         "publish_tf": False,
         "wait_imu_to_init": False,
         "publish_null_when_lost": False,
         "deskewing": False,
+        "use_sim_time": use_sim_time,
         "qos": 2,
 
         # 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres
@@ -86,7 +96,7 @@ def generate_launch_description():
     }]
 
     remappings = [
-        ("scan_cloud", "XXXlidarPointCloudTopic"),
+        ("scan_cloud", "ouster/points"),
         ("scan", "dummy"),
         ("imu", "imu"),
         ("odom", "icp/odom")

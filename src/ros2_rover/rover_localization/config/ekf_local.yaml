@@ -1,4 +1,4 @@
-ekf_filter_node:
+local_ekf:
   ros__parameters:
     # frequency: 50.0
     # sensor_timeout: 20.0
@@ -61,18 +61,18 @@ ekf_filter_node:
     # odom1_pose_rejection_threshold: 5.0
     # odom1_twist_rejection_threshold: 1.0
 
-    imu0: imu
+    imu0: ouster/imu
     imu0_config: [
         # position
         false, false, false,
         # orientation
-        true, true, false,
-        # lineal vel
-        true, true, true,
-        # angular vel
-        true, true, true,
-        # lineal acc
         false, false, false,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        true, true, false,
       ]
     # imu0_nodelay: false
     imu0_differential: false

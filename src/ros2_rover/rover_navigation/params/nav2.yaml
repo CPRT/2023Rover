@@ -147,7 +147,7 @@ local_costmap:
         mark_threshold: 0
         observation_sources: lidar_scan
         lidar_scan:
-          topic: /scan_cloud
+          topic: /ouster/points
           max_obstacle_height: 2.0
           clearing: True
           marking: True
@@ -184,7 +184,7 @@ global_costmap:
         mark_threshold: 0
         observation_sources: lidar_scan
         lidar_scan:
-          topic: /scan_cloud
+          topic: /ouster/points
           max_obstacle_height: 2.0
           clearing: True
           marking: True

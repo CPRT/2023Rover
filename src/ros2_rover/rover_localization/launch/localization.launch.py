@@ -36,14 +36,14 @@ def generate_launch_description():
     rgbd_odometry_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
-                         "launch", "rgbd_odometry.launch.py")
+                         "launch", "icp_odometry.launch.py")
         )
     )
 
-    rtabmap_cmd = IncludeLaunchDescription(
+    lidarslam_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
-                         "launch", "rtabmap.launch.py")
+                         "launch", "lidarslam.launch.py")
         ),
         launch_arguments={"use_sim_time": use_sim_time}.items()
     )
@@ -61,7 +61,7 @@ def generate_launch_description():
     ld.add_action(use_sim_time_cmd)
 
     ld.add_action(rgbd_odometry_cmd)
-    ld.add_action(rtabmap_cmd)
+    ld.add_action(lidarslam_cmd)
     ld.add_action(ekf_cmd)
 
     return ld

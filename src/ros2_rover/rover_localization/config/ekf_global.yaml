@@ -1,4 +1,4 @@
-ekf_filter_node:
+global_ekf:
   ros__parameters:
     # frequency: 50.0
     # sensor_timeout: 20.0
@@ -21,8 +21,8 @@ ekf_filter_node:
     base_link_frame: base_link
     world_frame: map
 
-    odom0: slam/odom
-    odom0_config: [
+    pose0: slam/pose
+    pose0_config: [
         # position
         true, true, true,
         # orientation
@@ -34,15 +34,15 @@ ekf_filter_node:
         # lineal acc
         false, false, false,
       ]
-    # odom0_queue_size: 2
-    # odom0_nodelay: false
-    odom0_differential: true
-    odom0_relative: false
-    # odom0_pose_rejection_threshold: 5.0
-    # odom0_twist_rejection_threshold: 1.0
+    # pose0_queue_size: 2
+    # pose0_nodelay: false
+    pose0_differential: true
+    pose0_relative: false
+    # pose0_pose_rejection_threshold: 5.0
+    # pose0_twist_rejection_threshold: 1.0
 
-    odom1: wheels/odom
-    odom1_config: [
+    odom0: wheels/odom
+    odom0_config: [
         # position
         false, false, false,
         # orientation
@@ -54,34 +54,34 @@ ekf_filter_node:
         # lineal acc
         false, false, false,
       ]
-    # odom1_queue_size: 2
-    # odom1_nodelay: false
-    odom1_differential: true
-    odom1_relative: false
-    # odom1_pose_rejection_threshold: 5.0
-    # odom1_twist_rejection_threshold: 1.0
+    # odom0_queue_size: 2
+    # odom0_nodelay: false
+    odom0_differential: true
+    odom0_relative: false
+    # odom0_pose_rejection_threshold: 5.0
+    # odom0_twist_rejection_threshold: 1.0
 
-    odom2: odometry/gps 
-    odom2_config: [true,  true,  false,
+    odom1: odometry/gps 
+    odom1_config: [true,  true,  false,
                    false, false, false,
                    false, false, false,
                    false, false, false,
                    false, false, false]
-    odom2_differential: false
-    odom2_relative: false
+    odom1_differential: false
+    odom1_relative: false
 
-    imu0: imu
+    imu0: ouster/imu
     imu0_config: [
         # position
         false, false, false,
         # orientation
-        true, true, false,
-        # lineal vel
-        true, true, true,
-        # angular vel
-        true, true, true,
-        # lineal acc
         false, false, false,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        true, true, false,
       ]
     # imu0_nodelay: false
     imu0_differential: false
