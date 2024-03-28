@@ -105,10 +105,10 @@ private:
     std::packaged_task < void() > mapping_task_;
     std::future < void > mapping_future_;
 
-    geometry_msgs::msg::PoseStamped corrent_pose_stamped_;
+    geometry_msgs::msg::PoseWithCovarianceStamped corrent_pose_stamped_;
     lidarslam_msgs::msg::MapArray map_array_msg_;
     nav_msgs::msg::Path path_;
-    rclcpp::Publisher < geometry_msgs::msg::PoseStamped > ::SharedPtr pose_pub_;
+    rclcpp::Publisher < geometry_msgs::msg::PoseWithCovarianceStamped > ::SharedPtr pose_pub_;
     rclcpp::Publisher < sensor_msgs::msg::PointCloud2 > ::SharedPtr map_pub_;
     rclcpp::Publisher < lidarslam_msgs::msg::MapArray > ::SharedPtr map_array_pub_;
     rclcpp::Publisher < nav_msgs::msg::Path > ::SharedPtr path_pub_;

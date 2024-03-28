@@ -144,7 +144,16 @@ ScanMatcherComponent::ScanMatcherComponent(const rclcpp::NodeOptions & options)
     msg->pose.orientation.y = initial_pose_qy_;
     msg->pose.orientation.z = initial_pose_qz_;
     msg->pose.orientation.w = initial_pose_qw_;
-    corrent_pose_stamped_ = *msg;
+    corrent_pose_stamped_.pose.pose = msg->pose;
+    corrent_pose_stamped_.header = msg->header;
+    corrent_pose_stamped_.pose.covariance = 
+      std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
+                               0, 0.1, 0, 0, 0, 0,
+                               0, 0, 0.1, 0, 0, 0,
+                               0, 0, 0, 0.1, 0, 0,
+                               0, 0, 0, 0, 0.1, 0,
+                               0, 0, 0, 0, 0, 0.1});
+
     pose_pub_->publish(corrent_pose_stamped_);
     initial_pose_received_ = true;
 
@@ -167,10 +176,18 @@ void ScanMatcherComponent::initializePubSub()
       }
       RCLCPP_INFO(get_logger(), "initial_pose is received");
 
-      corrent_pose_stamped_ = *msg;
-      previous_position_.x() = corrent_pose_stamped_.pose.position.x;
-      previous_position_.y() = corrent_pose_stamped_.pose.position.y;
-      previous_position_.z() = corrent_pose_stamped_.pose.position.z;
+      corrent_pose_stamped_.pose.pose = msg->pose;
+      corrent_pose_stamped_.header = msg->header;
+      corrent_pose_stamped_.pose.covariance = 
+              std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
+                                       0, 0.1, 0, 0, 0, 0,
+                                       0, 0, 0.1, 0, 0, 0,
+                                       0, 0, 0, 0.1, 0, 0,
+                                       0, 0, 0, 0, 0.1, 0,
+                                       0, 0, 0, 0, 0, 0.1});
+      previous_position_.x() = corrent_pose_stamped_.pose.pose.position.x;
+      previous_position_.y() = corrent_pose_stamped_.pose.pose.position.y;
+      previous_position_.z() = corrent_pose_stamped_.pose.pose.position.z;
       initial_pose_received_ = true;
 
       pose_pub_->publish(corrent_pose_stamped_);
@@ -247,7 +264,7 @@ void ScanMatcherComponent::initializePubSub()
     "input_cloud", rclcpp::SensorDataQoS(), cloud_callback);
 
   // pub
-  pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+  pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
     "current_pose",
     rclcpp::QoS(10));
   map_pub_ = create_publisher<sensor_msgs::msg::PointCloud2>("map", rclcpp::QoS(10));
@@ -268,7 +285,7 @@ void ScanMatcherComponent::initializeMap(const pcl::PointCloud <pcl::PointXYZI>:
   voxel_grid.setInputCloud(tmp_ptr);
   voxel_grid.filter(*cloud_ptr);
 
-  Eigen::Matrix4f sim_trans = getTransformation(corrent_pose_stamped_.pose);
+  Eigen::Matrix4f sim_trans = getTransformation(corrent_pose_stamped_.pose.pose);
   pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_cloud_ptr(
     new pcl::PointCloud<pcl::PointXYZI>());
   pcl::transformPointCloud(*cloud_ptr, *transformed_cloud_ptr, sim_trans);
@@ -285,7 +302,7 @@ void ScanMatcherComponent::initializeMap(const pcl::PointCloud <pcl::PointXYZI>:
   lidarslam_msgs::msg::SubMap submap;
   submap.header = header;
   submap.distance = 0;
-  submap.pose = corrent_pose_stamped_.pose;
+  submap.pose = corrent_pose_stamped_.pose.pose;
   submap.cloud = *cloud_msg_ptr;
   map_array_msg_.header = header;
   map_array_msg_.submaps.push_back(submap);
@@ -328,7 +345,7 @@ void ScanMatcherComponent::receiveCloud(
   voxel_grid.filter(*filtered_cloud_ptr);
   registration_->setInputSource(filtered_cloud_ptr);
 
-  Eigen::Matrix4f sim_trans = getTransformation(corrent_pose_stamped_.pose);
+  Eigen::Matrix4f sim_trans = getTransformation(corrent_pose_stamped_.pose.pose);
 
   if (use_odom_) {
     geometry_msgs::msg::TransformStamped odom_trans;
@@ -361,7 +378,7 @@ void ScanMatcherComponent::receiveCloud(
 
   tf2::Quaternion quat_tf;
   double roll, pitch, yaw;
-  tf2::fromMsg(corrent_pose_stamped_.pose.orientation, quat_tf);
+  tf2::fromMsg(corrent_pose_stamped_.pose.pose.orientation, quat_tf);
   tf2::Matrix3x3(quat_tf).getRPY(roll, pitch, yaw);
 
   std::cout << "---------------------------------------------------------" << std::endl;
@@ -410,19 +427,30 @@ void ScanMatcherComponent::publishMapAndPose(
   }
 
   corrent_pose_stamped_.header.stamp = stamp;
-  corrent_pose_stamped_.pose.position.x = position.x();
-  corrent_pose_stamped_.pose.position.y = position.y();
-  corrent_pose_stamped_.pose.position.z = position.z();
-  corrent_pose_stamped_.pose.orientation = quat_msg;
+  corrent_pose_stamped_.pose.pose.position.x = position.x();
+  corrent_pose_stamped_.pose.pose.position.y = position.y();
+  corrent_pose_stamped_.pose.pose.position.z = position.z();
+  corrent_pose_stamped_.pose.pose.orientation = quat_msg;
+  corrent_pose_stamped_.pose.covariance = 
+      std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
+                               0, 0.1, 0, 0, 0, 0,
+                               0, 0, 0.1, 0, 0, 0,
+                               0, 0, 0, 0.1, 0, 0,
+                               0, 0, 0, 0, 0.1, 0,
+                               0, 0, 0, 0, 0, 0.1});
   pose_pub_->publish(corrent_pose_stamped_);
 
-  path_.poses.push_back(corrent_pose_stamped_);
+  geometry_msgs::msg::PoseStamped poseWithoutCov;
+  poseWithoutCov.header = corrent_pose_stamped_.header;
+  poseWithoutCov.pose = corrent_pose_stamped_.pose.pose;
+  path_.poses.push_back(poseWithoutCov);
   path_pub_->publish(path_);
 
   trans_ = (position - previous_position_).norm();
   if (trans_ >= trans_for_mapupdate_ && !mapping_flag_) {
     geometry_msgs::msg::PoseStamped corrent_pose_stamped;
-    corrent_pose_stamped = corrent_pose_stamped_;
+    corrent_pose_stamped.header = corrent_pose_stamped_.header;
+    corrent_pose_stamped.pose = corrent_pose_stamped_.pose.pose;
     previous_position_ = position;
     mapping_task_ =
       std::packaged_task<void()>(
