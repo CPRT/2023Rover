@@ -26,7 +26,8 @@ def generate_launch_description():
         executable='scanmatcher_node',
         parameters=[main_param_dir],
         remappings=[('/input_cloud','/ouster/points'),
-                    ('/current_pose','/slam/pose')],
+                    ('/current_pose','/slam/pose'),
+                    ('/imu','/ouster/imu')],
         output='screen'
         )
 

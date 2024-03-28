@@ -26,9 +26,9 @@ global_ekf:
         # position
         true, true, true,
         # orientation
-        false, false, true,
-        # lineal vel 
         true, true, true,
+        # lineal vel 
+        false, false, false,
         # angular vel
         false, false, false,
         # lineal acc
