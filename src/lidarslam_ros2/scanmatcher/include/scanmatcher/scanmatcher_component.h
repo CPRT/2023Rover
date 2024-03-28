@@ -82,13 +82,12 @@ public:
 
 private:
 
-
-    const std::array<double, 36> kCovariance ({1, 0, 0, 0, 0, 0,
-                                               0, 1, 0, 0, 0, 0,
-                                               0, 0, 1, 0, 0, 0,
-                                               0, 0, 0, 1, 0, 0,
-                                               0, 0, 0, 0, 1, 0,
-                                               0, 0, 0, 0, 0, 1});
+    static std::array<double, 36> kCovariance = {1, 0, 0, 0, 0, 0,
+                                                 0, 1, 0, 0, 0, 0,
+                                                 0, 0, 1, 0, 0, 0,
+                                                 0, 0, 0, 1, 0, 0,
+                                                 0, 0, 0, 0, 1, 0,
+                                                 0, 0, 0, 0, 0, 1};
     rclcpp::Clock clock_;
     tf2_ros::Buffer tfbuffer_;
     tf2_ros::TransformListener listener_;
