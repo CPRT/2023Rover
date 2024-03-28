@@ -146,13 +146,7 @@ ScanMatcherComponent::ScanMatcherComponent(const rclcpp::NodeOptions & options)
     msg->pose.orientation.w = initial_pose_qw_;
     corrent_pose_stamped_.pose.pose = msg->pose;
     corrent_pose_stamped_.header = msg->header;
-    corrent_pose_stamped_.pose.covariance = 
-      std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
-                               0, 0.1, 0, 0, 0, 0,
-                               0, 0, 0.1, 0, 0, 0,
-                               0, 0, 0, 0.1, 0, 0,
-                               0, 0, 0, 0, 0.1, 0,
-                               0, 0, 0, 0, 0, 0.1});
+    corrent_pose_stamped_.pose.covariance = kCovariance;
 
     pose_pub_->publish(corrent_pose_stamped_);
     initial_pose_received_ = true;
@@ -178,13 +172,7 @@ void ScanMatcherComponent::initializePubSub()
 
       corrent_pose_stamped_.pose.pose = msg->pose;
       corrent_pose_stamped_.header = msg->header;
-      corrent_pose_stamped_.pose.covariance = 
-              std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
-                                       0, 0.1, 0, 0, 0, 0,
-                                       0, 0, 0.1, 0, 0, 0,
-                                       0, 0, 0, 0.1, 0, 0,
-                                       0, 0, 0, 0, 0.1, 0,
-                                       0, 0, 0, 0, 0, 0.1});
+      corrent_pose_stamped_.pose.covariance = kCovariance;
       previous_position_.x() = corrent_pose_stamped_.pose.pose.position.x;
       previous_position_.y() = corrent_pose_stamped_.pose.pose.position.y;
       previous_position_.z() = corrent_pose_stamped_.pose.pose.position.z;
@@ -431,13 +419,7 @@ void ScanMatcherComponent::publishMapAndPose(
   corrent_pose_stamped_.pose.pose.position.y = position.y();
   corrent_pose_stamped_.pose.pose.position.z = position.z();
   corrent_pose_stamped_.pose.pose.orientation = quat_msg;
-  corrent_pose_stamped_.pose.covariance = 
-      std::array<double, 36> ({0.1, 0, 0, 0, 0, 0,
-                               0, 0.1, 0, 0, 0, 0,
-                               0, 0, 0.1, 0, 0, 0,
-                               0, 0, 0, 0.1, 0, 0,
-                               0, 0, 0, 0, 0.1, 0,
-                               0, 0, 0, 0, 0, 0.1});
+  corrent_pose_stamped_.pose.covariance = kCovariance;
   pose_pub_->publish(corrent_pose_stamped_);
 
   geometry_msgs::msg::PoseStamped poseWithoutCov;
