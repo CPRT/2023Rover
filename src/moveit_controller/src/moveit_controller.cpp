@@ -53,9 +53,9 @@ class MinimalSubscriber : public rclcpp::Node
       
       std::vector<geometry_msgs::msg::Pose> points;
 			// print current pose
-			//geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
+			geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
 			
-			geometry_msgs::msg::Pose current_pose = target_pose;
+			//geometry_msgs::msg::Pose current_pose = target_pose;
 			points.push_back(current_pose);
 
 			// Print the current pose of the end effector
@@ -74,8 +74,30 @@ class MinimalSubscriber : public rclcpp::Node
 				msg.position.x += (cmd[0] - '0')/10.0;
 				msg.position.y += (cmd[1] - '0')/10.0;
 				msg.position.z += (cmd[2] - '0')/10.0;
+				
+				msg.orientation.x += (cmd[3] - '0')/10.0;
+				msg.orientation.y += (cmd[4] - '0')/10.0;
+				msg.orientation.z += (cmd[5] - '0')/10.0;
+				msg.orientation.w += (cmd[6] - '0')/10.0;
+				
 				return msg;
 			}();
+			
+			/*move_group_interface.setPoseTarget(new_pose);
+
+			// Create a plan to that target pose
+			auto const [success, plan] = [&]{
+				moveit::planning_interface::MoveGroupInterface::Plan msg;
+				auto const ok = static_cast<bool>(move_group_interface.plan(msg));
+				return std::make_pair(ok, msg);
+			}();
+
+			// Execute the plan
+			if(success) {
+				move_group_interface.execute(plan);
+			} else {
+				RCLCPP_ERROR(this->get_logger(), "Planing failed!");
+			}*/
 			
 			points.push_back(new_pose);
 			
@@ -86,7 +108,7 @@ class MinimalSubscriber : public rclcpp::Node
 			move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 			//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
 			move_group_interface.execute(trajectory);
-			target_pose = points[1];
+			//target_pose = points[1];//*/
 			//sleep(1000);
 	  }
 	  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
@@ -97,7 +119,7 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   //rclcpp::spin(std::make_shared<MinimalSubscriber>());
   
-  rclcpp::executors::SingleThreadedExecutor executor;
+  rclcpp::executors::MultiThreadedExecutor executor;
   auto node = std::make_shared<MinimalSubscriber>();
   executor.add_node(node);
   auto spinner = std::thread([&executor]() {executor.spin(); });//*/

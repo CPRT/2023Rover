@@ -44,6 +44,46 @@ class MinimalPublisher : public rclcpp::Node
       {
         cmd[1] = '0'-1;
       }
+      else if (c == 'z')
+      {
+        cmd[2] = '0'+1;
+      }
+      else if (c == 'x')
+      {
+        cmd[2] = '0'-1;
+      }
+      else if (c == 'r')
+      {
+        cmd[3] = '0'+1;
+      }
+      else if (c == 't')
+      {
+        cmd[3] = '0'-1;
+      }
+      else if (c == 'f')
+      {
+        cmd[4] = '0'+1;
+      }
+      else if (c == 'g')
+      {
+        cmd[4] = '0'-1;
+      }
+      else if (c == 'c')
+      {
+        cmd[5] = '0'+1;
+      }
+      else if (c == 'v')
+      {
+        cmd[5] = '0'-1;
+      }
+      else if (c == 'b')
+      {
+        cmd[6] = '0'+1;
+      }
+      else if (c == 'n')
+      {
+        cmd[6] = '0'-1;
+      }
       auto message = std_msgs::msg::String();
       message.data = cmd;
       RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
