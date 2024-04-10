@@ -12,11 +12,15 @@ using moveit::planning_interface::MoveGroupInterface;
 class MinimalSubscriber : public rclcpp::Node
 {
   public:
-    MinimalSubscriber()
-    : Node("minimal_subscriber")
+    MinimalSubscriber(const rclcpp::NodeOptions &options)
+    : Node("minimal_subscriber", options), node_(std::make_shared<rclcpp::Node>("example_group_node")),
+          executor_(std::make_shared<rclcpp::executors::SingleThreadedExecutor>()) 
     {
       subscription_ = this->create_subscription<std_msgs::msg::String>(
       "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, _1));
+      
+			executor_->add_node(node_);
+      executor_thread_ = std::thread([this]() { this->executor_->spin(); });
       
       target_pose = []{
 				geometry_msgs::msg::Pose msg;
@@ -41,11 +45,42 @@ class MinimalSubscriber : public rclcpp::Node
 			} else {
 				RCLCPP_ERROR(this->get_logger(), "Planing failed!");
 			}
+      
+      //print random crap
+			geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
+
+			// Print the current pose of the end effector
+			RCLCPP_INFO(this->get_logger(), "Initial pose: %f %f %f %f %f %f %f",
+				current_pose.position.x,
+				current_pose.position.y,
+				current_pose.position.z,
+				current_pose.orientation.x,
+				current_pose.orientation.y,
+				current_pose.orientation.z,
+				current_pose.orientation.w);
+			
+			current_pose = target_pose;
+			
+			RCLCPP_INFO(this->get_logger(), "Supposed-to-be pose: %f %f %f %f %f %f %f",
+				current_pose.position.x,
+				current_pose.position.y,
+				current_pose.position.z,
+				current_pose.orientation.x,
+				current_pose.orientation.y,
+				current_pose.orientation.z,
+				current_pose.orientation.w);
+			
     }
 
   private:
     moveit::planning_interface::MoveGroupInterface move_group_interface = MoveGroupInterface(std::make_shared<rclcpp::Node>(this->get_name()), "rover_arm");
     geometry_msgs::msg::Pose target_pose;
+    
+    //random stuff
+    rclcpp::Node::SharedPtr node_;
+    rclcpp::Executor::SharedPtr executor_;
+    std::thread executor_thread_;
+    
     void topic_callback(const std_msgs::msg::String & msg)
     {
       RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
@@ -53,9 +88,9 @@ class MinimalSubscriber : public rclcpp::Node
       
       std::vector<geometry_msgs::msg::Pose> points;
 			// print current pose
-			geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
+			//geometry_msgs::msg::Pose current_pose = move_group_interface.getCurrentPose().pose;
 			
-			//geometry_msgs::msg::Pose current_pose = target_pose;
+			geometry_msgs::msg::Pose current_pose = target_pose;
 			points.push_back(current_pose);
 
 			// Print the current pose of the end effector
@@ -83,7 +118,16 @@ class MinimalSubscriber : public rclcpp::Node
 				return msg;
 			}();
 			
-			/*move_group_interface.setPoseTarget(new_pose);
+			RCLCPP_INFO(this->get_logger(), "New pose: %f %f %f %f %f %f %f",
+				new_pose.position.x,
+				new_pose.position.y,
+				new_pose.position.z,
+				new_pose.orientation.x,
+				new_pose.orientation.y,
+				new_pose.orientation.z,
+				new_pose.orientation.w);
+			
+			move_group_interface.setPoseTarget(new_pose);
 
 			// Create a plan to that target pose
 			auto const [success, plan] = [&]{
@@ -97,19 +141,34 @@ class MinimalSubscriber : public rclcpp::Node
 				move_group_interface.execute(plan);
 			} else {
 				RCLCPP_ERROR(this->get_logger(), "Planing failed!");
-			}*/
+			}//*/
 			
 			points.push_back(new_pose);
 			
-			moveit_msgs::msg::RobotTrajectory trajectory;
+			/*moveit_msgs::msg::RobotTrajectory trajectory;
 			const double jump_threshold = 0;
 			const double eef_step = 0.01;
 			//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 			move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 			//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
 			move_group_interface.execute(trajectory);
-			//target_pose = points[1];//*/
+			target_pose = points[1];//*/
 			//sleep(1000);
+			target_pose = points[1];
+			
+			
+			//print random crap
+			current_pose = move_group_interface.getCurrentPose().pose;
+
+			// Print the current pose of the end effector
+			RCLCPP_INFO(this->get_logger(), "Current pose: %f %f %f %f %f %f %f",
+				current_pose.position.x,
+				current_pose.position.y,
+				current_pose.position.z,
+				current_pose.orientation.x,
+				current_pose.orientation.y,
+				current_pose.orientation.z,
+				current_pose.orientation.w);
 	  }
 	  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
 };
@@ -117,13 +176,23 @@ class MinimalSubscriber : public rclcpp::Node
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  //rclcpp::spin(std::make_shared<MinimalSubscriber>());
   
-  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::NodeOptions node_options;
+  node_options.automatically_declare_parameters_from_overrides(true);
+  
+  auto node = std::make_shared<MinimalSubscriber>(node_options);
+  
+  rclcpp::spin(node);
+  
+  
+  /*rclcpp::executors::MultiThreadedExecutor executor;
   auto node = std::make_shared<MinimalSubscriber>();
   executor.add_node(node);
-  auto spinner = std::thread([&executor]() {executor.spin(); });//*/
-  spinner.join();
+  auto spinner = std::thread([&executor]() {executor.spin(); });
+  
+  //rclcpp::spin(node);
+  
+  spinner.join();//*/
   rclcpp::shutdown();
   return 0;
 }//*/

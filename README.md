@@ -22,3 +22,6 @@ ros2 run moveit_controller moveit_controller
 terminal 3:
 ros2 run controller_publisher controller_publisher
 Start entering w, a, s, or d and press enter
+
+cd launch
+ros2 launch moveit_controller_launch.py
