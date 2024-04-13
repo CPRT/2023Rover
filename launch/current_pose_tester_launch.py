@@ -5,9 +5,9 @@ def generate_launch_description():
     parameters = [{"use_sim_time":False}]
     return LaunchDescription([
         Node(
-            package='moveit_controller',
+            package='current_pose_tester',
             parameters=parameters,
-            executable='moveit_controller',
-            name='moveit_controller'
+            executable='current_pose_tester',
+            name='current_pose_tester'
         )
     ])

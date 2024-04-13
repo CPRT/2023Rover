@@ -12,14 +12,15 @@ using moveit::planning_interface::MoveGroupInterface;
 class MinimalSubscriber : public rclcpp::Node
 {
   public:
-    MinimalSubscriber()
-    : Node("minimal_subscriber") 
+    MinimalSubscriber(const rclcpp::NodeOptions &options)
+    : Node("minimal_subscriber", options), node_(std::make_shared<rclcpp::Node>("example_group_node")),
+          executor_(std::make_shared<rclcpp::executors::SingleThreadedExecutor>()) 
     {
       subscription_ = this->create_subscription<std_msgs::msg::String>(
       "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, _1));
       
-			//executor_->add_node(node_);
-      //executor_thread_ = std::thread([this]() { this->executor_->spin(); });
+			executor_->add_node(node_);
+      executor_thread_ = std::thread([this]() { this->executor_->spin(); });
       
       target_pose = []{
 				geometry_msgs::msg::Pose msg;
@@ -58,17 +59,7 @@ class MinimalSubscriber : public rclcpp::Node
 				current_pose.orientation.z,
 				current_pose.orientation.w);
 				
-		  current_pose = move_group_interface.getCurrentPose("Joint_1");
-
-			// Print the current pose of the end effector
-			RCLCPP_INFO(this->get_logger(), "Initial pose: %f %f %f %f %f %f %f",
-				current_pose.position.x,
-				current_pose.position.y,
-				current_pose.position.z,
-				current_pose.orientation.x,
-				current_pose.orientation.y,
-				current_pose.orientation.z,
-				current_pose.orientation.w);
+		  
 			
 			current_pose = target_pose;
 			
@@ -86,11 +77,12 @@ class MinimalSubscriber : public rclcpp::Node
   private:
     moveit::planning_interface::MoveGroupInterface move_group_interface = MoveGroupInterface(std::make_shared<rclcpp::Node>(this->get_name()), "rover_arm");
     geometry_msgs::msg::Pose target_pose;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
     
     //random stuff
-    //rclcpp::Node::SharedPtr node_;
-    //rclcpp::Executor::SharedPtr executor_;
-    //std::thread executor_thread_;
+    rclcpp::Node::SharedPtr node_;
+    rclcpp::Executor::SharedPtr executor_;
+    std::thread executor_thread_;
     
     void topic_callback(const std_msgs::msg::String & msg)
     {
@@ -181,22 +173,21 @@ class MinimalSubscriber : public rclcpp::Node
 				current_pose.orientation.z,
 				current_pose.orientation.w);
 	  }
-	  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
 };
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   
-  //rclcpp::NodeOptions node_options;
-  //node_options.automatically_declare_parameters_from_overrides(true);
+  rclcpp::NodeOptions node_options;
+  node_options.automatically_declare_parameters_from_overrides(true);
   
-  //auto node = std::make_shared<MinimalSubscriber>(node_options);
+  auto node = std::make_shared<MinimalSubscriber>(node_options);
   
-  //rclcpp::spin(node);
+  rclcpp::spin(node);
   
   
-  rclcpp::executors::MultiThreadedExecutor executor;
+  /*rclcpp::executors::MultiThreadedExecutor executor;
   auto node = std::make_shared<MinimalSubscriber>();
   executor.add_node(node);
   auto spinner = std::thread([&executor]() {executor.spin(); });
