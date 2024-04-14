@@ -9,6 +9,13 @@
 using std::placeholders::_1;
 using moveit::planning_interface::MoveGroupInterface;
 
+void executeTrajectory(moveit_msgs::msg::RobotTrajectory &traj, moveit::planning_interface::MoveGroupInterfacePtr mgi)
+{
+  RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Starting thread");
+  mgi->execute(traj);
+  RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
+}
+
 class TestNode : public rclcpp::Node
 {
   public:
@@ -63,6 +70,8 @@ class TestNode : public rclcpp::Node
     rclcpp::Node::SharedPtr node_ptr;
     rclcpp::Executor::SharedPtr executor_ptr;
     std::thread executor_thread;
+    std::thread th;
+    moveit_msgs::msg::RobotTrajectory trajectory;
     
     void topic_callback(const std_msgs::msg::String & msg)
     {
@@ -84,6 +93,7 @@ class TestNode : public rclcpp::Node
       
       std::vector<geometry_msgs::msg::Pose> points;
       
+      move_group_ptr->stop();
       move_group_ptr->setStartStateToCurrentState();
       geometry_msgs::msg::Pose current_pose = move_group_ptr->getCurrentPose().pose;
       
@@ -102,9 +112,9 @@ class TestNode : public rclcpp::Node
 				auto const new_pose = [&]{
 				geometry_msgs::msg::Pose msg = current_pose;
 				//msg.position.y += 0.2;
-				msg.position.x += (cmd[0] - '0')/10.0;
-				msg.position.y += (cmd[1] - '0')/10.0;
-				msg.position.z += (cmd[2] - '0')/10.0;
+				msg.position.x += (cmd[0] - '0')*10.0;
+				msg.position.y += (cmd[1] - '0')*10.0;
+				msg.position.z += (cmd[2] - '0')*10.0;
 				
 				msg.orientation.x += (cmd[3] - '0')/10.0;
 				msg.orientation.y += (cmd[4] - '0')/10.0;
@@ -125,14 +135,23 @@ class TestNode : public rclcpp::Node
 				new_pose.orientation.z,
 				new_pose.orientation.w);
 		  
-		  moveit_msgs::msg::RobotTrajectory trajectory;
+		  
 			const double jump_threshold = 0;
 			const double eef_step = 0.01;
 			//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 			move_group_ptr->computeCartesianPath(points, eef_step, jump_threshold, trajectory);
 			//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
-			move_group_ptr->execute(trajectory);
+			//move_group_ptr->execute(trajectory);
 			
+			//launch thread
+			RCLCPP_INFO(this->get_logger(), "What");
+			if (th.joinable())
+			{
+				th.join();
+			}
+			RCLCPP_INFO(this->get_logger(), "What??");
+			th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
+			RCLCPP_INFO(this->get_logger(), "Why");
     }
 };
 
