@@ -28,5 +28,7 @@ ros2 run moveit_controller moveit_controller
 terminal 3:
 ros2 run controller_publisher controller_publisher
 Start entering w, a, s, or d and press enter
+z and x to go up and down
+q to stop
 
 
