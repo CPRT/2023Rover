@@ -29,6 +29,7 @@ terminal 3:
 ros2 run controller_publisher controller_publisher
 Start entering w, a, s, or d and press enter
 z and x to go up and down
+r and t to twist wrist
+f and g to rotate wrist up and down
+c and v to rotate wrist side to side
 q to stop
-
-

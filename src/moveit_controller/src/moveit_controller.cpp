@@ -5,6 +5,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include "std_msgs/msg/string.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 using std::placeholders::_1;
 using moveit::planning_interface::MoveGroupInterface;
@@ -13,6 +15,13 @@ void executeTrajectory(moveit_msgs::msg::RobotTrajectory &traj, moveit::planning
 {
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Starting thread");
   mgi->execute(traj);
+  RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
+}
+
+void executePlan(moveit::planning_interface::MoveGroupInterface::Plan &rotationPlan, moveit::planning_interface::MoveGroupInterfacePtr mgi)
+{
+  RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Starting thread");
+  mgi->execute(rotationPlan);
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
 }
 
@@ -73,6 +82,8 @@ class TestNode : public rclcpp::Node
     std::thread th;
     moveit_msgs::msg::RobotTrajectory trajectory;
     
+    moveit::planning_interface::MoveGroupInterface::Plan rotationPlan;
+    
     void topic_callback(const std_msgs::msg::String & msg)
     {
       RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
@@ -109,22 +120,16 @@ class TestNode : public rclcpp::Node
 				current_pose.orientation.z,
 				current_pose.orientation.w);//*/
 				
-				auto const new_pose = [&]{
+			auto const new_pose = [&]{
 				geometry_msgs::msg::Pose msg = current_pose;
 				//msg.position.y += 0.2;
 				msg.position.x += (cmd[0] - '0')*10.0;
 				msg.position.y += (cmd[1] - '0')*10.0;
 				msg.position.z += (cmd[2] - '0')*10.0;
 				
-				msg.orientation.x += (cmd[3] - '0')/10.0;
-				msg.orientation.y += (cmd[4] - '0')/10.0;
-				msg.orientation.z += (cmd[5] - '0')/10.0;
-				msg.orientation.w += (cmd[6] - '0')/10.0;
 				
 				return msg;
 			}();
-			
-			points.push_back(new_pose);
 			
 			RCLCPP_INFO(this->get_logger(), "New pose: %f %f %f %f %f %f %f",
 				new_pose.position.x,
@@ -134,24 +139,84 @@ class TestNode : public rclcpp::Node
 				new_pose.orientation.y,
 				new_pose.orientation.z,
 				new_pose.orientation.w);
-		  
-		  
-			const double jump_threshold = 0;
-			const double eef_step = 0.01;
-			//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
-			move_group_ptr->computeCartesianPath(points, eef_step, jump_threshold, trajectory);
-			//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
-			//move_group_ptr->execute(trajectory);
 			
-			//launch thread
-			RCLCPP_INFO(this->get_logger(), "What");
-			if (th.joinable())
+			if (cmd[3] != '0' || cmd[4] != '0' || cmd[5] != '0' || cmd[6] != '0') //rotation required
 			{
-				th.join();
+			  tf2::Quaternion q1;
+			  tf2::convert(current_pose.orientation, q1);
+			  tf2::Quaternion q2;
+			  q2.setRPY(cmd[3] - '0', cmd[4] - '0', cmd[5] - '0');
+			  tf2::Quaternion q3 = q1 * q2;
+			  geometry_msgs::msg::Quaternion q4 = tf2::toMsg(q3);
+			  
+			  geometry_msgs::msg::Pose rotation_pose = current_pose;
+			  rotation_pose.orientation = q4;
+			  
+			  points.push_back(rotation_pose);
+			  
+			  const double jump_threshold = 0;
+				const double eef_step = 0.01;
+				//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+				move_group_ptr->computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+				//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
+				//move_group_ptr->execute(trajectory);
+				
+				//launch thread
+				RCLCPP_INFO(this->get_logger(), "What");
+				if (th.joinable())
+				{
+					th.join();
+				}
+				RCLCPP_INFO(this->get_logger(), "What??");
+				th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
+				RCLCPP_INFO(this->get_logger(), "Why");
+			  
+			  //geometry_msgs::msg::Pose rotation_pose = current_pose;
+			  //rotation_pose.orientation = q4;
+			  
+			  /*move_group_ptr->setOrientationTarget(q4.x, q4.y, q4.z, q4.w);
+			  auto const ok = static_cast<bool>(move_group_ptr->plan(rotationPlan));
+			  
+			  if (ok)
+			  {
+			    RCLCPP_INFO(this->get_logger(), "Rotation");
+					if (th.joinable())
+					{
+						th.join();
+					}
+					RCLCPP_INFO(this->get_logger(), "Rotation??");
+					th = std::thread(executePlan, std::ref(rotationPlan), move_group_ptr);
+					RCLCPP_INFO(this->get_logger(), "Rotation done");
+			  }
+			  else
+			  {
+			    RCLCPP_ERROR(this->get_logger(), "Planing failed!");
+			  }*/
+			  
 			}
-			RCLCPP_INFO(this->get_logger(), "What??");
-			th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
-			RCLCPP_INFO(this->get_logger(), "Why");
+			else //rotation not required
+			{
+			  points.push_back(new_pose);
+			  const double jump_threshold = 0;
+				const double eef_step = 0.01;
+				//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+				move_group_ptr->computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+				//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
+				//move_group_ptr->execute(trajectory);
+				
+				//launch thread
+				RCLCPP_INFO(this->get_logger(), "What");
+				if (th.joinable())
+				{
+					th.join();
+				}
+				RCLCPP_INFO(this->get_logger(), "What??");
+				th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
+				RCLCPP_INFO(this->get_logger(), "Why");
+			}
+		  
+		  
+			
     }
 };
 
