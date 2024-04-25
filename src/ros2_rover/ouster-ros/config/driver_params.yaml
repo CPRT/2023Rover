@@ -37,7 +37,7 @@ ouster/os_driver:
     udp_profile_lidar: ''
     # metadata[optional]: path to save metadata file to, if left empty a file
     # with the sensor hostname or ip will be crearted in ~/.ros folder.
-    metadata: ''
+    metadata: 'metadata'
     # lidar_port[optional]: port value should be in the range [0, 65535]. If you
     # use 0 as the port value then the first avaliable port number will be
     # assigned.
