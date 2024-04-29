@@ -41,16 +41,16 @@ global_ekf:
     # pose0_pose_rejection_threshold: 5.0
     # pose0_twist_rejection_threshold: 1.0
 
-    odom0: wheels/odom
+    odom0: icp/odom
     odom0_config: [
         # position
-        false, false, false,
+        true, true, true,
         # orientation
-        false, false, false,
-        # lineal vel
-        true, true, false,
-        # angular vel
         false, false, true,
+        # lineal vel 
+        true, true, true,
+        # angular vel
+        false, false, false,
         # lineal acc
         false, false, false,
       ]
@@ -69,6 +69,26 @@ global_ekf:
                    false, false, false]
     odom1_differential: false
     odom1_relative: false
+
+    odom2: wheels/odom
+    odom2_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        true, true, false,
+        # angular vel
+        false, false, true,
+        # lineal acc
+        false, false, false,
+      ]
+    # odom2_queue_size: 2
+    # odom2_nodelay: false
+    odom2_differential: true
+    odom2_relative: false
+    # odom2_pose_rejection_threshold: 5.0
+    # odom2_twist_rejection_threshold: 1.0
 
     imu0: ouster/imu
     imu0_config: [

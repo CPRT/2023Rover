@@ -40,6 +40,9 @@ def generate_launch_description():
         description='Enable bond connection during node activation')
 
     start_localization_slam_toolbox_node = LifecycleNode(
+        remappings = [
+        ("pose", "slam/pose")
+        ],
         parameters=[
           slam_params_file,
           {
