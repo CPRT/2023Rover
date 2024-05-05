@@ -68,18 +68,23 @@ def generate_launch_description():
         "Grid/NormalK": "20",
         "Grid/CellSize": "0.1",
         "Grid/FlatObstacleDetected": "false",
+        #"Grid/Sensor": "True",
 
         "GridGlobal/UpdateError": "0.01",
-        "GridGlobal/MinSize": "200"
+        "GridGlobal/MinSize": "200",
+
+        "Reg/Strategy": "1"
     }]
 
     remappings = [
-        ("rgb/image", "camera/image_raw"),
+        ("scan_cloud", "ouster/points"),
         ("rgb/camera_info", "camera/camera_info"),
         ("depth/image", "camera/depth/image_raw"),
-        ("imu", "imu"),
-        ("odom", "odom"),
-        ("goal", "goal_pose")]
+        ("imu", "ouster/imu"),
+        ("odom", "odometry/filtered/local"),
+        ("goal", "goal_pose"),
+        ("map", "map"),
+    ]
 
     return LaunchDescription([
         use_sim_time_cmd,
@@ -91,7 +96,7 @@ def generate_launch_description():
             output="screen",
             parameters=parameters,
             remappings=remappings,
-            arguments=["-d",
+            arguments=["-d", "--delete_db_on_start",
                        "--ros-args", "--log-level", "Warn"]),
 
         Node(

@@ -43,7 +43,7 @@ def generate_launch_description():
     slam_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
-                         "launch", "slam.launch.py")
+                         "launch", "rtabmap.launch.py")
         ),
         launch_arguments={"use_sim_time": use_sim_time}.items()
     )
