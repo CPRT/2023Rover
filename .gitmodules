@@ -5,3 +5,7 @@
 	path = src/ouster-ros
 	url = git@github.com:ouster-lidar/ouster-ros.git
 	branch = ros2
+[submodule "src/spatio_temporal_voxel_layer"]
+	path = src/spatio_temporal_voxel_layer
+	url = git@github.com:CPRT/spatio_temporal_voxel_layer.git
+	branch = ros2
