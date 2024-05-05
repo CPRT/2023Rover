@@ -32,6 +32,20 @@ def generate_launch_description():
         "use_sim_time",
         default_value="False",
         description="Use simulation (Gazebo) clock if True")
+    
+    launch_ouster = LaunchConfiguration("launch_ouster")
+    launch_ouster = DeclareLaunchArgument(
+        "launch_ouster",
+        default_value="True",
+        description="Launch ouster driver if True")
+    
+
+    ouster_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_rover_localization,
+                         "launch", "ouster.launch.py")
+        )
+    )
 
     icp_odometry_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -59,6 +73,10 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(use_sim_time_cmd)
+    ld.add_action(launch_ouster)
+
+    if(launch_ouster):
+        ld.add_action(ouster_cmd)
 
     ld.add_action(icp_odometry_cmd)
     ld.add_action(slam_cmd)
