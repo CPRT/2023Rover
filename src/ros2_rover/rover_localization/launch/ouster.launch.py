@@ -87,11 +87,14 @@ def generate_launch_description():
         )
     )
 
+    rviz_config = os.path.join(get_package_share_directory(
+        "rover_localization"), "config", "rviz.views","basicNavMap.rviz")
+
     rviz_launch_file_path = \
         Path(ouster_ros_pkg_dir) / 'launch' / 'rviz.launch.py'
     rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([str(rviz_launch_file_path)]),
-        
+        launch_arguments={'rviz_config': rviz_config}.items(),
         condition=IfCondition(rviz_enable)
     )
 
