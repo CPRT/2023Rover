@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'joystick = joystick_drive/joystick_drive:main'
         ],
     },
 )
