@@ -45,8 +45,8 @@ def generate_launch_description():
         "use_sim_time": use_sim_time,
         "qos_imu": 2,
 
-        "Optimizer/Strategy": "1",
-        "Optimizer/GravitySigma": "0.0",
+        "Optimizer/Strategy": "1",                  # 0=TORO, 1=g2o, 2=GTSAM
+        "Optimizer/GravitySigma": "0.3",
 
         "RGBD/OptimizeMaxError": "1.0",
         "RGBD/OptimizeFromGraphEnd": "true",
@@ -61,7 +61,7 @@ def generate_launch_description():
         "Vis/MaxDepth": "2.5",
 
         "Grid/DepthDecimation": "2",
-        "Grid/RangeMin": "0.0",
+        "Grid/RangeMin": "0.5",
         "Grid/RangeMax": "2.5",
         "Grid/MinClusterSize": "20",
         "Grid/MaxGroundAngle": "35",
