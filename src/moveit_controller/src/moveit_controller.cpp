@@ -37,7 +37,7 @@ class TestNode : public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), node_name.c_str());
       
       subscription_ = this->create_subscription<std_msgs::msg::String>(
-      "topic", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
+      "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
       
       //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
       
@@ -87,6 +87,11 @@ class TestNode : public rclcpp::Node
     void topic_callback(const std_msgs::msg::String & msg)
     {
       RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+      move_group_ptr->stop();
+      if (th.joinable())
+			{
+				th.join();
+			}
       std::string cmd = msg.data.c_str();
       
       auto myid = std::this_thread::get_id();
@@ -104,7 +109,6 @@ class TestNode : public rclcpp::Node
       
       std::vector<geometry_msgs::msg::Pose> points;
       
-      move_group_ptr->stop();
       move_group_ptr->setStartStateToCurrentState();
       geometry_msgs::msg::Pose current_pose = move_group_ptr->getCurrentPose().pose;
       
@@ -206,10 +210,6 @@ class TestNode : public rclcpp::Node
 				
 				//launch thread
 				RCLCPP_INFO(this->get_logger(), "What");
-				if (th.joinable())
-				{
-					th.join();
-				}
 				RCLCPP_INFO(this->get_logger(), "What??");
 				th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
 				RCLCPP_INFO(this->get_logger(), "Why");

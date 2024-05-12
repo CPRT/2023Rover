@@ -20,7 +20,7 @@ class TestNode : public rclcpp::Node
       RCLCPP_INFO(this->get_logger(), node_name.c_str());
       
       subscription_ = this->create_subscription<std_msgs::msg::String>(
-      "topic", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
+      "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
       
       //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
       
