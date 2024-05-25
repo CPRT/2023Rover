@@ -36,7 +36,7 @@ class JoystickReader : public rclcpp::Node
       "joy", 10, std::bind(&JoystickReader::topic_callback, this, _1));
       publisher_ = this->create_publisher<std_msgs::msg::String>("arm_base_commands", 10);
       timer_ = this->create_wall_timer(
-      50ms, std::bind(&JoystickReader::publish_message, this));//*/
+      500ms, std::bind(&JoystickReader::publish_message, this));//*/
     }
 
   private:
@@ -110,6 +110,10 @@ class JoystickReader : public rclcpp::Node
       if (msg->axes[5] == -1)
       {
         cmd[5] = '0'-1;
+      }
+      if (msg->buttons[3] == 1)
+      {
+        cmd[6] = '0'+1;
       }
       if (!isEqual(cmd, oldCmd))
       {

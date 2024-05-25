@@ -14,14 +14,14 @@ using moveit::planning_interface::MoveGroupInterface;
 void executeTrajectory(moveit_msgs::msg::RobotTrajectory &traj, moveit::planning_interface::MoveGroupInterfacePtr mgi)
 {
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Starting thread");
-  mgi->execute(traj);
+  mgi->asyncExecute(traj);
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
 }
 
 void executePlan(moveit::planning_interface::MoveGroupInterface::Plan &rotationPlan, moveit::planning_interface::MoveGroupInterfacePtr mgi)
 {
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Starting thread");
-  mgi->execute(rotationPlan);
+  mgi->asyncExecute(rotationPlan);
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
 }
 
@@ -143,8 +143,33 @@ class TestNode : public rclcpp::Node
 				new_pose.orientation.y,
 				new_pose.orientation.z,
 				new_pose.orientation.w);
-			
-			if (cmd[3] != '0' || cmd[4] != '0' || cmd[5] != '0' || cmd[6] != '0') //rotation required
+			if (cmd[6] == '0'+1) //reset something
+			{
+			  geometry_msgs::msg::Pose target_pose = []{
+				geometry_msgs::msg::Pose msg;
+				msg.orientation.w = 1.0;
+				msg.position.x = 0.636922;
+				msg.position.y = 0.064768;
+				msg.position.z = 0.678810;
+				return msg;
+				}();
+				move_group_ptr->setPoseTarget(target_pose);
+
+				// Create a plan to that target pose
+				auto const [success, plan] = [&]{
+					moveit::planning_interface::MoveGroupInterface::Plan msg;
+					auto const ok = static_cast<bool>(move_group_ptr->plan(msg));
+					return std::make_pair(ok, msg);
+				}();
+
+				// Execute the plan
+				if(success) {
+					move_group_ptr->execute(plan);
+				} else {
+					RCLCPP_ERROR(this->get_logger(), "Planing failed!");
+				}
+			}
+			else if (cmd[3] != '0' || cmd[4] != '0' || cmd[5] != '0' || cmd[6] != '0') //rotation required
 			{
 			  tf2::Quaternion q1;
 			  tf2::convert(current_pose.orientation, q1);
