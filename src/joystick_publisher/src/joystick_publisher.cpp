@@ -35,12 +35,16 @@ class JoystickReader : public rclcpp::Node
       subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10, std::bind(&JoystickReader::topic_callback, this, _1));
       publisher_ = this->create_publisher<std_msgs::msg::String>("arm_base_commands", 10);
+      timer_ = this->create_wall_timer(
+      50ms, std::bind(&JoystickReader::publish_message, this));//*/
     }
 
   private:
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
     std::string oldCmd = "0000000";
+    rclcpp::TimerBase::SharedPtr timer_;
+    bool shouldPub = false;
     
     void setStr(const std::string a)
 		{
@@ -110,13 +114,24 @@ class JoystickReader : public rclcpp::Node
       if (!isEqual(cmd, oldCmd))
       {
         setStr(cmd);
-		    auto message = std_msgs::msg::String();
+        shouldPub = true;
+		    /*auto message = std_msgs::msg::String();
 		    message.data = cmd;
 		    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-		    publisher_->publish(message);
+		    publisher_->publish(message);*/
 		  }
-      
-      
+    }
+    
+    void publish_message()
+    {
+      if (shouldPub)
+      {
+		    shouldPub = false;
+		    auto message = std_msgs::msg::String();
+			  message.data = oldCmd;
+			  RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+			  publisher_->publish(message);
+			}
     }
     
 };
