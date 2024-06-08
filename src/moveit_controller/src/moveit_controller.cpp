@@ -25,6 +25,11 @@ void executePlan(moveit::planning_interface::MoveGroupInterface::Plan &rotationP
   RCLCPP_INFO(rclcpp::get_logger("hello_moveit"), "Ending thread");
 }
 
+bool isEmpty(const geometry_msgs::msg::Pose &p)
+{
+  return p.position.x == 0 && p.position.y == 0 && p.position.z == 0 && p.orientation.x == 0 && p.orientation.y == 0 && p.orientation.z == 0 && p.orientation.w == 0;
+}
+
 class TestNode : public rclcpp::Node
 {
   public:
@@ -36,7 +41,7 @@ class TestNode : public rclcpp::Node
       
       RCLCPP_INFO(this->get_logger(), node_name.c_str());
       
-      subscription_ = this->create_subscription<std_msgs::msg::String>(
+      subscription_ = this->create_subscription<geometry_msgs::msg::Pose>(
       "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
       
       //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
@@ -72,7 +77,7 @@ class TestNode : public rclcpp::Node
     }
 
   private:
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+    rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr subscription_;
     
     std::string node_name;
     moveit::planning_interface::MoveGroupInterfacePtr move_group_ptr;
@@ -84,15 +89,28 @@ class TestNode : public rclcpp::Node
     
     moveit::planning_interface::MoveGroupInterface::Plan rotationPlan;
     
-    void topic_callback(const std_msgs::msg::String & msg)
+    void topic_callback(const geometry_msgs::msg::Pose & poseMsg)
     {
-      RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+      //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+      RCLCPP_INFO(this->get_logger(), "I heard: %f %f %f %f %f %f %f",
+				poseMsg.position.x,
+				poseMsg.position.y,
+				poseMsg.position.z,
+				poseMsg.orientation.x,
+				poseMsg.orientation.y,
+				poseMsg.orientation.z,
+				poseMsg.orientation.w);//*/
+      
+      
       move_group_ptr->stop();
       if (th.joinable())
 			{
 				th.join();
 			}
-      std::string cmd = msg.data.c_str();
+			if (isEmpty(poseMsg))
+			{
+			  return;
+			}
       
       auto myid = std::this_thread::get_id();
 			std::stringstream ss;
@@ -127,9 +145,9 @@ class TestNode : public rclcpp::Node
 			auto const new_pose = [&]{
 				geometry_msgs::msg::Pose msg = current_pose;
 				//msg.position.y += 0.2;
-				msg.position.x += (cmd[0] - '0')*10.0;
-				msg.position.y += (cmd[1] - '0')*10.0;
-				msg.position.z += (cmd[2] - '0')*10.0;
+				msg.position.x += poseMsg.position.x*10;
+				msg.position.y += poseMsg.position.y*10;
+				msg.position.z += poseMsg.position.z*10;
 				
 				
 				return msg;
@@ -143,7 +161,7 @@ class TestNode : public rclcpp::Node
 				new_pose.orientation.y,
 				new_pose.orientation.z,
 				new_pose.orientation.w);
-			if (cmd[6] == '0'+1) //reset something
+			if (poseMsg.orientation.w != 0) //reset something
 			{
 			  geometry_msgs::msg::Pose target_pose = []{
 				geometry_msgs::msg::Pose msg;
@@ -169,12 +187,12 @@ class TestNode : public rclcpp::Node
 					RCLCPP_ERROR(this->get_logger(), "Planing failed!");
 				}
 			}
-			else if (cmd[3] != '0' || cmd[4] != '0' || cmd[5] != '0' || cmd[6] != '0') //rotation required
+			else if (poseMsg.orientation.x != 0 || poseMsg.orientation.y != 0 || poseMsg.orientation.z != 0 || poseMsg.orientation.w != 0) //rotation required
 			{
 			  tf2::Quaternion q1;
 			  tf2::convert(current_pose.orientation, q1);
 			  tf2::Quaternion q2;
-			  q2.setRPY(cmd[3] - '0', cmd[4] - '0', cmd[5] - '0');
+			  q2.setRPY(poseMsg.orientation.x, poseMsg.orientation.y, poseMsg.orientation.z);
 			  tf2::Quaternion q3 = q1 * q2;
 			  geometry_msgs::msg::Quaternion q4 = tf2::toMsg(q3);
 			  

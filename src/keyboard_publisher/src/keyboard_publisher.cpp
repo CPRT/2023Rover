@@ -5,6 +5,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <moveit/move_group_interface/move_group_interface.h>
+#include "std_msgs/msg/string.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 using namespace std::chrono_literals;
 
@@ -17,7 +22,7 @@ class MinimalPublisher : public rclcpp::Node
     MinimalPublisher()
     : Node("minimal_publisher"), count_(0)
     {
-      publisher_ = this->create_publisher<std_msgs::msg::String>("arm_keyboard_base_commands", 10);
+      publisher_ = this->create_publisher<geometry_msgs::msg::Pose>("arm_base_commands", 10);
       timer_ = this->create_wall_timer(
       500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
     }
@@ -26,71 +31,75 @@ class MinimalPublisher : public rclcpp::Node
     void timer_callback()
     {
       std::string cmd = "0000000";
+      geometry_msgs::msg::Pose poseCmd = []{
+				geometry_msgs::msg::Pose msg;
+				msg.position.x = 0;
+				msg.position.y = 0;
+				msg.position.z = 0;
+				msg.orientation.x = 0;
+				msg.orientation.y = 0;
+				msg.orientation.z = 0;
+				msg.orientation.w = 0;
+				return msg;
+			}();
       char c;
       std::cin>>c;
       if (c == 'w')
       {
-        cmd[0] = '0'+1;
+        poseCmd.position.x = 1;
       }
       else if (c == 's')
       {
-        cmd[0] = '0'-1;
+        poseCmd.position.x = -1;
       }
       else if (c == 'a')
       {
-        cmd[1] = '0'+1;
+        poseCmd.position.y = 1;
       }
       else if (c == 'd')
       {
-        cmd[1] = '0'-1;
+        poseCmd.position.y = -1;
       }
       else if (c == 'z')
       {
-        cmd[2] = '0'+1;
+        poseCmd.position.z = 1;
       }
       else if (c == 'x')
       {
-        cmd[2] = '0'-1;
+        poseCmd.position.z = -1;
       }
       else if (c == 'r')
       {
-        cmd[3] = '0'+1;
+        poseCmd.orientation.x = 1;
       }
       else if (c == 't')
       {
-        cmd[3] = '0'-1;
+        poseCmd.orientation.x = -1;
       }
       else if (c == 'f')
       {
-        cmd[4] = '0'+1;
+        poseCmd.orientation.y = 1;
       }
       else if (c == 'g')
       {
-        cmd[4] = '0'-1;
+        poseCmd.orientation.y = -1;
       }
       else if (c == 'c')
       {
-        cmd[5] = '0'+1;
+        poseCmd.orientation.z = 1;
       }
       else if (c == 'v')
       {
-        cmd[5] = '0'-1;
+        poseCmd.orientation.z = -1;
       }
-      else if (c == 'b')
-      {
-        cmd[6] = '0'+1;
-      }
-      else if (c == 'n')
-      {
-        cmd[6] = '0'-1;
-      }
-      auto message = std_msgs::msg::String();
-      message.data = cmd;
-      RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-      publisher_->publish(message);
+      //auto message = std_msgs::msg::String();
+      //geometry_msgs::msg::Pose message;
+      //message.data = cmd;
+      //RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+      publisher_->publish(poseCmd);
     }
     rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr publisher_;
     size_t count_;
 };
 

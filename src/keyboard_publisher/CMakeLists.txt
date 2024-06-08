@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(joystick_publisher)
+project(keyboard_publisher)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -10,18 +10,18 @@ find_package(ament_cmake REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(rclcpp REQUIRED)
 
-add_executable(joystick_publisher src/joystick_publisher.cpp)
-target_include_directories(joystick_publisher PUBLIC
+add_executable(keyboard_publisher src/keyboard_publisher.cpp)
+target_include_directories(keyboard_publisher PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(joystick_publisher PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(keyboard_publisher PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(
-  joystick_publisher
+  keyboard_publisher
   "moveit_ros_planning_interface"
   "rclcpp"
 )
 
-install(TARGETS joystick_publisher
+install(TARGETS keyboard_publisher
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

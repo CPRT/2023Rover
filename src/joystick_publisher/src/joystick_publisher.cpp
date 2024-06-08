@@ -6,24 +6,17 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "sensor_msgs/msg/joy.hpp"
+#include <moveit/move_group_interface/move_group_interface.h>
+#include "std_msgs/msg/string.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
-bool isEqual(std::string a, std::string b)
+bool isEqual(geometry_msgs::msg::Pose a, geometry_msgs::msg::Pose b)
 {
-  if (a.length() != b.length())
-  {
-    return false;
-  }
-  for (int i = 0; i < int(a.length()); i++)
-  {
-    if (a[i] != b[i])
-    {
-      return false;
-    }
-  }
-  return true;
+  return a == b;
 }
 
 class JoystickReader : public rclcpp::Node
@@ -34,90 +27,102 @@ class JoystickReader : public rclcpp::Node
     {
       subscription_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10, std::bind(&JoystickReader::topic_callback, this, _1));
-      publisher_ = this->create_publisher<std_msgs::msg::String>("arm_base_commands", 10);
+      publisher_ = this->create_publisher<geometry_msgs::msg::Pose>("arm_base_commands", 10);
       timer_ = this->create_wall_timer(
-      500ms, std::bind(&JoystickReader::publish_message, this));//*/
+      600ms, std::bind(&JoystickReader::publish_message, this));//*/
     }
 
   private:
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr subscription_;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-    std::string oldCmd = "0000000";
+    rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr publisher_;
+    geometry_msgs::msg::Pose oldCmd;
     rclcpp::TimerBase::SharedPtr timer_;
     bool shouldPub = false;
-    
-    void setStr(const std::string a)
-		{
-			if (a.length() != oldCmd.length())
-			{
-				return;
-			}
-			for (int i = 0; i < int(a.length()); i++)
-			{
-				oldCmd[i] = a[i];
-			}
-			
-		}
 		
     void topic_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
     {
       //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg->axes[1]);
-      std::string cmd = "0000000";
+      geometry_msgs::msg::Pose poseCmd = []{
+				geometry_msgs::msg::Pose msg;
+				msg.position.x = 0;
+				msg.position.y = 0;
+				msg.position.z = 0;
+				msg.orientation.x = 0;
+				msg.orientation.y = 0;
+				msg.orientation.z = 0;
+				msg.orientation.w = 0;
+				return msg;
+			}();
       if (msg->axes[0] > 0.4)
       {
-        cmd[1] = '0'+1;
+        poseCmd.position.y = 1;
       }
       if (msg->axes[0] < -0.4)
       {
-        cmd[1] = '0'-1;
+        poseCmd.position.y = -1;
       }
       if (msg->axes[1] > 0.4)
       {
-        cmd[0] = '0'+1;
+        poseCmd.position.x = 1;
       }
       if (msg->axes[1] < -0.4)
       {
-        cmd[0] = '0'-1;
+        poseCmd.position.x = -1;
       }
       if (msg->buttons[9] == 1)
       {
-        cmd[2] = '0'+1;
+        poseCmd.position.z = 1;
       }
       if (msg->buttons[10] == 1)
       {
-        cmd[2] = '0'-1;
+        poseCmd.position.z = -1;
       }
       if (msg->axes[2] > 0.4)
       {
-        cmd[3] = '0'-1;
+        poseCmd.orientation.x = -1;
       }
       if (msg->axes[2] < -0.4)
       {
-        cmd[3] = '0'+1;
+        poseCmd.orientation.x = 1;
       }
       if (msg->axes[3] > 0.4)
       {
-        cmd[4] = '0'+1;
+        poseCmd.orientation.y = 1;
       }
       if (msg->axes[3] < -0.4)
       {
-        cmd[4] = '0'-1;
+        poseCmd.orientation.y = -1;
       }
       if (msg->axes[4] == -1)
       {
-        cmd[5] = '0'+1;
+        poseCmd.orientation.z = 1;
       }
       if (msg->axes[5] == -1)
       {
-        cmd[5] = '0'-1;
+        poseCmd.orientation.z = -1;
       }
       if (msg->buttons[3] == 1)
       {
-        cmd[6] = '0'+1;
+        poseCmd.orientation.w = 1;
       }
-      if (!isEqual(cmd, oldCmd))
+      if (msg->buttons[1] == 1)
       {
-        setStr(cmd);
+        poseCmd = []{
+					geometry_msgs::msg::Pose msg;
+					msg.position.x = 0;
+					msg.position.y = 0;
+					msg.position.z = 0;
+					msg.orientation.x = 0;
+					msg.orientation.y = 0;
+					msg.orientation.z = 0;
+					msg.orientation.w = 0;
+					return msg;
+				}();
+        shouldPub = true;
+      }
+      if (!isEqual(poseCmd, oldCmd))
+      {
+        oldCmd = poseCmd;
         shouldPub = true;
 		    /*auto message = std_msgs::msg::String();
 		    message.data = cmd;
@@ -131,10 +136,15 @@ class JoystickReader : public rclcpp::Node
       if (shouldPub)
       {
 		    shouldPub = false;
-		    auto message = std_msgs::msg::String();
-			  message.data = oldCmd;
-			  RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-			  publisher_->publish(message);
+		    RCLCPP_INFO(this->get_logger(), "Current pose: %f %f %f %f %f %f %f",
+					oldCmd.position.x,
+					oldCmd.position.y,
+					oldCmd.position.z,
+					oldCmd.orientation.x,
+					oldCmd.orientation.y,
+					oldCmd.orientation.z,
+					oldCmd.orientation.w);//*/
+			  publisher_->publish(oldCmd);
 			}
     }
     
