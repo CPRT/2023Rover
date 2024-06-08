@@ -1,6 +1,6 @@
 import rclpy, cv2, numpy
 from rclpy.node import Node 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge
 from std_msgs.msg import Int32MultiArray, Float32, Float32MultiArray, Int32
 from math import sqrt
@@ -9,40 +9,44 @@ class DetectArucoMarkers(Node):
     def __init__(self):
         super().__init__('detect_aruco_makers')
 
-        source_image_topic = 'camera1/image_raw'
-        processed_image_topic = 'camera1/acruco_processed'
+        self.is_source_image_compressed = True
+        self.should_publish_compressed = True
 
-        aruco_ids_array = 'camera1/aruco_tag_ids_array'
-        aruco_id_largest = 'camera1/acruco_tag_id_largest'
+        # source_image_topic = '/camera1/image_raw'
+        source_image_topic = '/camera1/image_compressed'
+        
+        source_image_topic = '/source_image'
 
-        aruco_percent_filled_array= 'camera1/aruco_percent_filled_array'
-        aruco_percent_filled_largest = 'camera1/aruco_percent_filled_largest'
+        processed_image_topic = '/acruco_processed'
+
+        aruco_ids_array = 'aruco_tag_ids_array'
+        aruco_id_largest = 'acruco_tag_id_largest'
+
+        aruco_percent_filled_array= 'aruco_percent_filled_array'
+        aruco_percent_filled_largest = 'aruco_percent_filled_largest'
 
         depth_history = 10
 
         image_width = 640
         image_height = 480
 
+
+
+        # Subscribe to the get images
         self.source_image_subscriber = self.create_subscription(
-            Image, 
+            CompressedImage if self.is_source_image_compressed else Image,
             source_image_topic,
             self.process_image, 
             depth_history
         )
 
+        # Publish processed images which outline the tags
         self.processed_image_publisher = self.create_publisher(
-            Image,
+            CompressedImage if self.should_publish_compressed else Image,
             processed_image_topic,
             depth_history
         )
-        
-        self.display_processed_image_subscriber = self.create_subscription(
-            Image,
-            processed_image_topic,
-            self.display_image_cv2,
-            depth_history
-        )
-       
+
         # Publish the acruco marker ids as an array and the largest one
         self.aruco_ids_array_publisher = self.create_publisher(
             Int32MultiArray, 
@@ -73,14 +77,18 @@ class DetectArucoMarkers(Node):
         self.frame_area = image_width * image_height
 
     def process_image(self, image: Image):
-        # self.get_logger().info('')
-        cv_image = self.br.imgmsg_to_cv2(image)
-        self.detect_aruco(cv_image)
-        self.processed_image_publisher.publish(self.br.cv2_to_imgmsg(cv_image))
+        self.get_logger().info('Got Image to process')
+        if self.is_source_image_compressed:
+            cv_image = self.br.compressed_imgmsg_to_cv2(image)
+        else:
+            cv_image = self.br.imgmsg_to_cv2(image)
 
-    def display_image_cv2(self, image: Image):
-        cv2.imshow("ArucoProcessedImage", self.br.imgmsg_to_cv2(image))
-        cv2.waitKey(5)
+        self.detect_aruco(cv_image)
+
+        if self.should_publish_compressed:
+            self.processed_image_publisher.publish(self.br.cv2_to_compressed_imgmsg(cv_image)) 
+        else:
+            self.processed_image_publisher.publish(self.br.cv2_to_imgmsg(cv_image))
 
     def detect_aruco(self, cv_image):
         (corners, ids, rejected) = cv2.aruco.detectMarkers(cv_image, self.aruco_dict, parameters=self.aruco_params)
@@ -161,14 +169,14 @@ class DetectArucoMarkers(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    simple_pub_sub = DetectArucoMarkers()
+    node = DetectArucoMarkers()
 
     try:
-        rclpy.spin(simple_pub_sub)
+        rclpy.spin(node)
     except KeyboardInterrupt:
         pass
 
-    simple_pub_sub.destroy_node()
+    node.destroy_node()
     rclpy.shutdown()
 
   
