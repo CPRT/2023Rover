@@ -1,0 +1,27 @@
+import numpy as np
+
+def bounding_box(points: np.array):
+    """
+    Find min/max from an N-collection of coordinate pairs, shape = (N, 2), using 
+    numpy's min/max along the collection-axis 
+    """
+    xMin = min(point[0] for point in points)
+    yMin = min(point[1] for point in points)
+    xMax = max(point[0] for point in points)
+    yMax = max(point[1] for point in points)
+
+    box = np.zeros((4, 2))
+
+    box[0][0] = xMin
+    box[0][1] = yMin
+
+    box[1][0] = xMax
+    box[1][1] = yMin
+
+    box[2][0] = xMax
+    box[2][1] = yMax
+
+    box[3][0] = xMin
+    box[3][1] = yMax
+
+    return box
