@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(interfaces REQUIRED)
 
 add_executable(joystick_publisher src/joystick_publisher.cpp)
 target_include_directories(joystick_publisher PUBLIC
@@ -17,6 +18,7 @@ target_include_directories(joystick_publisher PUBLIC
 target_compile_features(joystick_publisher PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(
   joystick_publisher
+  interfaces
   "moveit_ros_planning_interface"
   "rclcpp"
 )

@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(interfaces REQUIRED)
 
 add_executable(moveit_controller src/moveit_controller.cpp)
 target_include_directories(moveit_controller PUBLIC
@@ -17,6 +18,7 @@ target_include_directories(moveit_controller PUBLIC
 target_compile_features(moveit_controller PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 ament_target_dependencies(
   moveit_controller
+  interfaces
   "moveit_ros_planning_interface"
   "rclcpp"
 )

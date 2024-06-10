@@ -7,6 +7,7 @@
 #include "std_msgs/msg/string.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "interfaces/msg/arm_cmd.hpp"
 
 using std::placeholders::_1;
 using moveit::planning_interface::MoveGroupInterface;
@@ -41,7 +42,7 @@ class TestNode : public rclcpp::Node
       
       RCLCPP_INFO(this->get_logger(), node_name.c_str());
       
-      subscription_ = this->create_subscription<geometry_msgs::msg::Pose>(
+      subscription_ = this->create_subscription<interfaces::msg::ArmCmd>(
       "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
       
       //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
@@ -77,7 +78,7 @@ class TestNode : public rclcpp::Node
     }
 
   private:
-    rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr subscription_;
+    rclcpp::Subscription<interfaces::msg::ArmCmd>::SharedPtr subscription_;
     
     std::string node_name;
     moveit::planning_interface::MoveGroupInterfacePtr move_group_ptr;
@@ -89,8 +90,9 @@ class TestNode : public rclcpp::Node
     
     moveit::planning_interface::MoveGroupInterface::Plan rotationPlan;
     
-    void topic_callback(const geometry_msgs::msg::Pose & poseMsg)
+    void topic_callback(const interfaces::msg::ArmCmd & armMsg)
     {
+      geometry_msgs::msg::Pose poseMsg = armMsg.pose;
       //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
       RCLCPP_INFO(this->get_logger(), "I heard: %f %f %f %f %f %f %f",
 				poseMsg.position.x,
@@ -107,7 +109,7 @@ class TestNode : public rclcpp::Node
 			{
 				th.join();
 			}
-			if (isEmpty(poseMsg))
+			if ((isEmpty(poseMsg) && !armMsg.reset) || armMsg.estop)
 			{
 			  return;
 			}
@@ -161,7 +163,7 @@ class TestNode : public rclcpp::Node
 				new_pose.orientation.y,
 				new_pose.orientation.z,
 				new_pose.orientation.w);
-			if (poseMsg.orientation.w != 0) //reset something
+			if (armMsg.reset == true) //reset something
 			{
 			  geometry_msgs::msg::Pose target_pose = []{
 				geometry_msgs::msg::Pose msg;
