@@ -74,8 +74,8 @@ class Movement:
             # else:
             #     roboclaw.SpeedM1M2(self.address, vr_ticks, vl_ticks)
             self.logger.info("tryng PID vr = " + str(vr) + " vl = " + str(vl))
-            dutyCycle1 = int(vr / 10 * 32767) #mainBatteryVoltage * 32767
-            dutyCycle2 = int(vl / 10 * 32767)
+            dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
+            dutyCycle2 = int(vl / 12 * 32767)
             roboclaw.DutyM1M2(self.address, dutyCycle1, dutyCycle2)
             # if vr_ticks == 0 and vl_ticks == 0:
             #     self.logger.info("ticks are zero")

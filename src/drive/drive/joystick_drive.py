@@ -41,7 +41,7 @@ class joystickDrive(Node):
                 self.twist.angular.z = 0.0
                 self.setTwistPub.publish(self.twist)
             else:
-                self.twist.linear.x = map_range(msg.axes[1], -1, 1, -6, 6) 
+                self.twist.linear.x = map_range(msg.axes[1], -1, 1, -8, 8) 
                 self.twist.angular.z = map_range(-msg.axes[0], -1, 1, -12, 12)
                 self.setTwistPub.publish(self.twist)
 
