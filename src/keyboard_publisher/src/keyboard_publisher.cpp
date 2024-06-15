@@ -11,11 +11,12 @@ MinimalPublisher::MinimalPublisher()
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
   timer_ = this->create_wall_timer(
   500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
+  std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units)"<<std::endl;
 }
 
 void MinimalPublisher::timer_callback()
 {
-  interfaces::msg::ArmCmd poseCmd = []{
+  interfaces::msg::ArmCmd poseCmd = [&]{
 		interfaces::msg::ArmCmd msg;
 		msg.pose.position.x = 0;
 		msg.pose.position.y = 0;
@@ -24,7 +25,7 @@ void MinimalPublisher::timer_callback()
 		msg.pose.orientation.y = 0;
 		msg.pose.orientation.z = 0;
 		msg.pose.orientation.w = 0;
-		msg.speed = 10;
+		msg.speed = defSpeed;
 		msg.estop = false;
 		msg.reset = false;
 		return msg;
@@ -78,6 +79,12 @@ void MinimalPublisher::timer_callback()
   else if (c == 'v')
   {
     poseCmd.pose.orientation.z = -1;
+  }
+  else if (c == 'h')
+  {
+    double newSpeed = 0;
+    std::cin>>newSpeed;
+    defSpeed = newSpeed;
   }
   //auto message = std_msgs::msg::String();
   //geometry_msgs::msg::Pose message;

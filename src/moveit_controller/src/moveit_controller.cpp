@@ -70,6 +70,7 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 {
   geometry_msgs::msg::Pose poseMsg = armMsg.pose;
+  double stepSize = armMsg.speed;
   //RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
   RCLCPP_INFO(this->get_logger(), "I heard: %f %f %f %f %f %f %f",
 		poseMsg.position.x,
@@ -88,6 +89,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	}
 	if ((isEmpty(poseMsg) && !armMsg.reset) || armMsg.estop)
 	{
+	  RCLCPP_INFO(this->get_logger(), "Stopping (for some reason)");
 	  return;
 	}
   
@@ -124,9 +126,9 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	auto const new_pose = [&]{
 		geometry_msgs::msg::Pose msg = current_pose;
 		//msg.position.y += 0.2;
-		msg.position.x += poseMsg.position.x*100;
-		msg.position.y += poseMsg.position.y*100;
-		msg.position.z += poseMsg.position.z*100;
+		msg.position.x += poseMsg.position.x*stepSize;
+		msg.position.y += poseMsg.position.y*stepSize;
+		msg.position.z += poseMsg.position.z*stepSize;
 		
 		
 		return msg;

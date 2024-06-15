@@ -25,6 +25,7 @@ class MinimalPublisher : public rclcpp::Node
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<interfaces::msg::ArmCmd>::SharedPtr publisher_;
     size_t count_;
+    double defSpeed = 10;
 };
 
 #endif

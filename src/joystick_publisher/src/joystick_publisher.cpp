@@ -15,7 +15,7 @@ JoystickReader::JoystickReader()
   "joy", 10, std::bind(&JoystickReader::topic_callback, this, _1));
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
   timer_ = this->create_wall_timer(
-  600ms, std::bind(&JoystickReader::publish_message, this));//*/
+  300ms, std::bind(&JoystickReader::publish_message, this));//*/
 }
 
 
