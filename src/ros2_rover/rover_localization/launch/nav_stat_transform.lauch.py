@@ -9,7 +9,7 @@ from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
     parameters = [{
-                "": ""
+                "broadcast_utm_transform": "true"
     }]
 
     remappings = [

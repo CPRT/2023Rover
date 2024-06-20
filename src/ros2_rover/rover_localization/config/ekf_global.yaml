@@ -112,6 +112,28 @@ global_ekf:
     # imu0_linear_acceleration_rejection_threshold: 0.8
     imu0_remove_gravitational_acceleration: false
 
+    imu1: navheading
+    imu1_config: [
+        # position
+        false, false, false,
+        # orientation
+        true, true, true,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        false, false, false,
+      ]
+    # imu1_nodelay: false
+    imu1_differential: false
+    imu1_relative: true
+    # imu1_queue_size: 5
+    # imu1_pose_rejection_threshold: 0.8
+    # imu1_twist_rejection_threshold: 0.8
+    # imu1_linear_acceleration_rejection_threshold: 0.8
+    imu1_remove_gravitational_acceleration: false
+
     # use_control: false
     # stamped_control: false
     # control_timeout: 0.2
