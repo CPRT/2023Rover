@@ -110,45 +110,33 @@ class DetectVisionTargets:
         return detections
     
 
-    def detectIRLEDS(self, ir_img) -> List[sl.CustomBoxObjectData]:
+    def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
         return detections
     
 
 
 
+    def draw_object_detection(img, object_data: sl.ObjectData):
 
+        (topLeft, topRight, bottomRight, bottomLeft) = object_data.bounding_box_2d()
 
-            # if (not is_zed):
-            #     try:
-            #         img_zed = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2RGB)
-                    
-            #         for corners_to_draw in draw_corners:
-            #             (topLeft, topRight, bottomRight, bottomLeft) = corners_to_draw
-            #             topRight = (int(topRight[0]), int(topRight[1]))
-            #             bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-            #             bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-            #             topLeft = (int(topLeft[0]), int(topLeft[1]))
+        topRight = (int(topRight[0]), int(topRight[1]))
+        bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
+        bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
+        topLeft = (int(topLeft[0]), int(topLeft[1]))
 
-            #             # draw the bounding box of the ArUCo detection
-            #             cv2.line(img_zed, topLeft, topRight, (0, 255, 0), 2)
-            #             cv2.line(img_zed, topRight, bottomRight, (0, 255, 0), 2)
-            #             cv2.line(img_zed, bottomRight, bottomLeft, (0, 255, 0), 2)
-            #             cv2.line(img_zed, bottomLeft, topLeft, (0, 255, 0), 2)
-            #             # compute and draw the center (x, y)-coordinates of the ArUco
-            #             # marker
-            #             cX = int((topLeft[0] + bottomRight[0]) / 2.0)
-            #             cY = int((topLeft[1] + bottomRight[1]) / 2.0)
-            #             cv2.circle(img_zed, (cX, cY), 4, (0, 0, 255), -1)
-            #             # draw the ArUco marker ID on the image
-            #             cv2.putText(img_zed, str(draw_markers[0]),
-            #                 (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
-            #                 0.5, (0, 255, 0), 2)
-            #             print(f"       CENTER:cX : {cX}, cY: {cY}")
-            #     except:
-            #         print("FAILED TO DRAW CORNERS")
-                    
-            #     cv2.imshow("zed", img_zed)
-            #     key = cv2.waitKey(10)
-            #     if key == 27:
-            #         exit_signal = True
+        # Draw the bounding box
+        cv2.line(img, topLeft, topRight, (0, 255, 0), 2)
+        cv2.line(img, topRight, bottomRight, (0, 255, 0), 2)
+        cv2.line(img, bottomRight, bottomLeft, (0, 255, 0), 2)
+        cv2.line(img, bottomLeft, topLeft, (0, 255, 0), 2)
+
+        # Compute and draw the center (x, y)-coordinates
+        cX = int((topLeft[0] + bottomRight[0]) / 2.0)
+        cY = int((topLeft[1] + bottomRight[1]) / 2.0)
+        cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
+
+        # TODO: Change to a better label for LEDs and Arucos
+        text = str(object_data.unique_object_id())
+        cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
