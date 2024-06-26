@@ -1,7 +1,7 @@
 import cv2
 import threading
 
-from detect_vision_targets import CameraType
+from .detect_vision_targets import CameraType
 
 """
 Captures video from a camera and always gives the latest frame.

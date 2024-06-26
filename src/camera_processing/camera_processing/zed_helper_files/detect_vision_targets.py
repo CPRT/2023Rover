@@ -4,7 +4,7 @@ import numpy as np
 from enum import Enum
 from typing import List
 
-from map_targets_between_cams import PitchYaw, Point, CameraUtil
+from .map_targets_between_cams import PitchYaw, Point, CameraUtil
 
 # ELP 640x480
 # elp_width = 640

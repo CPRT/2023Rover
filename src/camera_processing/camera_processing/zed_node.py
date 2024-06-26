@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import pyzed.sl as sl
 
+from rclpy.node import Node
+# import rclpy.time as Time
 from typing import List
 from threading import Lock, Thread
 from time import sleep
@@ -15,11 +17,12 @@ from cprt_interfaces.msg import PointArray, ArucoMarkers
 # import ogl_viewer.viewer as gl
 # import cv_viewer.tracking_viewer as cv_viewer
 
-from camera_processing.camera_processing.zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
-from camera_processing.camera_processing.zed_helper_files.video_capture import VideoCapture
+from .zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
+from .zed_helper_files.video_capture import VideoCapture
 
-class ZedNode(rclpy.Node):
+class ZedNode(Node):
     def __init__(self):
+        super().__init__('zed_node')
         self.frame_id = "/zed_link"
         self.record_svo = False
         self.playback_svo = False
@@ -28,9 +31,8 @@ class ZedNode(rclpy.Node):
 
         self.detectVisionTargets = DetectVisionTargets()
         self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
-
-        self.init_zed(self._zed)
-
+        self.init_zed()
+   
         self.image_left_tmp = sl.Mat()
         self.objects = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
@@ -45,7 +47,7 @@ class ZedNode(rclpy.Node):
         self.publish_ir_led_points = self.create_subscription(PointArray, '/vision/ir_led_points', 10)
 
         self.timestamp = self.get_clock().now()
-        self.header_timestamp = rclpy.Time.now()
+        self.header_timestamp = self.get_clock().now().to_msg()
 
     def init_zed(self):
         self.timestamp = self.get_clock().now()
@@ -68,7 +70,7 @@ class ZedNode(rclpy.Node):
 
         # Create a InitParameters object and set configuration parameters
         init_params = sl.InitParameters(input_t=input_type, svo_real_time_mode=True)
-        init_params.camera_resolution = sl.RESOLUTION.HD2K   # HD1080   HD1200    HD2K
+        init_params.camera_resolution = sl.RESOLUTION.HD1080   # HD1080   HD1200    HD2K
         init_params.camera_fps = 15 # Use 15 FPS to improve low-light performance
         init_params.coordinate_units = sl.UNIT.METER
         init_params.depth_mode = sl.DEPTH_MODE.ULTRA  # Can use PERFORMANCE MODE but it misses some details
@@ -116,7 +118,7 @@ class ZedNode(rclpy.Node):
 
             return
         
-        self.header_timestamp = rclpy.Time.now()
+        self.header_timestamp = self.get_clock().now().to_msg()
 
         self.get_logger().info(f"zed.grab finished after {self.get_clock().now() - self.timestamp} seconds")
         self.timestamp = self.get_clock().now()
@@ -135,10 +137,10 @@ class ZedNode(rclpy.Node):
         # detections += detectVisionTargets.detectZEDLEDs()
 
         # IR Cam Image
-        ir_image = self.ir_cam.read()
+        # ir_image = self.ir_cam.read()
 
         # IR Cam Aruco Markers
-        detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
+        # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
 
         # IR Cam LEDs
         # detections += detectVisionTargets.detectIRLEDS(ir_image, ir_cam.cam_type)
