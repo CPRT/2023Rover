@@ -15,7 +15,8 @@ class Point:
         return f"Point({self.x}, {self.y}"
 
 class CameraUtil:
-    def __init__(self, xRes, yRes, xFov, yFov):
+    def __init__(self, name: str, xRes, yRes, xFov, yFov):
+        self.name = name
         self.xRes = xRes
         self.yRes = yRes
         self.xFov = xFov

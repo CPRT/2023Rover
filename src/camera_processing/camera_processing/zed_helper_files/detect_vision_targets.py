@@ -24,9 +24,12 @@ elp_vfov = 37.91*2
 # elp_hfov = 62.91*2
 # elp_vfov = 37.91*2
 
+ZED_CAM_NAME = "ZED"
+IR_CAM_NAME = "IRCam"
+
 class CameraType(Enum):
-    ZED = CameraUtil(2208, 1242, 110, 70)
-    ERIK_ELP = CameraUtil(elp_width, elp_height, elp_hfov, elp_vfov)
+    ZED = CameraUtil(ZED_CAM_NAME, 2208, 1242, 110, 70)
+    ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
 
 class DetectVisionTargets:
     def __init__(self):
@@ -60,6 +63,21 @@ class DetectVisionTargets:
 
         return box
 
+    def create_aruco_unique_label(camera_mapping: CameraType, marker_id: int) -> str:
+        return f"{camera_mapping.value.name}-ArucoID{marker_id}"
+
+    def is_zed_marker(unique_label: str) -> bool:
+        return f"{ZED_CAM_NAME}-ArucoID" in unique_label
+    
+    def is_ir_cam_marker(unique_label: str) -> bool:
+        return f"{IR_CAM_NAME}-ArucoID" in unique_label
+    
+    def get_marker_id_from_label(unique_label: str) -> int:
+        try:
+            return int(unique_label[unique_label.index("-ArucoID")+len("-ArucoID"):])
+        except Exception as e:
+            return -1
+
     def detectArucoMarkers(self, img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         try:
             corners, ids, rejected = self.aruco_detector.detectMarkers(img)
@@ -77,7 +95,7 @@ class DetectVisionTargets:
                     markerCorners = corners[i]
                     markerID: int = ids[i][0]
 
-                    reshapedCorners = self.bounding_box(markerCorners.reshape((4, 2)))
+                    reshapedCorners = DetectVisionTargets.bounding_box(markerCorners.reshape((4, 2)))
 
                     if (cameraMapping != CameraType.ZED):
                         for points in reshapedCorners:
@@ -91,7 +109,7 @@ class DetectVisionTargets:
 
                     # Creating ingestable objects for the ZED SDK
                     obj = sl.CustomBoxObjectData()
-                    obj.unique_object_id = f"{cameraMapping.name}-ArucoID{markerID}"
+                    obj.unique_object_id = DetectVisionTargets.create_aruco_unique_label(cameraMapping, markerID)
                     obj.bounding_box_2d = reshapedCorners # Converts to unsigned int so values MUST be positive or it fails
                     obj.label = int(markerID)
                     obj.probability = 0.99
@@ -118,8 +136,7 @@ class DetectVisionTargets:
 
 
     def draw_object_detection(img, object_data: sl.ObjectData):
-
-        (topLeft, topRight, bottomRight, bottomLeft) = object_data.bounding_box_2d()
+        (topLeft, topRight, bottomRight, bottomLeft) = object_data.bounding_box_2d
 
         topRight = (int(topRight[0]), int(topRight[1]))
         bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
@@ -138,5 +155,5 @@ class DetectVisionTargets:
         cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
 
         # TODO: Change to a better label for LEDs and Arucos
-        text = str(object_data.unique_object_id())
+        text = str(object_data.unique_object_id)
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)

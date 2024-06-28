@@ -1,7 +1,10 @@
 from setuptools import find_packages, setup
 
 package_name = 'camera_processing'
-submodules = ['camera_processing/zed_helper_files']
+submodules = [
+    'camera_processing/zed_helper_files', 
+    'camera_processing/HSVImageExplore/image_colour_processing',
+    'camera_processing/ogl_viewer']
 
 setup(
     name=package_name,

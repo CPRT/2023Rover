@@ -19,92 +19,122 @@ from cprt_interfaces.msg import PointArray, ArucoMarkers
 
 from .zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
 from .zed_helper_files.video_capture import VideoCapture
+from .HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
+from .HSVImageExplore.image_colour_processing.hsv_range_mask_step import HSVRangeMaskStep
+from .HSVImageExplore.image_colour_processing.simple_mask_steps import ErodeDilateStep
+from .HSVImageExplore.image_colour_processing.datatypes import HSVRange, HSV
+
+from .ogl_viewer import viewer as gl
 
 class ZedNode(Node):
     def __init__(self):
         super().__init__('zed_node')
         self.frame_id = "/zed_link"
         self.record_svo = False
-        self.playback_svo = False
-        self.record_filename = "ZED_SVO"
-        self.playback_filename = "ZED_SVO"
+        self.playback_svo = True
+        self.hsv_explore = True
+        self.record_filename = "/home/jetson/Documents/ZED/Jun28/recording/test"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-09-27-ArucoMarkers.svo2"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-08-25-RedBlueBalls.svo2"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_20-57-10-BlueLED-Darker.svo2"
+        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
 
         self.detectVisionTargets = DetectVisionTargets()
-        self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
-        self.init_zed()
-   
+        # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
+
+        zed_initialized = False
+        while not zed_initialized:
+            try:
+                self.init_zed()
+                zed_initialized = True
+            except Exception as e:
+                self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
+                sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
+    
         self.image_left_tmp = sl.Mat()
         self.objects = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
         self.runtime_params = sl.RuntimeParameters()
 
+        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/vision/zed_aruco_points', 10)
+        self.publish_blue_led_points = self.create_publisher(PointArray, '/vision/blue_led_points', 10)
+        self.publish_red_led_points = self.create_publisher(PointArray, '/vision/red_led_points', 10)
+        self.publish_ir_led_points = self.create_publisher(PointArray, '/vision/ir_led_points', 10)
+
+        self.blue_led_processing = ColourProcessing(
+            image_scaling=1.0, 
+            display_scaling=0.3,
+            mask_steps=tuple([
+                HSVRangeMaskStep('Step 1 - HSV', HSVRange(HSV(0, 0, 245), HSV(180, 255, 255)), return_mask=True), 
+                ErodeDilateStep('Step 2 - Erode Dilate', 9, 13),
+            ]))
+
+        camera_info = self.zed.get_camera_information()
+        # Create OpenGL viewer
+        self.viewer = gl.GLViewer()
+        self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
+
         self.timer_period = 0.05  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
-
-        self.publish_zed_aruco_points = self.create_subscription(ArucoMarkers, '/vision/zed_aruco_points', 10)
-        self.publish_blue_led_points = self.create_subscription(PointArray, '/vision/blue_led_points', 10)
-        self.publish_red_led_points = self.create_subscription(PointArray, '/vision/red_led_points', 10)
-        self.publish_ir_led_points = self.create_subscription(PointArray, '/vision/ir_led_points', 10)
 
         self.timestamp = self.get_clock().now()
         self.header_timestamp = self.get_clock().now().to_msg()
 
     def init_zed(self):
-        self.timestamp = self.get_clock().now()
+        self.record_timestamp()
         self.get_logger().info("Initializing ZED Camera")
 
-        self.zed = sl.Camera()
-
-        input_type = sl.InputType()
-        if self.playback_svo and self.playback_filename != "":
-            input_type.set_from_svo_file(self.playback_filename)
-            self.get_logger().info(f"Playing back SVO. Data from the ZED is a recording and NOT LIVE. Filename: {self.playback_filename}")
-
-        elif self.record_svo and self.record_filename != "":
-            recordingParameters = sl.RecordingParamers()
-            recordingParameters.compression_mode = sl.SVO_COMPRESSION_MODE.H264
-            recordingParameters.video_filename = self.record_filename
-            err = self.zed.enable_recording(recordingParameters)
-            
-        
 
         # Create a InitParameters object and set configuration parameters
-        init_params = sl.InitParameters(input_t=input_type, svo_real_time_mode=True)
-        init_params.camera_resolution = sl.RESOLUTION.HD1080   # HD1080   HD1200    HD2K
-        init_params.camera_fps = 15 # Use 15 FPS to improve low-light performance
+        init_params = sl.InitParameters(svo_real_time_mode=False)
         init_params.coordinate_units = sl.UNIT.METER
-        init_params.depth_mode = sl.DEPTH_MODE.ULTRA  # Can use PERFORMANCE MODE but it misses some details
         init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP
-        init_params.depth_maximum_distance = 20
+        init_params.depth_mode = sl.DEPTH_MODE.PERFORMANCE  # Can use PERFORMANCE MODE but it misses some details (sl.DEPTH_MODE.ULTRA) (sl.DEPTH_MODE.PERFORMANCE)
+        init_params.depth_maximum_distance = 15
+        init_params.camera_resolution = sl.RESOLUTION.HD720   # HD720   HD1080   HD1200    HD2K
+        init_params.camera_fps = 15 # Use 15 FPS to improve low-light performance
 
+        if self.playback_svo and self.playback_filename != "":
+            init_params.set_from_svo_file(self.playback_filename)
+            self.get_logger().info(f"Playing back SVO. Data from the ZED is a recording and NOT LIVE. Filename: {self.playback_filename}")
+        
+        self.zed = sl.Camera()
         status = self.zed.open(init_params)
 
         if status != sl.ERROR_CODE.SUCCESS:
-            print("Failed to init ZED")
-            print(repr(status))
-            exit()
+            raise Exception("Failed to zed.open(init_params). Got ZED error code: " + repr(status))
         
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
 
         obj_param = sl.ObjectDetectionParameters()
         obj_param.detection_model = sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
-        obj_param.enable_tracking = True
+        obj_param.enable_tracking = False
         self.zed.enable_object_detection(obj_param)
 
         # Get Camera resolution
         camera_infos = self.zed.get_camera_information()
         camera_res = camera_infos.camera_configuration.resolution
 
-        self.get_logger().info(f"Finished initializing ZED Camera in {self.get_clock().now() - self.timestamp} seconds")
+        if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
+            recordingParameters = sl.RecordingParameters()
+            recordingParameters.compression_mode = sl.SVO_COMPRESSION_MODE.H264
+            recordingParameters.video_filename = self.record_filename
+            self.get_logger().info(f"Starting to record the ZED data to an SVO named {recordingParameters.video_filename} with compression format {recordingParameters.compression_mode.name}")
+            err = self.zed.enable_recording(recordingParameters)
+            if err != sl.ERROR_CODE.SUCCESS:
+                self.get_logger().error(f"Failed to enable SVO recording on ZED. Error: {err}")
+
+        self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
 
     def cleanup(self):
         self.zed.disable_recording()
         self.zed.close()
+        self.viewer.exit()
         cv2.destroyAllWindows()
 
     def run_detections(self):
-        self.timestamp = self.get_clock().now()
+        self.record_timestamp()
         self.get_logger().info(f"Timer callback - Running zed.grab blocking call")
 
         # grab is a blocking call
@@ -113,28 +143,43 @@ class ZedNode(Node):
             # TODO: Add handling for a camera error. Most likely error here is ERROR_CODE.CAMERA_NOT_DETECTED
 
             if error_code == sl.ERROR_CODE.END_OF_SVOFILE_REACHED:
-                self.get_logger().info("SVO end has been reached. Looping back to first frame")
+                self.get_logger().info(f"SVO end has been reached ({self.zed.get_svo_position()}). Looping back to first frame")
                 self.zed.set_svo_position(0)
 
             return
         
         self.header_timestamp = self.get_clock().now().to_msg()
 
-        self.get_logger().info(f"zed.grab finished after {self.get_clock().now() - self.timestamp} seconds")
-        self.timestamp = self.get_clock().now()
+        self.get_logger().info(f"zed.grab finished after {self.delta_time()} seconds")
+        self.record_timestamp()
 
         detections: List[sl.CustomBoxObjectData] = []
 
         # ZED Image
         self.zed.retrieve_image(self.image_left_tmp, sl.VIEW.LEFT)
         zed_left_image_net = self.image_left_tmp.get_data()
-        zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2RGB)
+        zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2BGR)
 
         # ZED Aruco Markers
-        # detections += detectVisionTargets.detectArucoMarkers(zed_img, CameraType.ZED)
+        detections += self.detectVisionTargets.detectArucoMarkers(zed_img, CameraType.ZED)
 
         # ZED Red/Blue LEDS
-        # detections += detectVisionTargets.detectZEDLEDs()
+        # detections += self.detectVisionTargets.detectZEDLEDs()
+
+        if self.hsv_explore:
+            # self.blue_led_processing.mask_step_tuning(zed_img)
+
+            mask = self.blue_led_processing.process_mask(zed_img)
+            bounding_boxes = self.blue_led_processing.find_contours(mask, zed_img)
+
+            for box in bounding_boxes:
+                obj = sl.CustomBoxObjectData()
+                obj.unique_object_id = "blue_led"
+                obj.bounding_box_2d = box
+                obj.label = 69
+                obj.probability = 0.99
+                obj.is_grounded = False
+                detections.append(obj)
 
         # IR Cam Image
         # ir_image = self.ir_cam.read()
@@ -143,7 +188,7 @@ class ZedNode(Node):
         # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
 
         # IR Cam LEDs
-        # detections += detectVisionTargets.detectIRLEDS(ir_image, ir_cam.cam_type)
+        # detections += self.detectVisionTargets.detectIRLEDS(ir_image, ir_cam.cam_type)
 
         # Ingest detections and get objects
         self.zed.ingest_custom_box_objects(detections)
@@ -156,43 +201,48 @@ class ZedNode(Node):
         ir_led_point_arr = self.create_point_array()
 
         for object in self.objects.object_list:
-            print(f"Object ~ Id: {object.id()}, Unique Label: {object.unique_object_id()}, position: {object.position()}")
-            self.detectVisionTargets.draw_object_detection(zed_img, object)
+            print(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
+            DetectVisionTargets.draw_object_detection(zed_img, object)
             point: Point = self.zed_object_to_point(object)
 
-            if (object.unique_object_id() == "zed_aruco"):
+            if DetectVisionTargets.is_zed_marker(object.unique_object_id):
                 zed_aruco_markers_msg.points.append(point)
-                zed_aruco_markers_msg.marker_ids.append(object.get_label())
+                zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(object.unique_object_id))
 
-            elif (object.unique_object_id() == "blue_led"):
+                self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
+
+            elif (object.unique_object_id == "blue_led"):
                 blue_led_point_arr.points.append(point)
 
-            elif (object.unique_object_id() == "red_led"):
+            elif (object.unique_object_id == "red_led"):
                 red_led_point_arr.points.append(point)
 
-            elif (object.unique_object_id() == "ir_led"):
+            elif (object.unique_object_id == "ir_led"):
                 ir_led_point_arr.points.append(point)
         
-        self.publish_zed_aruco_points(zed_aruco_markers_msg)
-        self.publish_blue_led_points(blue_led_point_arr)
-        self.publish_red_led_points(red_led_point_arr)
-        self.publish_ir_led_points(ir_led_point_arr)
+        self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
+        self.publish_blue_led_points.publish(blue_led_point_arr)
+        self.publish_red_led_points.publish(red_led_point_arr)
+        self.publish_ir_led_points.publish(ir_led_point_arr)
 
-        self.get_logger().info(f"Zed computations finished in {self.get_clock().now() - self.timestamp} seconds")
+        self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
+        # Update GL view
+        self.viewer.update_view(self.image_left_tmp, self.objects)
+        
         cv2.imshow("ZED Detections", zed_img)
         cv2.waitKey(10)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
         markers.header.frame_id = self.frame_id
-        markers.stamp = self.header_timestamp
+        markers.header.stamp = self.header_timestamp
         return markers
 
     def create_point_array(self) -> PointArray:
         point_arr = PointArray()
         point_arr.header.frame_id = self.frame_id
-        point_arr.stamp = self.header_timestamp
+        point_arr.header.stamp = self.header_timestamp
         return point_arr
 
     def zed_object_to_point(self, object: sl.ObjectData) -> Point:
@@ -200,6 +250,13 @@ class ZedNode(Node):
         point.x = object.position[0]
         point.y = object.position[1]
         point.z = object.position[2]
+        return point
+
+    def record_timestamp(self):
+            self.timestamp = self.get_clock().now()
+
+    def delta_time(self):
+        return (self.get_clock().now() - self.timestamp).nanoseconds / 1000000000
 
 def main(args=None):
     rclpy.init(args=args)
