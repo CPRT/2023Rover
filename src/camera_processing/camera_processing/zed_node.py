@@ -15,7 +15,7 @@ from geometry_msgs.msg import Point
 from cprt_interfaces.msg import PointArray, ArucoMarkers
 
 # import ogl_viewer.viewer as gl
-# import cv_viewer.tracking_viewer as cv_viewer
+from .cv_viewer import tracking_viewer as cv_viewer
 
 from .zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
 from .zed_helper_files.video_capture import VideoCapture
@@ -23,8 +23,6 @@ from .HSVImageExplore.image_colour_processing.colour_processing import ColourPro
 from .HSVImageExplore.image_colour_processing.hsv_range_mask_step import HSVRangeMaskStep
 from .HSVImageExplore.image_colour_processing.simple_mask_steps import ErodeDilateStep
 from .HSVImageExplore.image_colour_processing.datatypes import HSVRange, HSV
-
-from .ogl_viewer import viewer as gl
 
 class ZedNode(Node):
     def __init__(self):
@@ -65,14 +63,13 @@ class ZedNode(Node):
             image_scaling=1.0, 
             display_scaling=0.3,
             mask_steps=tuple([
-                HSVRangeMaskStep('Step 1 - HSV', HSVRange(HSV(0, 0, 245), HSV(180, 255, 255)), return_mask=True), 
-                ErodeDilateStep('Step 2 - Erode Dilate', 9, 13),
+                HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 245), HSV(180, 50, 255)), return_mask=True), 
+                ErodeDilateStep('Step 2 - Dilate to widen mask', erosion=-1, dilation=18, return_mask=False),
+                HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(103, 0, 109), HSV(130, 255, 253)), return_mask=True), 
+                ErodeDilateStep('Step 4 - Dilate - Prevent disjointed contours', erosion=-1, dilation=3, return_mask=True),
             ]))
 
         camera_info = self.zed.get_camera_information()
-        # Create OpenGL viewer
-        self.viewer = gl.GLViewer()
-        self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
 
         self.timer_period = 0.05  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
@@ -116,6 +113,12 @@ class ZedNode(Node):
         camera_infos = self.zed.get_camera_information()
         camera_res = camera_infos.camera_configuration.resolution
 
+        # Utilities for 2D display
+        self.display_resolution = sl.Resolution(min(camera_res.width, 1280), min(camera_res.height, 720))
+        self.image_scale = [self.display_resolution.width / camera_res.width, self.display_resolution.height / camera_res.height]
+        self.image_left_ocv = np.full((self.display_resolution.height, self.display_resolution.width, 4), [245, 239, 239, 255], np.uint8)
+        self.image_for_display = sl.Mat()
+
         if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
             recordingParameters = sl.RecordingParameters()
             recordingParameters.compression_mode = sl.SVO_COMPRESSION_MODE.H264
@@ -130,7 +133,6 @@ class ZedNode(Node):
     def cleanup(self):
         self.zed.disable_recording()
         self.zed.close()
-        self.viewer.exit()
         cv2.destroyAllWindows()
 
     def run_detections(self):
@@ -170,7 +172,7 @@ class ZedNode(Node):
             # self.blue_led_processing.mask_step_tuning(zed_img)
 
             mask = self.blue_led_processing.process_mask(zed_img)
-            bounding_boxes = self.blue_led_processing.find_contours(mask, zed_img)
+            bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
 
             for box in bounding_boxes:
                 obj = sl.CustomBoxObjectData()
@@ -227,10 +229,13 @@ class ZedNode(Node):
 
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
-        # Update GL view
-        self.viewer.update_view(self.image_left_tmp, self.objects)
-        
-        cv2.imshow("ZED Detections", zed_img)
+        # 2D rendering
+        self.zed.retrieve_image(self.image_for_display, sl.VIEW.LEFT, sl.MEM.CPU, self.display_resolution)
+        np.copyto(self.image_left_ocv, self.image_for_display.get_data())
+        cv_viewer.render_2D(self.image_left_ocv, self.image_scale, self.objects, False)
+
+        cv2.imshow("ZED Image Processing", zed_img)
+        cv2.imshow("ZED Detections", self.image_left_ocv)
         cv2.waitKey(10)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:

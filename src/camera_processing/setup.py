@@ -4,7 +4,7 @@ package_name = 'camera_processing'
 submodules = [
     'camera_processing/zed_helper_files', 
     'camera_processing/HSVImageExplore/image_colour_processing',
-    'camera_processing/ogl_viewer']
+    'camera_processing/cv_viewer']
 
 setup(
     name=package_name,
