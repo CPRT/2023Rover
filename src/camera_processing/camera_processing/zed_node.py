@@ -14,8 +14,8 @@ from time import sleep
 from geometry_msgs.msg import Point
 from cprt_interfaces.msg import PointArray, ArucoMarkers
 
-# import ogl_viewer.viewer as gl
-from .cv_viewer import tracking_viewer as cv_viewer
+from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
+from .zed_viewers.ogl_viewer import viewer as gl
 
 from .zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
 from .zed_helper_files.video_capture import VideoCapture
@@ -69,8 +69,6 @@ class ZedNode(Node):
                 ErodeDilateStep('Step 4 - Dilate - Prevent disjointed contours', erosion=-1, dilation=3, return_mask=True),
             ]))
 
-        camera_info = self.zed.get_camera_information()
-
         self.timer_period = 0.05  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
 
@@ -88,7 +86,7 @@ class ZedNode(Node):
         init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP
         init_params.depth_mode = sl.DEPTH_MODE.PERFORMANCE  # Can use PERFORMANCE MODE but it misses some details (sl.DEPTH_MODE.ULTRA) (sl.DEPTH_MODE.PERFORMANCE)
         init_params.depth_maximum_distance = 15
-        init_params.camera_resolution = sl.RESOLUTION.HD720   # HD720   HD1080   HD1200    HD2K
+        init_params.camera_resolution = sl.RESOLUTION.HD1080   # HD720   HD1080   HD1200    HD2K
         init_params.camera_fps = 15 # Use 15 FPS to improve low-light performance
 
         if self.playback_svo and self.playback_filename != "":
@@ -105,19 +103,13 @@ class ZedNode(Node):
         self.zed.enable_positional_tracking(positional_tracking_parameters)
 
         obj_param = sl.ObjectDetectionParameters()
-        obj_param.detection_model = sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS
+        obj_param.detection_model = sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS  # CUSTOM_BOX_OBJECTS  MULTI_CLASS_BOX_MEDIUM
         obj_param.enable_tracking = False
         self.zed.enable_object_detection(obj_param)
 
         # Get Camera resolution
-        camera_infos = self.zed.get_camera_information()
-        camera_res = camera_infos.camera_configuration.resolution
-
-        # Utilities for 2D display
-        self.display_resolution = sl.Resolution(min(camera_res.width, 1280), min(camera_res.height, 720))
-        self.image_scale = [self.display_resolution.width / camera_res.width, self.display_resolution.height / camera_res.height]
-        self.image_left_ocv = np.full((self.display_resolution.height, self.display_resolution.width, 4), [245, 239, 239, 255], np.uint8)
-        self.image_for_display = sl.Mat()
+        camera_info = self.zed.get_camera_information()
+        camera_res = camera_info.camera_configuration.resolution
 
         if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
             recordingParameters = sl.RecordingParameters()
@@ -131,7 +123,15 @@ class ZedNode(Node):
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
 
     def cleanup(self):
+
+        # self.viewer.exit()
+        # Disable modules and close camera
         self.zed.disable_recording()
+        self.zed.disable_object_detection()
+        self.zed.disable_positional_tracking()
+        self.image_left_tmp.free(memory_type=sl.MEM.CPU)
+        # self.image_for_display.free(memory_type=sl.MEM.CPU)
+        
         self.zed.close()
         cv2.destroyAllWindows()
 
@@ -178,7 +178,7 @@ class ZedNode(Node):
                 obj = sl.CustomBoxObjectData()
                 obj.unique_object_id = "blue_led"
                 obj.bounding_box_2d = box
-                obj.label = 69
+                obj.label = 3
                 obj.probability = 0.99
                 obj.is_grounded = False
                 detections.append(obj)
@@ -229,13 +229,7 @@ class ZedNode(Node):
 
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
-        # 2D rendering
-        self.zed.retrieve_image(self.image_for_display, sl.VIEW.LEFT, sl.MEM.CPU, self.display_resolution)
-        np.copyto(self.image_left_ocv, self.image_for_display.get_data())
-        cv_viewer.render_2D(self.image_left_ocv, self.image_scale, self.objects, False)
-
         cv2.imshow("ZED Image Processing", zed_img)
-        cv2.imshow("ZED Detections", self.image_left_ocv)
         cv2.waitKey(10)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
