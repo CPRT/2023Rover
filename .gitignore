@@ -1,3 +1,7 @@
+# Directories
 install/
 log/
 build/
+
+#Files
+*metadata.json

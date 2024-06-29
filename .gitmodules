@@ -1,0 +1,11 @@
+[submodule "src/ros_phoenix_humble"]
+	path = src/ros_phoenix_humble
+	url = https://github.com/ChrisRusu1/ros_phoenix_humble.git
+[submodule "src/ouster-ros"]
+	path = src/ouster-ros
+	url = git@github.com:ouster-lidar/ouster-ros.git
+	branch = ros2
+[submodule "src/spatio_temporal_voxel_layer"]
+	path = src/spatio_temporal_voxel_layer
+	url = git@github.com:CPRT/spatio_temporal_voxel_layer.git
+	branch = ros2
