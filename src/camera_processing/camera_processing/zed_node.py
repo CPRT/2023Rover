@@ -35,7 +35,11 @@ class ZedNode(Node):
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-09-27-ArucoMarkers.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-08-25-RedBlueBalls.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_20-57-10-BlueLED-Darker.svo2"
-        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
+
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-43-38-Jun28-BlueLEDs-DeckLightOff.svo2"
+
+        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/temp/output.svo2"
 
         self.detectVisionTargets = DetectVisionTargets()
         # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
@@ -49,6 +53,8 @@ class ZedNode(Node):
                 self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
                 sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
     
+        self.init_visualizers()
+
         self.image_left_tmp = sl.Mat()
         self.objects = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
@@ -107,10 +113,6 @@ class ZedNode(Node):
         obj_param.enable_tracking = False
         self.zed.enable_object_detection(obj_param)
 
-        # Get Camera resolution
-        camera_info = self.zed.get_camera_information()
-        camera_res = camera_info.camera_configuration.resolution
-
         if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
             recordingParameters = sl.RecordingParameters()
             recordingParameters.compression_mode = sl.SVO_COMPRESSION_MODE.H264
@@ -122,9 +124,18 @@ class ZedNode(Node):
 
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
 
+    def init_visualizers(self):
+        # Get Camera resolution
+        camera_info = self.zed.get_camera_information()
+        camera_res = camera_info.camera_configuration.resolution
+
+        self.viewer = gl.GLViewer()
+        self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
+    
+
     def cleanup(self):
 
-        # self.viewer.exit()
+        self.viewer.exit()
         # Disable modules and close camera
         self.zed.disable_recording()
         self.zed.disable_object_detection()
@@ -174,10 +185,10 @@ class ZedNode(Node):
             mask = self.blue_led_processing.process_mask(zed_img)
             bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
 
-            for box in bounding_boxes:
+            for i in range(0, len(bounding_boxes)):
                 obj = sl.CustomBoxObjectData()
-                obj.unique_object_id = "blue_led"
-                obj.bounding_box_2d = box
+                obj.unique_object_id = f"blue_led_{i}"
+                obj.bounding_box_2d = bounding_boxes[i]
                 obj.label = 3
                 obj.probability = 0.99
                 obj.is_grounded = False
@@ -196,6 +207,9 @@ class ZedNode(Node):
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
 
+        if self.viewer.is_available():
+            self.viewer.update_view(self.image_left_tmp, self.objects)
+
         # Iterate object detections
         zed_aruco_markers_msg = self.create_aruco_markers_msg()
         blue_led_point_arr = self.create_point_array()
@@ -203,7 +217,7 @@ class ZedNode(Node):
         ir_led_point_arr = self.create_point_array()
 
         for object in self.objects.object_list:
-            print(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
+            self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
             DetectVisionTargets.draw_object_detection(zed_img, object)
             point: Point = self.zed_object_to_point(object)
 

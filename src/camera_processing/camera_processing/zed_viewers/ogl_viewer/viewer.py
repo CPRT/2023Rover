@@ -590,9 +590,7 @@ class GLViewer:
             return _object_data.tracking_state == sl.OBJECT_TRACKING_STATE.OK or _object_data.tracking_state == sl.OBJECT_TRACKING_STATE.OFF
 
     def update_view(self, _image, _objs):       # _objs of type sl.Objects
-        print("Mutex acquiring")
         self.mutex.acquire()
-        print("Mutex acquired!")
 
         # update image
         self.image_handler.push_new_image(_image)
