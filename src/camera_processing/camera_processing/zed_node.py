@@ -39,7 +39,8 @@ class ZedNode(Node):
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-43-38-Jun28-BlueLEDs-DeckLightOff.svo2"
 
-        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/temp/output.svo2"
+        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080-Jun28-BlueRedTrailHeadlightBoth.svo2"
+        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_03-23-23-Jun28-BlueTrail-HeadlightOff.svo2"
 
         self.detectVisionTargets = DetectVisionTargets()
         # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
