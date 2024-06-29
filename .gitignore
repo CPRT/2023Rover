@@ -1,4 +1,8 @@
+# Directories
 install/
 log/
 build/
-.vscode
+*.vscode
+
+#Files
+*metadata.json
