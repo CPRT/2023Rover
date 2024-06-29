@@ -13,10 +13,15 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
+find_package(geometry_msgs REQUIRED)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SixFloats.msg"
   "msg/LiveTune.msg"
   "msg/PIDmsg.msg"
+  "msg/ArucoMarkers.msg"
+  "msg/PointArray.msg"
+  DEPENDENCIES geometry_msgs # Add packages that above messages depend on
  )
 
 ament_export_dependencies(rosidl_default_runtime)

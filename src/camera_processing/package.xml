@@ -13,8 +13,7 @@
   <test_depend>python3-pytest</test_depend>
   <exec_depend>ros2launch</exec_depend>
 
-  <exec_depend>cprt_interfaces</exec_depend>
-  
+  <exec_depend>interfaces</exec_depend>
   <exec_depend>geomtry_msgs</exec_depend>
 
   <export>

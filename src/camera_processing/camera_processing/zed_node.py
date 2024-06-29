@@ -12,7 +12,7 @@ from threading import Lock, Thread
 from time import sleep
 
 from geometry_msgs.msg import Point
-from cprt_interfaces.msg import PointArray, ArucoMarkers
+from interfaces.msg import PointArray, ArucoMarkers
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
