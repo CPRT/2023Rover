@@ -68,12 +68,15 @@ class Movement:
         try:
             # This is a hack way to keep a poorly tuned PID from making noise at speed 0
 
+            ####### PID DRIVE #######
             # if vr_ticks is 0 and vl_ticks is 0:
             #     roboclaw.ForwardM1(self.address, 0)
             #     roboclaw.ForwardM2(self.address, 0)
             # else:
             #     roboclaw.SpeedM1M2(self.address, vr_ticks, vl_ticks)
-            self.logger.info("tryng PID vr = " + str(vr) + " vl = " + str(vl))
+            # self.logger.info("tryng PID vr = " + str(vr) + " vl = " + str(vl))
+
+            ####### VOLTAGE DRIVE #######
             dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
             dutyCycle2 = int(vl / 12 * 32767)
             roboclaw.DutyM1M2(self.address, dutyCycle1, dutyCycle2)
