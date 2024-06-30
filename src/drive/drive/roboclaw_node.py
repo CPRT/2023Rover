@@ -56,8 +56,9 @@ class Movement:
         if linear_x < -self.MAX_SPEED:
             linear_x = -self.MAX_SPEED
 
-        vr = linear_x + self.twist.angular.z * self.BASE_WIDTH  # m/s
-        vl = linear_x - self.twist.angular.z * self.BASE_WIDTH
+
+        vr = linear_x + self.twist.angular.z * self.BASE_WIDTH / 2 # m/s
+        vl = linear_x - self.twist.angular.z * self.BASE_WIDTH / 2
         self.twist = None
 
         vr_ticks = int(vr * self.TICKS_PER_METER)  # ticks/s
@@ -69,17 +70,17 @@ class Movement:
             # This is a hack way to keep a poorly tuned PID from making noise at speed 0
 
             ####### PID DRIVE #######
-            # if vr_ticks is 0 and vl_ticks is 0:
-            #     roboclaw.ForwardM1(self.address, 0)
-            #     roboclaw.ForwardM2(self.address, 0)
-            # else:
-            #     roboclaw.SpeedM1M2(self.address, vr_ticks, vl_ticks)
-            # self.logger.info("tryng PID vr = " + str(vr) + " vl = " + str(vl))
+            if vr_ticks == 0 and vl_ticks == 0:
+                roboclaw.ForwardM1(self.address, 0)
+                roboclaw.ForwardM2(self.address, 0)
+            else:
+                roboclaw.SpeedM1M2(self.address, -vr_ticks, vl_ticks)
+            self.logger.info("tryng PID vr = " + str(-vr_ticks) + " vl = " + str(vl_ticks))
 
             ####### VOLTAGE DRIVE #######
-            dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
-            dutyCycle2 = int(vl / 12 * 32767)
-            roboclaw.DutyM1M2(self.address, dutyCycle1, dutyCycle2)
+            # dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
+            # dutyCycle2 = int(vl / 12 * 32767)
+            # roboclaw.DutyM1M2(self.address, -dutyCycle1, dutyCycle2)
             # if vr_ticks == 0 and vl_ticks == 0:
             #     self.logger.info("ticks are zero")
             #     roboclaw.ForwardM1(self.address, 0)
@@ -137,6 +138,18 @@ class RoboclawNode(Node):
         self.updater.add(
             diagnostic_updater.FunctionDiagnosticTask("Vitals", self.check_vitals)
         )
+        # m1_pid = roboclaw.ReadM1VelocityPID(self.address)
+        # self.get_logger().info(f"M1 Velocity PID for address {self.address}: P={m1_pid[1]}, I={m1_pid[2]}, D={m1_pid[3]}, QPPS={m1_pid[4]}")
+
+        # m2_pid = roboclaw.ReadM2VelocityPID(self.address)
+        # self.get_logger().info(f"M2 Velocity PID for address {self.address}: P={m2_pid[1]}, I={m2_pid[2]}, D={m2_pid[3]}, QPPS={m2_pid[4]}")
+
+        # m1_position_pid = roboclaw.ReadM1PositionPID(self.address)
+        # self.get_logger().info(f"M1 Position PID for address {self.address}: P={m1_position_pid[0]}, I={m1_position_pid[1]}, D={m1_position_pid[2]}, MaxI={m1_position_pid[3]}, Deadzone={m1_position_pid[4]}, MinPos={m1_position_pid[5]}, MaxPos={m1_position_pid[6]}")
+
+        # m2_position_pid = roboclaw.ReadM2PositionPID(self.address)
+        # self.get_logger().info(f"M2 Position PID for address {self.address}: P={m2_position_pid[0]}, I={m2_position_pid[1]}, D={m2_position_pid[2]}, MaxI={m2_position_pid[3]}, Deadzone={m2_position_pid[4]}, MinPos={m2_position_pid[5]}, MaxPos={m2_position_pid[6]}")
+
 
         try:
             version = roboclaw.ReadVersion(self.address)
@@ -157,15 +170,15 @@ class RoboclawNode(Node):
         self.MAX_SPEED = (
             self.get_parameter("max_speed").get_parameter_value().double_value
         )
-        self.declare_parameter("ticks_per_meter", 4342.2)
+        self.declare_parameter("ticks_per_meter", 819)
         self.TICKS_PER_METER = (
-            self.get_parameter("ticks_per_meter").get_parameter_value().double_value
+            self.get_parameter("ticks_per_meter").get_parameter_value().integer_value
         )
-        self.declare_parameter("ticks_per_rotation", 2780)
+        self.declare_parameter("ticks_per_rotation", 1024)
         self.TICKS_PER_ROTATION = (
             self.get_parameter("ticks_per_rotation").get_parameter_value().integer_value
         )
-        self.declare_parameter("base_width", 0.315)
+        self.declare_parameter("base_width", 0.9144)
         self.BASE_WIDTH = (
             self.get_parameter("base_width").get_parameter_value().double_value
         )
@@ -182,20 +195,20 @@ class RoboclawNode(Node):
         self.electr = None
         if self.PUB_ELEC:
             self.left_elec_pub = self.create_publisher(
-                BatteryState, "/roboclaw/elec/left", 1
+                BatteryState, dev_name + "/roboclaw/elec/left", 1
             )
             self.right_elec_pub = self.create_publisher(
-                BatteryState, "/roboclaw/elec/right", 1
+                BatteryState, dev_name + "/roboclaw/elec/right", 1
             )
             self.electr = ElectricalWrapper(self)
 
         if self.PUB_ODOM:
             self.odom_pub = self.create_publisher(Odometry, "/odom_roboclaw", 1)
             self.left_encoder_pub = self.create_publisher(
-                Float64, "/left_encoder_angular_velocity", 1
+                Float64,  dev_name + "/left_encoder_angular_velocity", 1
             )
             self.right_encoder_pub = self.create_publisher(
-                Float64, "/right_encoder_angular_velocity", 1
+                Float64, dev_name + "/right_encoder_angular_velocity", 1
             )
             self.encodm = EncoderWrapper(
                 self.TICKS_PER_METER,
@@ -284,6 +297,9 @@ class RoboclawNode(Node):
             self.electr.publish_elec(publish_time, elec_data)
 
         # self.get_logger().info("Update done moving if cmd")
+
+
+
         self.movement.run()
 
     def poll_elec(self) -> dict:

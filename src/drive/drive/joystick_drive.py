@@ -34,15 +34,16 @@ class joystickDrive(Node):
     def cmd_joy_callback(self, msg: Joy):
         if(self.pidMode == 0):
             if(msg.buttons[0] == 1):
-                self.pidMode = 1
-                self.statePub.publish(Int8(data=self.pidMode))
-            if(msg.axes[1] == 0.0 and msg.axes[0] == 0.0):
+                self.twist.linear.x = map_range(1, -1, 1, -1, 1) 
+                self.twist.angular.z = map_range(0, -1, 1, -1, 1)
+                self.setTwistPub.publish(self.twist)
+            elif(msg.axes[1] == 0.0 and msg.axes[0] == 0.0):
                 self.twist.linear.x = 0.0
                 self.twist.angular.z = 0.0
                 self.setTwistPub.publish(self.twist)
             else:
-                self.twist.linear.x = map_range(msg.axes[1], -1, 1, -8, 8) 
-                self.twist.angular.z = map_range(-msg.axes[0], -1, 1, -12, 12)
+                self.twist.linear.x = map_range(msg.axes[1], -1, 1, -1, 1) 
+                self.twist.angular.z = map_range(-msg.axes[0], -1, 1, -1, 1)
                 self.setTwistPub.publish(self.twist)
 
 
