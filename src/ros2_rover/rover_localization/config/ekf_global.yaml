@@ -70,7 +70,7 @@ global_ekf:
     odom1_differential: false
     odom1_relative: false
 
-    odom2: wheels/odom
+    odom2: odom_roboclaw
     odom2_config: [
         # position
         false, false, false,

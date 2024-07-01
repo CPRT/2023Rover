@@ -47,7 +47,7 @@ ouster/os_driver:
     # assigned.
     imu_port: 0
     # sensor_frame[optional]: name to use when referring to the sensor frame.
-    sensor_frame: base_link
+    sensor_frame: camera_link
     # lidar_frame[optional]: name to use when referring to the lidar frame.
     lidar_frame: os_lidar
     # imu_frame[optional]: name to use when referring to the imu frame.

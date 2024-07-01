@@ -41,7 +41,7 @@ local_ekf:
     # odom0_pose_rejection_threshold: 5.0
     # odom0_twist_rejection_threshold: 1.0
 
-    odom1: wheels/odom
+    odom1: odom_roboclaw
     odom1_config: [
         # position
         false, false, false,
