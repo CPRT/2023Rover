@@ -31,7 +31,9 @@ class ZedNode(Node):
         self.record_svo = False
         self.playback_svo = True
         self.hsv_explore = True
-        self.record_filename = "/home/jetson/Documents/ZED/Jun28/recording/test"
+        self.record_filename = "/home/jetson/Documents/ZED/Jun29/recording/test2.svo2"
+        # self.playback_filename = self.record_filename
+
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-09-27-ArucoMarkers.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-08-25-RedBlueBalls.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_20-57-10-BlueLED-Darker.svo2"
@@ -39,8 +41,10 @@ class ZedNode(Node):
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
         # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-43-38-Jun28-BlueLEDs-DeckLightOff.svo2"
 
-        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080-Jun28-BlueRedTrailHeadlightBoth.svo2"
-        self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_03-23-23-Jun28-BlueTrail-HeadlightOff.svo2"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080-Jun28-BlueRedTrailHeadlightBoth.svo2"
+        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_03-23-23-Jun28-BlueTrail-HeadlightOff.svo2"
+
+        self.playback_filename = "/home/jetson/Documents/ZED/Jun29/HD1080-Jun29-ManyAruco.svo2"
 
         self.detectVisionTargets = DetectVisionTargets()
         # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
@@ -48,11 +52,12 @@ class ZedNode(Node):
         zed_initialized = False
         while not zed_initialized:
             try:
-                self.init_zed()
-                zed_initialized = True
+                if self.init_zed():
+                    zed_initialized = True
+                else:
+                    sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
             except Exception as e:
                 self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
-                sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
     
         self.init_visualizers()
 
@@ -70,10 +75,10 @@ class ZedNode(Node):
             image_scaling=1.0, 
             display_scaling=0.3,
             mask_steps=tuple([
-                HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 245), HSV(180, 50, 255)), return_mask=True), 
-                ErodeDilateStep('Step 2 - Dilate to widen mask', erosion=-1, dilation=18, return_mask=False),
-                HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(103, 0, 109), HSV(130, 255, 253)), return_mask=True), 
-                ErodeDilateStep('Step 4 - Dilate - Prevent disjointed contours', erosion=-1, dilation=3, return_mask=True),
+                HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 251), HSV(180, 19, 255)), return_mask=True), 
+                ErodeDilateStep('Step 2 - Dilate to widen mask', -1, 21, return_mask=False), 
+                HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(119, 16, 102), HSV(128, 255, 255)), return_mask=True), 
+                ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
             ]))
 
         self.timer_period = 0.05  # 0.066 for 15 FPS
@@ -82,7 +87,16 @@ class ZedNode(Node):
         self.timestamp = self.get_clock().now()
         self.header_timestamp = self.get_clock().now().to_msg()
 
-    def init_zed(self):
+    def init_zed(self) -> bool:
+        """
+        Initialize the ZED Camera. 
+        Returns False when the camera should be rebooted and initialized again.
+
+        Raises:
+            Exception: Various exceptions from the ZED SDK about the camera failing to initialize.
+        Returns:
+            bool: True means the camera was correctly initialized. False means the camera should be rebooted and re-initialized.
+        """
         self.record_timestamp()
         self.get_logger().info("Initializing ZED Camera")
 
@@ -104,7 +118,9 @@ class ZedNode(Node):
         status = self.zed.open(init_params)
 
         if status != sl.ERROR_CODE.SUCCESS:
-            raise Exception("Failed to zed.open(init_params). Got ZED error code: " + repr(status))
+            if status == sl.ERROR_CODE.CAMERA_NOT_DETECTED:
+                self.get_logger().error("Failed to zed.open(init_params) Got ZED error code: " + repr(status))
+                return False
         
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
@@ -124,6 +140,7 @@ class ZedNode(Node):
                 self.get_logger().error(f"Failed to enable SVO recording on ZED. Error: {err}")
 
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
+        return True
 
     def init_visualizers(self):
         # Get Camera resolution
@@ -182,6 +199,7 @@ class ZedNode(Node):
 
         if self.hsv_explore:
             # self.blue_led_processing.mask_step_tuning(zed_img)
+            # return
 
             mask = self.blue_led_processing.process_mask(zed_img)
             bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
