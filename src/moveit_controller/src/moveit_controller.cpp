@@ -36,7 +36,8 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   
   //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
   
-  move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm");
+  move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm2"); //used to be rover_arm
+  gripper_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "gripper");
   executor_ptr->add_node(node_ptr);
   executor_thread = std::thread([this]() {this->executor_ptr->spin(); });
   
@@ -49,6 +50,7 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 		return msg;
 	}();
 	move_group_ptr->setPoseTarget(target_pose);
+	gripper_ptr->setPoseTarget(target_pose);
 
 	// Create a plan to that target pose
 	auto const [success, plan] = [&]{
@@ -83,11 +85,12 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
   
   
   move_group_ptr->stop();
+  gripper_ptr->stop();
   if (th.joinable())
 	{
 		th.join();
 	}
-	if ((isEmpty(poseMsg) && !armMsg.reset) || armMsg.estop)
+	if ((isEmpty(poseMsg) && !armMsg.reset && armMsg.named_pose == 0) || armMsg.estop)
 	{
 	  RCLCPP_INFO(this->get_logger(), "Stopping (for some reason)");
 	  return;
@@ -109,6 +112,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
   std::vector<geometry_msgs::msg::Pose> points;
   
   move_group_ptr->setStartStateToCurrentState();
+  gripper_ptr->setStartStateToCurrentState();
   geometry_msgs::msg::Pose current_pose = move_group_ptr->getCurrentPose().pose;
   
   points.push_back(current_pose);
@@ -167,6 +171,37 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 		} else {
 			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
 		}
+	}
+	else if (armMsg.named_pose != 0)
+	{
+	  if (armMsg.named_pose == 1 || armMsg.named_pose == 2) //1 = closed, 2 = open
+	  {
+	    std::string s = "open"; //jjk reference?
+	    if (armMsg.named_pose == 1)
+	    {
+	      RCLCPP_INFO(this->get_logger(), "Furnace: close!");
+	      s = "closed";
+	    }
+	    else
+	    {
+	      RCLCPP_INFO(this->get_logger(), "Furnace: open!");
+	    }
+	    gripper_ptr->setNamedTarget(s);
+
+			// Create a plan to that target pose
+			auto const [success, plan] = [&]{
+				moveit::planning_interface::MoveGroupInterface::Plan msg;
+				auto const ok = static_cast<bool>(gripper_ptr->plan(msg));
+				return std::make_pair(ok, msg);
+			}();
+
+			// Execute the plan
+			if(success) {
+				gripper_ptr->execute(plan);
+			} else {
+				RCLCPP_ERROR(this->get_logger(), "Planing failed!");
+			}
+	  }
 	}
 	else if (poseMsg.orientation.x != 0 || poseMsg.orientation.y != 0 || poseMsg.orientation.z != 0 || poseMsg.orientation.w != 0) //rotation required
 	{

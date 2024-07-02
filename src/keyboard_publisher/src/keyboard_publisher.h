@@ -15,6 +15,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "interfaces/msg/arm_cmd.hpp"
 
+bool isOpen = true;
+
 class MinimalPublisher : public rclcpp::Node
 {
   public:

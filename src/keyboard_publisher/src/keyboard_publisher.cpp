@@ -11,7 +11,7 @@ MinimalPublisher::MinimalPublisher()
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
   timer_ = this->create_wall_timer(
   500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
-  std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units)"<<std::endl;
+  std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units). Type 'n' to reset. Type 'm' to open/close gripper."<<std::endl;
 }
 
 void MinimalPublisher::timer_callback()
@@ -26,6 +26,7 @@ void MinimalPublisher::timer_callback()
 		msg.pose.orientation.z = 0;
 		msg.pose.orientation.w = 0;
 		msg.speed = defSpeed;
+		msg.named_pose = 0;
 		msg.estop = false;
 		msg.reset = false;
 		return msg;
@@ -85,6 +86,15 @@ void MinimalPublisher::timer_callback()
     double newSpeed = 0;
     std::cin>>newSpeed;
     defSpeed = newSpeed;
+  }
+  else if (c == 'n')
+  {
+    poseCmd.reset = true;
+  }
+  else if (c == 'm')
+  {
+    isOpen = !isOpen;
+    poseCmd.named_pose = 1+isOpen;
   }
   //auto message = std_msgs::msg::String();
   //geometry_msgs::msg::Pose message;

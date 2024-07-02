@@ -7,4 +7,19 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: William Fan
     author_email: wyf132@gmail.com
-    generated_timestamp: 1719934178
+    generated_timestamp: 1719937151
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
