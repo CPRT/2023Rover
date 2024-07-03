@@ -50,34 +50,6 @@
                 </state_interface>
                 <state_interface name="velocity"/>
             </joint>
-            <joint name="joint_7_1">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['joint_7_1']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
-            <joint name="joint_9_1">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['joint_9_1']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
-            <joint name="joint_7_2">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['joint_7_2']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
-            <joint name="joint_9_2">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['joint_9_2']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
             <joint name="joint_8_1">
                 <command_interface name="position"/>
                 <state_interface name="position">
