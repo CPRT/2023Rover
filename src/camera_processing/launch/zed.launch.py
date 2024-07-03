@@ -4,8 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription  
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
-
-from camera_processing.camera_processing.zed_node import ZedNode
+from launch_ros.actions import Node
 
 def generate_launch_description():
     ld = LaunchDescription()
@@ -56,7 +55,7 @@ def generate_launch_description():
     )
 
     # Nodes
-    zed_node = ZedNode(
+    zed_node = Node(
         package="camera_processing",
         executable="zed_node",
         name="zed_node",

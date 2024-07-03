@@ -9,9 +9,10 @@ zed_node:
     resolution: "HD1080" # Options: HD720, HD1080, HD1200, HD2K
     fps: 30
     depth_maximum_distance: 15 # meters
-
+  
     exposure: 50
     gain: 95
     gamma: 7
+    white_balance: 4600
 
     enable_object_tracking: False

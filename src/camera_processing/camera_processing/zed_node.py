@@ -38,13 +38,13 @@ class ZedNode(Node):
 
         zed_initialized = False
         while not zed_initialized:
-            try:
-                if self.init_zed():
-                    zed_initialized = True
-                else:
-                    sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
-            except Exception as e:
-                self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
+            # try:
+            if self.init_zed():
+                zed_initialized = True
+            else:
+                sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
+            # except Exception as e:
+            #     self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
     
         self.init_visualizers()
 
@@ -79,6 +79,7 @@ class ZedNode(Node):
         self.frame_id = "/zed_link"
 
         self.declare_parameters(
+            namespace="",
             parameters=[ 
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
                 ('publish_cv_processed_image', True),
@@ -91,6 +92,7 @@ class ZedNode(Node):
                 ('exposure', 50),
                 ('gain', 95),
                 ('gamma', 7),
+                ('white_balance', 4600),
                 ('enable_object_tracking', False),
 
                 # From colour_processing_params.yaml. This yaml file is required
@@ -102,13 +104,17 @@ class ZedNode(Node):
                 # From launch file arguments
                 ('playback_filename', ''),
                 ('record_filename', ''),
-                ('publish_gl_viewer_data', 'False'),
-                ('publish_6x6_aruco_as_leds', 'False'),
+                ('publish_gl_viewer_data', False),
+                ('publish_6x6_aruco_as_leds', False),
             ]
         )
 
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
+
+        self.publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
+        self.publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
+        self.publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
 
         self.record_svo: bool = False
         self.playback_svo: bool = False
@@ -161,12 +167,19 @@ class ZedNode(Node):
                 self.get_logger().error("Failed to zed.open(init_params) Got ZED error code: " + repr(status))
                 return False
         
+        self.get_logger().info(f"white_balance: {int(self.get_parameter('white_balance').value)}")
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, int(self.get_parameter('exposure').value))
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, int(self.get_parameter('white_balance').value))
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, 0 if int(self.get_parameter('white_balance').value) == -1 else 1)
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, int(self.get_parameter('gain').value))
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, int(self.get_parameter('gamma').value))
+
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
 
         obj_param = sl.ObjectDetectionParameters()
         obj_param.detection_model = sl.OBJECT_DETECTION_MODEL.CUSTOM_BOX_OBJECTS  # CUSTOM_BOX_OBJECTS  MULTI_CLASS_BOX_MEDIUM
-        obj_param.enable_tracking = False
+        obj_param.enable_tracking = bool(self.get_parameter('enable_object_tracking').value)
         self.zed.enable_object_detection(obj_param)
 
         if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
@@ -236,21 +249,21 @@ class ZedNode(Node):
         # ZED Red/Blue LEDS
         # detections += self.detectVisionTargets.detectZEDLEDs()
 
-        if self.hsv_explore:
+        # if self.hsv_explore:
             # self.blue_led_processing.mask_step_tuning(zed_img)
             # return
 
-            mask = self.blue_led_processing.process_mask(zed_img)
-            bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
+        mask = self.blue_led_processing.process_mask(zed_img)
+        bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
 
-            for i in range(0, len(bounding_boxes)):
-                obj = sl.CustomBoxObjectData()
-                obj.unique_object_id = f"blue_led_{i}"
-                obj.bounding_box_2d = bounding_boxes[i]
-                obj.label = 3
-                obj.probability = 0.99
-                obj.is_grounded = False
-                detections.append(obj)
+        for i in range(0, len(bounding_boxes)):
+            obj = sl.CustomBoxObjectData()
+            obj.unique_object_id = f"blue_led_{i}"
+            obj.bounding_box_2d = bounding_boxes[i]
+            obj.label = 3
+            obj.probability = 0.99
+            obj.is_grounded = False
+            detections.append(obj)
 
         # IR Cam Image
         # ir_image = self.ir_cam.read()
