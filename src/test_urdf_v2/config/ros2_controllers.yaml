@@ -8,7 +8,7 @@ controller_manager:
 
 
     gripper_controller:
-      type: position_controllers/GripperActionController
+      type: joint_trajectory_controller/JointTrajectoryController
 
 
     joint_state_broadcaster:
@@ -37,3 +37,8 @@ gripper_controller:
       - joint_9_2
       - joint_8_1
       - joint_8_2
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity

@@ -187,8 +187,20 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	      RCLCPP_INFO(this->get_logger(), "Furnace: open!");
 	    }
 	    gripper_ptr->setNamedTarget(s);
-
-			// Create a plan to that target pose
+			
+			points.push_back(new_pose);
+			std::vector<geometry_msgs::msg::Pose> points2;
+			points2.push_back(gripper_ptr->getCurrentPose().pose);
+			points2.push_back(gripper_ptr->getPoseTarget().pose);
+			const double jump_threshold = 0;
+			const double eef_step = 0.01;
+			moveit_msgs::msg::RobotTrajectory trajectory2;
+			//double fraction = move_group_interface.computeCartesianPath(points, eef_step, jump_threshold, trajectory);
+			gripper_ptr->computeCartesianPath(points2, eef_step, jump_threshold, trajectory2);
+			//RCLCPP_INFO(LOGGER, "Visualizing plan 4 (Cartesian path) (%.2f%% achieved)", fraction * 100.0);
+			//move_group_ptr->execute(trajectory);
+			gripper_ptr->execute(trajectory2);
+			/*// Create a plan to that target pose
 			auto const [success, plan] = [&]{
 				moveit::planning_interface::MoveGroupInterface::Plan msg;
 				auto const ok = static_cast<bool>(gripper_ptr->plan(msg));
@@ -200,7 +212,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 				gripper_ptr->execute(plan);
 			} else {
 				RCLCPP_ERROR(this->get_logger(), "Planing failed!");
-			}
+			}*/
 	  }
 	}
 	else if (poseMsg.orientation.x != 0 || poseMsg.orientation.y != 0 || poseMsg.orientation.z != 0 || poseMsg.orientation.w != 0) //rotation required
