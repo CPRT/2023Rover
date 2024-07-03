@@ -6,6 +6,7 @@ import numpy as np
 import pyzed.sl as sl
 
 from rclpy.node import Node
+from rclpy import Parameter
 # import rclpy.time as Time
 from typing import List
 from threading import Lock, Thread
@@ -25,26 +26,12 @@ from .HSVImageExplore.image_colour_processing.simple_mask_steps import ErodeDila
 from .HSVImageExplore.image_colour_processing.datatypes import HSVRange, HSV
 
 class ZedNode(Node):
+    STRING_TO_RESOLUTION = {"HD720": sl.RESOLUTION.HD720, "HD1080": sl.RESOLUTION.HD1080, "HD1200": sl.RESOLUTION.HD1200, "HD2K": sl.RESOLUTION.HD2K}
+
     def __init__(self):
         super().__init__('zed_node')
-        self.frame_id = "/zed_link"
-        self.record_svo = False
-        self.playback_svo = True
-        self.hsv_explore = True
-        self.record_filename = "/home/jetson/Documents/ZED/Jun29/recording/test2.svo2"
-        # self.playback_filename = self.record_filename
 
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-09-27-ArucoMarkers.svo2"
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun27/HD1080_SN32985835_23-08-25-RedBlueBalls.svo2"
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_20-57-10-BlueLED-Darker.svo2"
-
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-47-45-Jun28-BlueLED-1MeterCalibrationGrid-ReflectiveCouch.svo2"
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/" + "HD1080_SN32985835_21-43-38-Jun28-BlueLEDs-DeckLightOff.svo2"
-
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080-Jun28-BlueRedTrailHeadlightBoth.svo2"
-        # self.playback_filename = "/home/jetson/Documents/ZED/Jun28/HD1080_SN32985835_03-23-23-Jun28-BlueTrail-HeadlightOff.svo2"
-
-        self.playback_filename = "/home/jetson/Documents/ZED/Jun29/HD1080-Jun29-ManyAruco.svo2"
+        self.setup_params()
 
         self.detectVisionTargets = DetectVisionTargets()
         # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
@@ -66,10 +53,10 @@ class ZedNode(Node):
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
         self.runtime_params = sl.RuntimeParameters()
 
-        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/vision/zed_aruco_points', 10)
-        self.publish_blue_led_points = self.create_publisher(PointArray, '/vision/blue_led_points', 10)
-        self.publish_red_led_points = self.create_publisher(PointArray, '/vision/red_led_points', 10)
-        self.publish_ir_led_points = self.create_publisher(PointArray, '/vision/ir_led_points', 10)
+        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
+        self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
+        self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points', 10)
+        self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points', 10)
 
         self.blue_led_processing = ColourProcessing(
             image_scaling=1.0, 
@@ -79,7 +66,8 @@ class ZedNode(Node):
                 ErodeDilateStep('Step 2 - Dilate to widen mask', -1, 21, return_mask=False), 
                 HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(119, 16, 102), HSV(128, 255, 255)), return_mask=True), 
                 ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
-            ]))
+            ])
+        )
 
         self.timer_period = 0.05  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
@@ -87,6 +75,58 @@ class ZedNode(Node):
         self.timestamp = self.get_clock().now()
         self.header_timestamp = self.get_clock().now().to_msg()
 
+    def setup_params(self) -> bool:
+        self.frame_id = "/zed_link"
+
+        self.declare_parameters(
+            parameters=[ 
+                # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
+                ('publish_cv_processed_image', True),
+                ('svo_realtime_mode', False), # Doesn't work on Jetson Nano
+                ('always_record', False),
+                ('default_record_filename', ''),
+                ('resolution', 'HD1080'), # Options: HD720, HD1080, HD1200, HD2K
+                ('fps', 30),
+                ('depth_maximum_distance', 15), # meters
+                ('exposure', 50),
+                ('gain', 95),
+                ('gamma', 7),
+                ('enable_object_tracking', False),
+
+                # From colour_processing_params.yaml. This yaml file is required
+                ('resize_for_processing', Parameter.Type.DOUBLE),
+                ('blue_led', Parameter.Type.STRING),
+                ('red_led', Parameter.Type.STRING),
+                ('ir_led', Parameter.Type.STRING),
+
+                # From launch file arguments
+                ('playback_filename', ''),
+                ('record_filename', ''),
+                ('publish_gl_viewer_data', 'False'),
+                ('publish_6x6_aruco_as_leds', 'False'),
+            ]
+        )
+
+        if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
+            raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
+
+        self.record_svo: bool = False
+        self.playback_svo: bool = False
+        self.record_filename: str = ""
+        self.playback_filename: str = ""
+
+        if str(self.get_parameter('playback_filename').value) != '':
+            self.playback_svo = True
+            self.playback_filename = str(self.get_parameter('playback_filename').value)
+
+        elif str(self.get_parameter('record_filename').value) != '':
+            self.record_svo = True
+            self.record_filename = str(self.get_parameter('record_filename').value)
+
+        elif self.get_parameter('always_record') and str(self.get_parameter('default_record_filename')) != '':
+            self.record_svo = True
+            self.record_filename = str(self.get_parameter('default_record_filename'))
+    
     def init_zed(self) -> bool:
         """
         Initialize the ZED Camera. 
@@ -100,15 +140,14 @@ class ZedNode(Node):
         self.record_timestamp()
         self.get_logger().info("Initializing ZED Camera")
 
-
         # Create a InitParameters object and set configuration parameters
         init_params = sl.InitParameters(svo_real_time_mode=False)
         init_params.coordinate_units = sl.UNIT.METER
         init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP
         init_params.depth_mode = sl.DEPTH_MODE.PERFORMANCE  # Can use PERFORMANCE MODE but it misses some details (sl.DEPTH_MODE.ULTRA) (sl.DEPTH_MODE.PERFORMANCE)
-        init_params.depth_maximum_distance = 15
-        init_params.camera_resolution = sl.RESOLUTION.HD1080   # HD720   HD1080   HD1200    HD2K
-        init_params.camera_fps = 15 # Use 15 FPS to improve low-light performance
+        init_params.depth_maximum_distance = int(self.get_parameter('depth_maximum_distance').value)
+        init_params.camera_resolution = ZedNode.STRING_TO_RESOLUTION[str(self.get_parameter('resolution').value)]   # HD720   HD1080   HD1200    HD2K
+        init_params.camera_fps = int(self.get_parameter('fps').value) # Use 15 FPS to improve low-light performance
 
         if self.playback_svo and self.playback_filename != "":
             init_params.set_from_svo_file(self.playback_filename)
