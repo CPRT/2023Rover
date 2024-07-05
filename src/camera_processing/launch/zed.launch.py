@@ -58,7 +58,7 @@ def generate_launch_description():
     zed_node = Node(
         package="camera_processing",
         executable="zed_node",
-        name="zed_node",
+        name="zed",
         parameters=[
             {"playback_filename": playback_filename},
             {'record_filename': record_filename},

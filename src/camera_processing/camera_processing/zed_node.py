@@ -12,8 +12,11 @@ from typing import List
 from threading import Lock, Thread
 from time import sleep
 
+from cv_bridge import CvBridge
+
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
+from sensor_msgs.msg import CompressedImage
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
@@ -29,7 +32,9 @@ class ZedNode(Node):
     STRING_TO_RESOLUTION = {"HD720": sl.RESOLUTION.HD720, "HD1080": sl.RESOLUTION.HD1080, "HD1200": sl.RESOLUTION.HD1200, "HD2K": sl.RESOLUTION.HD2K}
 
     def __init__(self):
-        super().__init__('zed_node')
+        super().__init__('zed')
+
+        self.cv_bridge = CvBridge()
 
         self.setup_params()
 
@@ -57,6 +62,8 @@ class ZedNode(Node):
         self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
         self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points', 10)
         self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points', 10)
+
+        self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 2)
 
         self.blue_led_processing = ColourProcessing(
             image_scaling=1.0, 
@@ -112,9 +119,9 @@ class ZedNode(Node):
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
 
-        self.publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
-        self.publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
-        self.publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
+        self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
+        self.should_publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
+        self.should_publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
 
         self.record_svo: bool = False
         self.playback_svo: bool = False
@@ -223,12 +230,11 @@ class ZedNode(Node):
         # grab is a blocking call
         error_code = self.zed.grab(self.runtime_params)
         if error_code != sl.ERROR_CODE.SUCCESS:
-            # TODO: Add handling for a camera error. Most likely error here is ERROR_CODE.CAMERA_NOT_DETECTED
-
             if error_code == sl.ERROR_CODE.END_OF_SVOFILE_REACHED:
                 self.get_logger().info(f"SVO end has been reached ({self.zed.get_svo_position()}). Looping back to first frame")
                 self.zed.set_svo_position(0)
-
+            else:
+                self.get_logger().error(f"ERROR_CODE reported from ZED from grab function. ERROR_CODE: {repr(error_code)}")
             return
         
         self.header_timestamp = self.get_clock().now().to_msg()
@@ -314,8 +320,11 @@ class ZedNode(Node):
 
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
-        cv2.imshow("ZED Image Processing", zed_img)
-        cv2.waitKey(10)
+        if self.should_publish_cv_processed_image:
+            self.publish_cv_image.publish(self.br.cv2_to_compressed_imgmsg(zed_img)) 
+
+        # cv2.imshow("ZED Image Processing", zed_img)
+        # cv2.waitKey(10)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
