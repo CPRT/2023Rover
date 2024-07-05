@@ -21,34 +21,14 @@ global_ekf:
     base_link_frame: base_link
     world_frame: map
 
-    pose0: localization_pose
-    pose0_config: [
-        # position
-        true, true, true,
-        # orientation
-        true, true, true,
-        # lineal vel 
-        false, false, false,
-        # angular vel
-        false, false, false,
-        # lineal acc
-        false, false, false,
-      ]
-    # pose0_queue_size: 2
-    # pose0_nodelay: false
-    pose0_differential: true
-    pose0_relative: false
-    # pose0_pose_rejection_threshold: 5.0
-    # pose0_twist_rejection_threshold: 1.0
-
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, true,
+        true, true, false,
         # orientation
         false, false, true,
         # lineal vel 
-        true, true, true,
+        true, true, false,
         # angular vel
         false, false, false,
         # lineal acc

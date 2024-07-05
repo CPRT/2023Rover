@@ -249,6 +249,23 @@ def generate_launch_description():
         ],
     )
 
+    # NavSatTransform node
+
+    navsat_remappings = [
+        ("imu/data", "imu/from/gps"),
+        ("gps/fix", "gps/fix"),
+        ("odometry/filtered", "odometry/filtered/global")
+    ]
+    Node(
+        package="robot_localization",
+        executable="navsat_transform_node",
+        output="log",
+        parameters=[configured_params],
+        remappings=navsat_remappings,
+        arguments=["--ros-args", "--log-level", "Warn"]
+    )
+
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
