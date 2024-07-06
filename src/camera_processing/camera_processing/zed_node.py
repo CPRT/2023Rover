@@ -16,7 +16,7 @@ from cv_bridge import CvBridge
 
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Image
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
@@ -33,28 +33,25 @@ class ZedNode(Node):
 
     def __init__(self):
         super().__init__('zed')
+        self.setup_params()
+        self.setup_detect_vision_targets()
 
         self.cv_bridge = CvBridge()
 
-        self.setup_params()
-
-        self.detectVisionTargets = DetectVisionTargets()
-        # self.ir_cam = VideoCapture(0, CameraType.ERIK_ELP)
+        if self.should_detect_ir_led:
+            self.ir_cam: VideoCapture = VideoCapture(0, CameraType.ERIK_ELP)
 
         zed_initialized = False
         while not zed_initialized:
-            # try:
             if self.init_zed():
                 zed_initialized = True
             else:
                 sl.Camera.reboot(sn=0, full_reboot=True) # Reboot fixes USB problems on Jetson Nano
-            # except Exception as e:
-            #     self.get_logger().error(f"Failed to initialize ZED. Exception: {e}")
     
         self.init_visualizers()
 
-        self.image_left_tmp = sl.Mat()
-        self.objects = sl.Objects()
+        self.image_left_tmp: sl.Mat = sl.Mat()
+        self.objects: sl.Object = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
         self.runtime_params = sl.RuntimeParameters()
 
@@ -63,20 +60,10 @@ class ZedNode(Node):
         self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points', 10)
         self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points', 10)
 
-        self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 2)
+        self.publish_raw_image = self.create_publisher(Image, '/zed_raw_image', 10)
+        self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 10)
 
-        self.blue_led_processing = ColourProcessing(
-            image_scaling=1.0, 
-            display_scaling=0.3,
-            mask_steps=tuple([
-                HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 251), HSV(180, 19, 255)), return_mask=True), 
-                ErodeDilateStep('Step 2 - Dilate to widen mask', -1, 21, return_mask=False), 
-                HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(119, 16, 102), HSV(128, 255, 255)), return_mask=True), 
-                ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
-            ])
-        )
-
-        self.timer_period = 0.05  # 0.066 for 15 FPS
+        self.timer_period = 0.03  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
 
         self.timestamp = self.get_clock().now()
@@ -89,7 +76,13 @@ class ZedNode(Node):
             namespace="",
             parameters=[ 
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
-                ('publish_cv_processed_image', True),
+                ('zed_arucos_detections', True),
+                ('blue_led_detections', True),
+                ('red_led_detections', True),
+                ('ir_led_detections', True),
+
+                ('publish_raw_image', False),
+                ('publish_cv_processed_image', False),
                 ('svo_realtime_mode', False), # Doesn't work on Jetson Nano
                 ('always_record', False),
                 ('default_record_filename', ''),
@@ -119,6 +112,12 @@ class ZedNode(Node):
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
 
+        self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
+        self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
+        self.should_detect_red_led = bool(self.get_parameter('red_led_detections').value)
+        self.should_detect_ir_led = bool(self.get_parameter('ir_led_detections').value)
+
+        self.should_publish_raw_image = bool(self.get_parameter('publish_raw_image').value)
         self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
         self.should_publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
         self.should_publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
@@ -139,7 +138,37 @@ class ZedNode(Node):
         elif self.get_parameter('always_record') and str(self.get_parameter('default_record_filename')) != '':
             self.record_svo = True
             self.record_filename = str(self.get_parameter('default_record_filename'))
+
+        self.blue_led_str = str(self.get_parameter('blue_led').value)
+        self.red_led_str = str(self.get_parameter('red_led').value)
+        self.ir_led_str = str(self.get_parameter('ir_led').value)
     
+    def setup_detect_vision_targets(self):
+        """
+        Setup the DetectVisionTargets object with the ColourProcessing objects for the blue, red and ir LEDs.
+        """
+        blue_led_colour_processing = ColourProcessing.from_string(self.blue_led_str)
+        red_led_colour_processing = ColourProcessing.from_string(self.red_led_str)
+        ir_led_colour_processing = ColourProcessing.from_string(self.ir_led_str)
+
+        if not blue_led_colour_processing or isinstance(blue_led_colour_processing, str):
+            self.get_logger().error(f"Failed to create blue_led_colour_processing: {blue_led_colour_processing}") 
+            self.should_detect_blue_led = False
+
+        if not red_led_colour_processing or isinstance(red_led_colour_processing, str):
+            self.get_logger().error(f"Failed to create red_led_colour_processing: {red_led_colour_processing}")
+            self.should_detect_red_led = False
+
+        if not ir_led_colour_processing or isinstance(ir_led_colour_processing, str):
+            self.get_logger().error(f"Failed to create ir_led_colour_processing: {ir_led_colour_processing}")
+            self.should_detect_ir_led = False
+
+        self.detectVisionTargets = DetectVisionTargets(
+            blue_led=blue_led_colour_processing,
+            red_led=red_led_colour_processing,
+            ir_led=ir_led_colour_processing
+        )
+
     def init_zed(self) -> bool:
         """
         Initialize the ZED Camera. 
@@ -246,39 +275,34 @@ class ZedNode(Node):
 
         # ZED Image
         self.zed.retrieve_image(self.image_left_tmp, sl.VIEW.LEFT)
-        zed_left_image_net = self.image_left_tmp.get_data()
+        zed_left_image_net: np.array = self.image_left_tmp.get_data()
         zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2BGR)
 
+        # Publish Raw Image
+        if self.should_publish_raw_image:
+            self.publish_raw_image.publish(self.cv_bridge.cv2_to_imgmsg(zed_img))
+
         # ZED Aruco Markers
-        detections += self.detectVisionTargets.detectArucoMarkers(zed_img, CameraType.ZED)
+        if self.should_detect_arucos:
+            detections += self.detectVisionTargets.detectArucoMarkers(zed_img, CameraType.ZED)
 
-        # ZED Red/Blue LEDS
-        # detections += self.detectVisionTargets.detectZEDLEDs()
+        # ZED Blue LEDS
+        if self.should_detect_blue_led:
+            detections += self.detectVisionTargets.detectZEDBlueLEDs(zed_img)
 
-        # if self.hsv_explore:
-            # self.blue_led_processing.mask_step_tuning(zed_img)
-            # return
+        # ZED Red LEDS
+        if self.should_detect_red_led:
+            detections += self.detectVisionTargets.detectZEDRedLEDs(zed_img)
 
-        mask = self.blue_led_processing.process_mask(zed_img)
-        bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
+        # IR Cam Image 
+        if self.should_detect_ir_led:
+            ir_image = self.ir_cam.read()
 
-        for i in range(0, len(bounding_boxes)):
-            obj = sl.CustomBoxObjectData()
-            obj.unique_object_id = f"blue_led_{i}"
-            obj.bounding_box_2d = bounding_boxes[i]
-            obj.label = 3
-            obj.probability = 0.99
-            obj.is_grounded = False
-            detections.append(obj)
+            # IR Cam Aruco Markers
+            detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
 
-        # IR Cam Image
-        # ir_image = self.ir_cam.read()
-
-        # IR Cam Aruco Markers
-        # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
-
-        # IR Cam LEDs
-        # detections += self.detectVisionTargets.detectIRLEDS(ir_image, ir_cam.cam_type)
+            # IR Cam LEDs
+            detections += self.detectVisionTargets.detectIRLEDS(ir_image, self.ir_cam.cam_type)
 
         # Ingest detections and get objects
         self.zed.ingest_custom_box_objects(detections)

@@ -1,4 +1,5 @@
-from typing import Tuple, Callable, List
+from typing import Tuple, Callable, List, Union
+from __future__ import annotations
 from .mask_step import MaskStep
 
 import cv2
@@ -21,7 +22,29 @@ class ColourProcessing:
         
         for step in mask_steps:
             step.set_display_scaling(display_scaling)
+
+    @classmethod    
+    def from_string(python_eval: str) -> Union[ColourProcessing, str]:
+        """
+        Create a ColourProcessing object from a string that can be evaluated to a ColourProcessing object.
+        The intention is for HSVImageExplore to print how strings that can be eval'd into ColourProcessing objects.
+
+        Parameters:
+            - python_eval (str): The string to eval into a ColourProcessing object
         
+        Returns:
+            - Union[ColourProcessing, str]: The ColourProcessing object or an error message
+        """
+        try:
+            obj = eval(python_eval)
+        except Exception as e:
+            return f"Error creating ColourProcessing object. Error: {e}"
+        
+        if not isinstance(obj, ColourProcessing):
+            return f"Error creating ColourProcessing object. Error: {obj} is not a ColourProcessing object."
+        
+        return obj
+    
     def process_mask(self, image: ndarray) -> ndarray:
         """
         Take an image and create a mask by running it through all the MaskSteps of this object.

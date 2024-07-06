@@ -4,6 +4,9 @@ import numpy as np
 from enum import Enum
 from typing import List
 
+from camera_processing.camera_processing.HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
+from camera_processing.camera_processing.HSVImageExplore.image_colour_processing.datatypes import HSVRange, HSV
+
 from .map_targets_between_cams import PitchYaw, Point, CameraUtil
 
 # ELP 640x480
@@ -32,10 +35,14 @@ class CameraType(Enum):
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
 
 class DetectVisionTargets:
-    def __init__(self):
+    def __init__(self, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         self.aruco_params =  cv2.aruco.DetectorParameters()
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+
+        self.blue_led_process = blue_led
+        self.red_led_process = red_led
+        self.ir_led_process = ir_led
 
     def bounding_box(points: np.array):
         """
@@ -123,17 +130,45 @@ class DetectVisionTargets:
             return detections
 
 
-    def detectZEDLEDs(self, zed_img) -> List[sl.CustomBoxObjectData]:
+    def detectZEDBlueLEDs(self, zed_img) -> List[sl.CustomBoxObjectData]:
         detections = []
+
+        # Blue LEDS
+        mask = self.blue_led_processing.process_mask(zed_img)
+        bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
+
+        for i in range(0, len(bounding_boxes)):
+            obj = sl.CustomBoxObjectData()
+            obj.unique_object_id = f"BlueLED-{i}"
+            obj.bounding_box_2d = bounding_boxes[i]
+            obj.label = 3
+            obj.probability = 0.99
+            obj.is_grounded = False
+            detections.append(obj)
+
         return detections
     
+    def detectZEDRedLEDs(self, zed_img) -> List[sl.CustomBoxObjectData]:
+        detections = []
+
+        # Red LEDS
+        mask = self.red_led_processing.process_mask(zed_img)
+        bounding_boxes = self.red_led_processing.process_contours(mask, zed_img)
+
+        for i in range(0, len(bounding_boxes)):
+            obj = sl.CustomBoxObjectData()
+            obj.unique_object_id = f"RedLED-{i}"
+            obj.bounding_box_2d = bounding_boxes[i]
+            obj.label = 4
+            obj.probability = 0.99
+            obj.is_grounded = False
+            detections.append(obj)
+
+        return detections
 
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
         return detections
-    
-
-
 
     def draw_object_detection(img, object_data: sl.ObjectData):
         (topLeft, topRight, bottomRight, bottomLeft) = object_data.bounding_box_2d

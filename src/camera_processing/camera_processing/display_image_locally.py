@@ -14,7 +14,7 @@ class DisplayImageLocally(Node):
                 ('window_name', 'DisplayImage'),
                 ('image_topic', '/zed/cv_zed_image'),
                 ('is_image_compressed', True),
-                ('depth_history', 5)
+                ('depth_history', 10)
             ]
         )
 
