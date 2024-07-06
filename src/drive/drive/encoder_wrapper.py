@@ -55,8 +55,9 @@ class EncoderWrapper:
         return angle
 
     def update(self, enc_left, enc_right):
+        # Hack solution to accomidate for reversing motor 1 is make it negative
         left_ticks = enc_left - self.last_enc_left
-        right_ticks = enc_right - self.last_enc_right
+        right_ticks = -(enc_right - self.last_enc_right)
         self.last_enc_left = enc_left
         self.last_enc_right = enc_right
 
