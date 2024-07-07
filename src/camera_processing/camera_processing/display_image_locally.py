@@ -12,22 +12,26 @@ class DisplayImageLocally(Node):
             namespace="",
             parameters=[
                 ('window_name', 'DisplayImage'),
-                ('image_topic', '/zed/cv_zed_image'),
+                ('image_topic', '/cv_zed_image'),
                 ('is_image_compressed', True),
                 ('depth_history', 10)
             ]
         )
 
         self.is_image_compressed = bool(self.get_parameter('is_image_compressed').value)
+        self.window_name = str(self.get_parameter('window_name').value)
 
         self.image_subscriber = self.create_subscription(
             CompressedImage if self.is_image_compressed else Image,
-            str(self.get_paramter('image_topic').value),
+            str(self.get_parameter('image_topic').value),
             self.image_callback, 
-            int(self.get_paramter('depth_history').value)
+            int(self.get_parameter('depth_history').value)
         )
 
         self.cv_bridge = CvBridge()
+
+        self.get_logger().info(f"Subscribed to {self.get_parameter('image_topic').value}")
+        self.get_logger().info(f"Expecting {'CompressedImage' if self.is_image_compressed else 'Image'} message")
 
     def image_callback(self, image):
         if self.is_image_compressed:

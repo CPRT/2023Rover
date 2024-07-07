@@ -24,10 +24,10 @@ def generate_launch_description():
     )
 
     # Nodes
-    zed_node = Node(
+    node = Node(
         package="camera_processing",
-        executable="zed_node",
-        name="zed",
+        executable="hsv_image_explore",
+        name="hsv_image_explore",
         parameters=[
             {'pipeline': pipeline_name},
             colour_processing_params]
@@ -35,5 +35,5 @@ def generate_launch_description():
 
     # Add launch actions
     ld.add_action(pipeline_name_arg)
-    ld.add_action(zed_node)
+    ld.add_action(node)
     return ld

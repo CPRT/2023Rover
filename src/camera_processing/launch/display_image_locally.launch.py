@@ -17,14 +17,14 @@ def generate_launch_description():
     image_topic = LaunchConfiguration('image_topic')
     image_topic_arg = DeclareLaunchArgument(
         'image_topic',
-        default_value='/zed/cv_zed_image',
+        default_value='/cv_zed_image',
         description='The name of the topic to subscribe and get the image from.'
     )
 
     is_image_compressed = LaunchConfiguration('is_image_compressed')
     is_image_compressed_args = DeclareLaunchArgument(
         'is_image_compressed',
-        default_value='False',
+        default_value='True',
         description='Options: True or False. True to expect a sensor_msgs.msg.CompressedImage, False to expect a sensor_msgs.msg.Image'
     )
 

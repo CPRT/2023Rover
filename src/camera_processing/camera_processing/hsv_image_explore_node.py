@@ -1,4 +1,4 @@
-from camera_processing.camera_processing.HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
+from .HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
 import rclpy, cv2
 from rclpy.node import Node 
 from rclpy import Parameter
@@ -7,13 +7,13 @@ from sensor_msgs.msg import Image, CompressedImage
 
 class TuneHSVImageExplore(Node):
     def __init__(self):
-        super().__init__('display_image_locally')
+        super().__init__('hsv_image_explore')
 
         self.declare_parameters(
             namespace="",
             parameters=[
-                ('window_name', 'DisplayImage'),
-                ('image_topic', '/zed/zed_raw_image'),
+                # ('window_name', 'HSV'),
+                ('image_topic', '/zed_raw_image'),
                 ('is_image_compressed', False),
                 ('depth_history', 10),
 
@@ -47,10 +47,13 @@ class TuneHSVImageExplore(Node):
 
         self.image_subscriber = self.create_subscription(
             CompressedImage if self.is_image_compressed else Image,
-            str(self.get_paramter('image_topic').value),
+            str(self.get_parameter('image_topic').value),
             self.image_callback, 
-            int(self.get_paramter('depth_history').value)
+            int(self.get_parameter('depth_history').value)
         )
+
+        self.timer_period = 0.1
+        self.timer = self.create_timer(self.timer_period, self.run_hsv_image_explore)
 
         self.cv_bridge = CvBridge()
 
@@ -59,7 +62,9 @@ class TuneHSVImageExplore(Node):
         if self.is_image_compressed:
             self.image = self.cv_bridge.compressed_imgmsg_to_cv2(image)
         else:
-            self.image = self.window_name, self.cv_bridge.imgmsg_to_cv2(image)
+            self.image = self.cv_bridge.imgmsg_to_cv2(image)
+
+        self.get_logger().info(f"Received image. Count: {self.image_count}. Processed: {self.image_proceessed_count}")
             
     def run_hsv_image_explore(self):
         if self.image is not None and self.image_count != self.image_proceessed_count:

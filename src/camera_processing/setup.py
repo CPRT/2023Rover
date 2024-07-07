@@ -32,6 +32,7 @@ setup(
             'aruco_markers = camera_processing.aruco_markers:main',
             'display_image_locally = camera_processing.display_image_locally:main',
             'zed_node = camera_processing.zed_node:main',
+            'hsv_image_explore = camera_processing.hsv_image_explore_node:main',
         ],
     },
 )
