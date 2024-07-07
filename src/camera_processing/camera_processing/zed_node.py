@@ -96,10 +96,14 @@ class ZedNode(Node):
                 ('enable_object_tracking', False),
 
                 # From colour_processing_params.yaml. This yaml file is required
-                ('resize_for_processing', Parameter.Type.DOUBLE),
-                ('blue_led', Parameter.Type.STRING),
+                # ('resize_for_processing', Parameter.Type.DOUBLE),
+                # ('blue_led', Parameter.Type.STRING),
                 ('red_led', Parameter.Type.STRING),
-                ('ir_led', Parameter.Type.STRING),
+                # ('ir_led', Parameter.Type.STRING),
+                ('resize_for_processing', 1.0),
+                ('blue_led', ""),
+                # ('red_led', ""),
+                ('ir_led', ""),
 
                 # From launch file arguments
                 ('playback_filename', ''),
@@ -345,7 +349,7 @@ class ZedNode(Node):
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
         if self.should_publish_cv_processed_image:
-            self.publish_cv_image.publish(self.br.cv2_to_compressed_imgmsg(zed_img)) 
+            self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(zed_img)) 
 
         # cv2.imshow("ZED Image Processing", zed_img)
         # cv2.waitKey(10)

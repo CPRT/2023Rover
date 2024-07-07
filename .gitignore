@@ -6,3 +6,5 @@ build/
 
 #Files
 *metadata.json
+
+*.pyc

@@ -60,12 +60,13 @@ def generate_launch_description():
         executable="zed_node",
         name="zed",
         parameters=[
+            zed_params, 
+            colour_processing_params,
             {"playback_filename": playback_filename},
             {'record_filename': record_filename},
             {'publish_gl_viewer_data': publish_gl_viewer_data},
             {'publish_6x6_aruco_as_leds': publish_6x6_aruco_as_leds},
-            zed_params, 
-            colour_processing_params]
+        ]
     )
 
     # Add launch actions

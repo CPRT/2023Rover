@@ -4,10 +4,12 @@ import numpy as np
 from enum import Enum
 from typing import List
 
-from camera_processing.camera_processing.HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
-from camera_processing.camera_processing.HSVImageExplore.image_colour_processing.datatypes import HSVRange, HSV
+# from ZedNode import STRING_TO_RESOLUTION
+from ..HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
 
 from .map_targets_between_cams import PitchYaw, Point, CameraUtil
+
+
 
 # ELP 640x480
 # elp_width = 640
@@ -40,9 +42,9 @@ class DetectVisionTargets:
         self.aruco_params =  cv2.aruco.DetectorParameters()
         self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
 
-        self.blue_led_process = blue_led
-        self.red_led_process = red_led
-        self.ir_led_process = ir_led
+        self.blue_led_processing = blue_led
+        self.red_led_processing = red_led
+        self.ir_led_processing = ir_led
 
     def bounding_box(points: np.array):
         """

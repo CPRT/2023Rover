@@ -1,6 +1,9 @@
+from __future__ import annotations # Import ColourProcessing as a type hint
 from typing import Tuple, Callable, List, Union
-from __future__ import annotations
 from .mask_step import MaskStep
+from .hsv_range_mask_step import HSVRangeMaskStep
+from .datatypes import HSVRange, HSV
+from .simple_mask_steps import *
 
 import cv2
 from . import cv2_helper
@@ -24,7 +27,7 @@ class ColourProcessing:
             step.set_display_scaling(display_scaling)
 
     @classmethod    
-    def from_string(python_eval: str) -> Union[ColourProcessing, str]:
+    def from_string(colour_processing_class, python_eval: str) -> Union[ColourProcessing, str]:
         """
         Create a ColourProcessing object from a string that can be evaluated to a ColourProcessing object.
         The intention is for HSVImageExplore to print how strings that can be eval'd into ColourProcessing objects.
