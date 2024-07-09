@@ -1,15 +1,21 @@
 from __future__ import annotations # Import ColourProcessing as a type hint
 from typing import Tuple, Callable, List, Union
-from .mask_step import MaskStep
-from .hsv_range_mask_step import HSVRangeMaskStep
-from .datatypes import HSVRange, HSV
-from .simple_mask_steps import *
 
 import cv2
-from . import cv2_helper
 from numpy import ndarray
 import time
 import numpy as np
+
+# from . import cv2_helper
+# from .mask_step import MaskStep
+# from .simple_mask_steps import *
+# from .hsv_range_mask_step import HSVRangeMaskStep
+
+import cv2_helper
+from mask_step import MaskStep
+from simple_mask_steps import *
+from hsv_range_mask_step import HSVRangeMaskStep
+from datatypes import *
 
 class ColourProcessing:
     def __init__(self, image_scaling: float, display_scaling: float, mask_steps: Tuple[MaskStep]):
@@ -48,6 +54,11 @@ class ColourProcessing:
         
         return obj
     
+    def process_image(self, image: ndarray) -> list:
+        mask = self.process_mask(image)
+        self.process_contours(mask, image)
+
+
     def process_mask(self, image: ndarray) -> ndarray:
         """
         Take an image and create a mask by running it through all the MaskSteps of this object.
