@@ -2,14 +2,22 @@
   ros__parameters:
     resize_for_processing: {"HD1080": 0.5, "HD2K": 0.25, "default": 0.5}
 
+    # blue_led: "ColourProcessing(
+    #         image_scaling=0.5,
+    #         display_scaling=1.0,
+    #         mask_steps=tuple([
+    #             HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 251), HSV(180, 19, 255)), return_mask=True), 
+    #             ErodeDilateStep('Step 2 - Dilate to widen mask', -1, 21, return_mask=False), 
+    #             HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(119, 16, 102), HSV(128, 255, 255)), return_mask=True), 
+    #             ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
+    #         ]))"
+
     blue_led: "ColourProcessing(
             image_scaling=0.5,
             display_scaling=1.0,
             mask_steps=tuple([
-                HSVRangeMaskStep('Step 1 - HSV - White Filament', HSVRange(HSV(0, 0, 251), HSV(180, 19, 255)), return_mask=True), 
-                ErodeDilateStep('Step 2 - Dilate to widen mask', -1, 21, return_mask=False), 
-                HSVRangeMaskStep('Step 3 - HSV - Blue around white filament', HSVRange(HSV(119, 16, 102), HSV(128, 255, 255)), return_mask=True), 
-                ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
+            HSVRangeMaskStep('Step 1 - HSV - Blue', HSVRange(HSV(95, 192, 96), HSV(127, 255, 255)), return_mask=True), 
+            ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=1, dilation=4, erosion_before_dilate=True, return_mask=True), 
             ]))"
     
     red_led: ""

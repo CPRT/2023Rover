@@ -1,11 +1,14 @@
 import cv2
-from . import cv2_helper
-from .mask_step import MaskStep
-from .datatypes import HSVRange
 from numpy import ndarray
 import numpy as np
 from typing import Optional
 from copy import deepcopy
+
+# from . import cv2_helper
+# from .mask_step import MaskStep
+
+import cv2_helper
+from mask_step import MaskStep
 
 
 class SingleChannelRaiseSaturationStep(MaskStep):
@@ -181,7 +184,7 @@ class ErodeDilateStep(MaskStep):
         self._return_mask = return_mask
 
     def __repr__(self) -> str:
-        repr_str = f"ErodeDilateStep({repr(self._window_name)}, {self._erosion}, {self._dilation}"
+        repr_str = f"ErodeDilateStep({repr(self._window_name)}, erosion={self._erosion}, dilation={self._dilation}"
         if self._erosion_before_dilate:
             repr_str += ", erosion_before_dilate=True"
         if self._return_mask:

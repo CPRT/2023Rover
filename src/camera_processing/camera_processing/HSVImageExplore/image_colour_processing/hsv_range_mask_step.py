@@ -1,11 +1,16 @@
 import cv2
-from . import cv2_helper
-from .mask_step import MaskStep
-from .datatypes import HSVRange
 from numpy import ndarray
 import numpy as np
 from typing import Optional
 from copy import deepcopy
+
+# from . import cv2_helper
+# from .mask_step import MaskStep
+# from .datatypes import HSVRange
+
+import cv2_helper
+from mask_step import MaskStep
+from datatypes import HSVRange
 
 
 class HSVRangeMaskStep(MaskStep):

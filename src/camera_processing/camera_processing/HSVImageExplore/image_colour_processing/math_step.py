@@ -10,9 +10,9 @@ class MaskStep:
         self._is_display_active = False
         self._display_scaling = 1.0
 
-    def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
+    def process(self, contours, hierarchy) -> ndarray:
         """
-        Process an image and return the newly processed image.
+        Process contours to remove 
 
         Parameters:
             original_img (ndarray): The original image with no processing
