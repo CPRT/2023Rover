@@ -4,14 +4,18 @@ import numpy as np
 from typing import Optional
 from copy import deepcopy
 
-# from . import cv2_helper
-# from .mask_step import MaskStep
-# from .datatypes import HSVRange
+try:
+    # Import for CLI usage
+    import cv2_helper
+    from process_steps import MaskStep
+    from datatypes import HSVRange
+    print(f"{__name__} is being used as a script")
 
-import cv2_helper
-from mask_step import MaskStep
-from datatypes import HSVRange
-
+except Exception as e:
+    # Import for ROS usage
+    from . import cv2_helper
+    from .process_steps import MaskStep
+    from .datatypes import HSVRange
 
 class HSVRangeMaskStep(MaskStep):
     hh = 'Hue High'

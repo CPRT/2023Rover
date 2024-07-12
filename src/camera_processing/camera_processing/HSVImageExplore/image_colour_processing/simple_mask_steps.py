@@ -4,12 +4,16 @@ import numpy as np
 from typing import Optional
 from copy import deepcopy
 
-# from . import cv2_helper
-# from .mask_step import MaskStep
+try:
+    # Import for CLI usage
+    import cv2_helper
+    from process_steps import MaskStep
+    print(f"{__name__} is being used as a script")
 
-import cv2_helper
-from mask_step import MaskStep
-
+except Exception as e:
+    # Import for ROS usage
+    from . import cv2_helper
+    from .process_steps import MaskStep
 
 class SingleChannelRaiseSaturationStep(MaskStep):
     sat_low_name = "Saturation Lower Bound"

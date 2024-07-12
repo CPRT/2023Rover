@@ -1,37 +1,73 @@
 from __future__ import annotations # Import ColourProcessing as a type hint
-from typing import Tuple, Callable, List, Union
+from typing import Tuple, Callable, List, Union, Any, Set
 
 import cv2
 from numpy import ndarray
 import time
 import numpy as np
 
-# from . import cv2_helper
-# from .mask_step import MaskStep
-# from .simple_mask_steps import *
-# from .hsv_range_mask_step import HSVRangeMaskStep
+try:
+    # Import for CLI usage
+    import cv2_helper
+    from process_steps import *
+    from simple_mask_steps import *
+    from hsv_range_mask_step import HSVRangeMaskStep
+    from simple_math_steps import *
+    from datatypes import *
+    print(f"{__name__} is being used as a script")
 
-import cv2_helper
-from mask_step import MaskStep
-from simple_mask_steps import *
-from hsv_range_mask_step import HSVRangeMaskStep
-from datatypes import *
+except Exception as e:
+
+    # Import for ROS usage
+    from . import cv2_helper
+    from .process_steps import *
+    from .simple_mask_steps import *
+    from .hsv_range_mask_step import HSVRangeMaskStep
+    from .simple_math_steps import *
 
 class ColourProcessing:
-    def __init__(self, image_scaling: float, display_scaling: float, mask_steps: Tuple[MaskStep]):
+    DECIMALS = 5
+
+    def __init__(self, image_scaling: float, display_scaling: float, process_steps: Tuple[ProcessStep]):
         """
         """
         self._in_tuning_mode: bool
-        self._mask_steps: Tuple[MaskStep] = mask_steps
+        self._process_steps: Tuple[ProcessStep] = process_steps
         self._image_scaling: float = image_scaling
         self._display_scaling: float = display_scaling
     
-        if len(mask_steps) == 0:
+        if len(self._process_steps) == 0:
             raise IndexError("Must give at least one MaskStep to ColourProcessing")
         
-        for step in mask_steps:
+        self.__print_step_classes()
+
+        found_math_to_mask_step = False
+        for i in range(0, len(self._process_steps)):
+            if not found_math_to_mask_step:
+                if isinstance(self._process_steps[i], MaskToMathStep):
+                    found_math_to_mask_step = True
+                    self._mask_to_mask_index = i
+                elif not isinstance(self._process_steps[i], MaskStep):
+                    raise ValueError(f"All ProcessSteps before a MaskToMath step must be a MaskStep. Found {self._process_steps[i].__name__} at index {i}")
+            else:
+                if not isinstance(self._process_steps[i], MathStep):
+                    raise ValueError(f"All ProcessSteps after a MaskToMath step must be a MathStep. Found {self._process_steps[i].__name__} at index {i}")
+
+        for step in self._process_steps:
             step.set_display_scaling(display_scaling)
 
+    def __print_step_classes(self):
+        steps_class_list = []
+        for step in self._process_steps:
+            if isinstance(step, MaskStep):
+                steps_class_list.append(f"{step.__class__.__name__}(MaskStep)")
+            elif isinstance(step, MaskToMathStep):
+                steps_class_list.append(f"{step.__class__.__name__}(MaskToMathStep)")
+            elif isinstance(step, MathStep):
+                steps_class_list.append(f"{step.__class__.__name__}(MathStep)")
+            else:
+                steps_class_list.append(f"{step.__class__.__name__} ~~ UNKNOWN ~~")
+     
     @classmethod    
     def from_string(colour_processing_class, python_eval: str) -> Union[ColourProcessing, str]:
         """
@@ -54,32 +90,75 @@ class ColourProcessing:
         
         return obj
     
-    def process_image(self, image: ndarray) -> list:
-        mask = self.process_mask(image)
-        self.process_contours(mask, image)
-
-
-    def process_mask(self, image: ndarray) -> ndarray:
+    def process_image(self, image: ndarray) -> Tuple[List[Tuple[int, int]], List[List[str]]]:
         """
-        Take an image and create a mask by running it through all the MaskSteps of this object.
+        Process an image and return a bounding box and tag for targets.
 
-        Paramters:
-            image (ndarray): The image to process
+        Parameters:
+            - image (ndarray): The image to process
 
         Returns:
-            ndarray: The mask for the image
+            Intended use:
+            bounding_box, tags, timings = colour_procressing.process_image(image)
+            - bounding_box(List[Tuple[int, int]]): The bounding boxes for the targets as a List of Points
+            - tags(List[List[str]]): A list of tags for each target
+            - timings(str): A string of the timings for each step
         """
         start = time.time()
+
+        # Process the image through the mask steps
         mask_timings = []
         processed_image = image
-        for mask_step in self._mask_steps:
-            step_start = time.time()
-            processed_image = mask_step.process(image, processed_image)
-            mask_timings.append(time.time() - step_start)
+        for i in range(0, self._mask_to_mask_index):
+            mask_step_start = time.time()
+            processed_image = self._process_steps[i].process(image, processed_image)
+            mask_timings.append(f"{time.time() - mask_step_start:.{ColourProcessing.DECIMALS}f}")
 
-        print(f"Process time: {time.time() - start:.4f}. Steps: {np.around(mask_timings, 4)}")
-        return processed_image
-    
+        # Process the MaskToMathStep
+        mask_to_math_start = time.time()
+        contours, hierarchy = self._process_steps[self._mask_to_mask_index].process(image, processed_image)
+        mask_to_math_end = time.time()
+
+        # Handle no contours producing None in the hierarchy
+        if hierarchy is None:
+            hierarchy = ()
+        else:
+            hierarchy = hierarchy[0]
+
+        # Process the contours and hierarchy through the MathSteps
+        math_timings = []
+        tags: List[Set[str]] = [set() for i in range(0, len(contours))]
+        for i in range(self._mask_to_mask_index + 1, len(self._process_steps)):
+            math_step_start = time.time()
+            contours, hierarchy, tags = self._process_steps[i].process(image, processed_image, contours, hierarchy, tags)
+            math_timings.append(f"{time.time() - math_step_start:.{ColourProcessing.DECIMALS}f}")
+
+        # Convert contours to bounding boxes
+        bounding_box_start = time.time()
+        bounding_boxes = []
+        for contour in contours:
+            bounding_boxes.append(ColourProcessing._contour_to_bounding_box(contour))
+        bounding_box_end = time.time()
+
+        # Print the timings
+        str_timings = f"TIMINGS: Total: {time.time() - start:.{ColourProcessing.DECIMALS}f}, " + \
+                      f"Mask: {mask_timings}, " + \
+                      f"MaskToMath: {mask_to_math_end - mask_to_math_start:.{ColourProcessing.DECIMALS}f}, " + \
+                      f"Math: {math_timings}, " + \
+                      f"BoundingBoxes: {bounding_box_end - bounding_box_start:.{ColourProcessing.DECIMALS}f}"
+
+        return bounding_boxes, tags, str_timings
+
+    def __repr__(self) -> str:
+        repr_msg = "ColourProcess(\n"
+        repr_msg += f"        image_scaling={self._image_scaling},\n"
+        repr_msg += f"        display_scaling={self._display_scaling},\n"
+        repr_msg += f"        mask_steps=tuple([\n"
+        for step in self._process_steps:
+            repr_msg += f"            {repr(step)},\n"
+        repr_msg += f"        ]))\n"
+        return repr_msg
+
     def process_contours(self, mask: ndarray, draw_contours_img: ndarray = None) -> list:
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)   # cv2.CHAIN_APPROX_NONE   cv2.CHAIN_APPROX_SIMPLE
 
@@ -112,10 +191,10 @@ class ColourProcessing:
     def _xywh2abcd(xywh):
         output = np.zeros((4, 2))
 
-        x_min = (xywh[0]) # * im_shape[1]
-        x_max = (xywh[0] + xywh[2]) # * im_shape[1]
-        y_min = (xywh[1]) # * im_shape[0]
-        y_max = (xywh[1] + xywh[3]) # * im_shape[0]
+        x_min = (xywh[0])
+        x_max = (xywh[0] + xywh[2])
+        y_min = (xywh[1])
+        y_max = (xywh[1] + xywh[3])
 
         # A ------ B
         # | Object |
@@ -134,68 +213,68 @@ class ColourProcessing:
         output[3][1] = y_max
         return output
 
-    def single_image_mask(self, filename: str):
+    def single_image_process(self, filename: str):
         image: ndarray = cv2.imread(filename)
         print(f"Image size: {image.shape}")
         image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
         print(f"Image size scaled: {image.shape}")
 
         for i in range(0, 10):
-            self.process_contours(self.process_mask(image))
+            bounding_box, tags, timings = self.process_image(image)
+            print(timings)
 
-    def mask_step_tuning(self, image: ndarray, starting_step: int = 0) -> bool:
+    def process_steps_tuning(self, image: ndarray, starting_step: int = 0) -> Tuple[int, int]:
         image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
 
-        mask_step_index: int = starting_step
-        self._mask_steps[mask_step_index].start_display()
+        process_step_index: int = starting_step
+        self._process_steps[process_step_index].start_display()
         
         while True:
-            self.process_mask(image)            
+            bounding_box, tags, timings = self.process_image(image)            
+            print(timings)
             
             key_pressed = cv2.waitKey(5)
             new_index = None
 
             if key_pressed == cv2_helper.WaitKeyStroke.ESC or key_pressed == ord('s') or key_pressed == ord('d'):
-                self._mask_steps[mask_step_index].stop_display()
-                print(f"The Mask Steps are below:\n(")
-                for step in self._mask_steps:
-                    print(f"{repr(step)}, ")
-                print(")")
-                return key_pressed, mask_step_index
+                self._process_steps[process_step_index].stop_display()
+                print(f"The Process Steps are below:")
+                print(repr(self))
+                return key_pressed, process_step_index
             
             elif key_pressed == ord('w'):
-                new_index = max(mask_step_index - 1, 0)
+                new_index = max(process_step_index - 1, 0)
             elif key_pressed == ord('e'):
-                new_index = min(mask_step_index + 1, len(self._mask_steps) - 1)
+                new_index = min(process_step_index + 1, len(self._process_steps) - 1)
 
             else:
-                for i in range(1, len(self._mask_steps)+1):
+                for i in range(1, len(self._process_steps)+1):
                     if key_pressed == ord(str(i)):
                         new_index = i - 1
                         break
                         
-            if new_index is not None and new_index != mask_step_index:
-                print(f"Stopping {mask_step_index} and starting {new_index}")
-                self._mask_steps[mask_step_index].stop_display()
-                self._mask_steps[new_index].start_display()
-                mask_step_index = new_index
+            if new_index is not None and new_index != process_step_index:
+                print(f"Stopping {process_step_index} and starting {new_index}")
+                self._process_steps[process_step_index].stop_display()
+                self._process_steps[new_index].start_display()
+                process_step_index = new_index
 
-    def single_image_mask_tuning(self, filename: str):
+    def single_image_process_tuning(self, filename: str):
         image: ndarray = cv2.imread(filename)
         print(f"Image size: {image.shape}")
         
-        mask_step_index: int = 0
-        self._mask_steps[mask_step_index].start_display()
+        process_step_index: int = 0
+        self._process_steps[process_step_index].start_display()
         
-        self.mask_step_tuning(image)
+        self.process_steps_tuning(image)
         cv2.destroyAllWindows()
 
-    def multi_image_mask_tuning(self, image_callback: Callable[..., ndarray]):
+    def multi_image_process_tuning(self, image_callback: Callable[..., ndarray]):
         images: List[ndarray] = [image_callback()]
         image_index: int = 0
-        mask_step: int = 0
+        process_step: int = 0
         while True:
-            key_pressed, mask_step = self.mask_step_tuning(images[image_index], mask_step)
+            key_pressed, process_step = self.process_steps_tuning(images[image_index], process_step)
 
             if key_pressed == cv2_helper.WaitKeyStroke.ESC:
                 break
@@ -205,6 +284,5 @@ class ColourProcessing:
                 image_index += 1
                 if image_index >= len(images):
                     images.append(image_callback())
-
 
         cv2.destroyAllWindows()

@@ -15,10 +15,12 @@
     blue_led: "ColourProcessing(
             image_scaling=0.5,
             display_scaling=1.0,
-            mask_steps=tuple([
+            process_steps=tuple([
             HSVRangeMaskStep('Step 1 - HSV - Blue', HSVRange(HSV(95, 192, 96), HSV(127, 255, 255)), return_mask=True), 
-            ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=1, dilation=4, erosion_before_dilate=True, return_mask=True), 
+            ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=1, dilation=4, erosion_before_dilate=True, return_mask=True),
+            FindContours('Step 3 - Find Contours', cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE),
+            FilterByContourArea('Step 4 - Reject By Area', reject_below=1, far_close_divider=100, reject_above=500, area_scaling=1.0),
             ]))"
-    
+
     red_led: ""
     ir_led: ""
