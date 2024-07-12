@@ -80,6 +80,7 @@ class ZedNode(Node):
                 ('blue_led_detections', True),
                 ('red_led_detections', True),
                 ('ir_led_detections', True),
+                ('detect_6x6_aruco_as_leds', False),
 
                 ('publish_raw_image', False),
                 ('publish_cv_processed_image', False),
@@ -120,6 +121,7 @@ class ZedNode(Node):
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
         self.should_detect_red_led = bool(self.get_parameter('red_led_detections').value)
         self.should_detect_ir_led = bool(self.get_parameter('ir_led_detections').value)
+        self.should_detect_6x6_aruco = bool(self.get_parameter('detect_6x6_aruco_as_leds').value)
 
         self.should_publish_raw_image = bool(self.get_parameter('publish_raw_image').value)
         self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
@@ -168,6 +170,7 @@ class ZedNode(Node):
             self.should_detect_ir_led = False
 
         self.detectVisionTargets = DetectVisionTargets(
+            ros_logger=self.get_logger(),
             blue_led=blue_led_colour_processing,
             red_led=red_led_colour_processing,
             ir_led=ir_led_colour_processing
@@ -308,6 +311,10 @@ class ZedNode(Node):
             # IR Cam LEDs
             detections += self.detectVisionTargets.detectIRLEDS(ir_image, self.ir_cam.cam_type)
 
+        # ZED detect 6x6 Arucos as fake LEDs
+        if self.should_detect_6x6_aruco:
+            detections += self.detectVisionTargets.detect_6x6_arucos(zed_img)
+
         # Ingest detections and get objects
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
@@ -322,7 +329,9 @@ class ZedNode(Node):
         ir_led_point_arr = self.create_point_array()
 
         for object in self.objects.object_list:
-            self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
+            # self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
+            
+            # TODO: Wrap this in a if based on if zed_img is getting published
             DetectVisionTargets.draw_object_detection(zed_img, object)
             point: Point = self.zed_object_to_point(object)
 
@@ -332,15 +341,18 @@ class ZedNode(Node):
 
                 self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
 
-            elif (object.unique_object_id == "blue_led"):
+            elif DetectVisionTargets.is_blue_led(object.unique_object_id):
                 blue_led_point_arr.points.append(point)
 
-            elif (object.unique_object_id == "red_led"):
+            elif DetectVisionTargets.is_red_led(object.unique_object_id):
                 red_led_point_arr.points.append(point)
 
-            elif (object.unique_object_id == "ir_led"):
+            elif DetectVisionTargets.is_ir_led(object.unique_object_id):
                 ir_led_point_arr.points.append(point)
-        
+                
+            else:
+                self.get_logger.warn("Lost object after zed detections called " + object.unique_object_id)
+
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
         self.publish_blue_led_points.publish(blue_led_point_arr)
         self.publish_red_led_points.publish(red_led_point_arr)

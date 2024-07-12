@@ -5,6 +5,8 @@ zed:
     red_led_detections: True
     ir_led_detections: False
 
+    detect_6x6_aruco_as_leds: True
+
     publish_raw_image: True
     publish_cv_processed_image: True
 

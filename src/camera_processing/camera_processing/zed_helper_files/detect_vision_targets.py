@@ -2,10 +2,11 @@ import cv2
 import pyzed.sl as sl
 import numpy as np
 from enum import Enum
-from typing import List
+from typing import List, Set
 
 # from ZedNode import STRING_TO_RESOLUTION
 from ..HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
+from ..HSVImageExplore.image_colour_processing.process_steps import MathStep
 
 from .map_targets_between_cams import PitchYaw, Point, CameraUtil
 
@@ -37,10 +38,16 @@ class CameraType(Enum):
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
 
 class DetectVisionTargets:
-    def __init__(self, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
-        self.aruco_params =  cv2.aruco.DetectorParameters()
-        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
+    def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
+        self._ros_logger = ros_logger
+
+        self.aruco_dict_4x4 = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
+        self.aruco_params_4x4 =  cv2.aruco.DetectorParameters()
+        self.aruco_detector_4x4 = cv2.aruco.ArucoDetector(self.aruco_dict_4x4, self.aruco_params_4x4)
+
+        self.aruco_dict_6x6 = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_100)
+        self.aruco_params_6x6 = cv2.aruco.DetectorParameters()
+        self.aruco_detector_6x6 = cv2.aruco.ArucoDetector(self.aruco_dict_6x6, self.aruco_params_6x6)
 
         self.blue_led_processing = blue_led
         self.red_led_processing = red_led
@@ -81,23 +88,49 @@ class DetectVisionTargets:
     def is_ir_cam_marker(unique_label: str) -> bool:
         return f"{IR_CAM_NAME}-ArucoID" in unique_label
     
+    def is_blue_led(unique_label: str) -> bool:
+        return "BlueLED" in unique_label
+    
+    def is_red_led(unique_label: str) -> bool:
+        return "RedLED" in unique_label
+    
+    def is_ir_led(unique_label: str) -> bool:
+        return "IRLED" in unique_label
+
     def get_marker_id_from_label(unique_label: str) -> int:
         try:
             return int(unique_label[unique_label.index("-ArucoID")+len("-ArucoID"):])
         except Exception as e:
             return -1
 
+    def unique_object_id_from_tags(base: str, tags: Set[str]) -> str:
+        if MathStep.CoreTag.REJECT in tags:
+            return ""
+        
+        tag_str = ""
+        
+        if MathStep.CoreTag.FAR in tags:
+            tag_str += f"-{MathStep.CoreTag.FAR}"
+        elif MathStep.CoreTag.CLOSE in tags:
+            tag_str += f"-{MathStep.CoreTag.CLOSE}"
+        else:
+            return "" # Error
+        
+        return base + tag_str
+
     def detectArucoMarkers(self, img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         try:
-            corners, ids, rejected = self.aruco_detector.detectMarkers(img)
+            corners, ids, rejected = self.aruco_detector_4x4.detectMarkers(img)
             cv2.aruco.drawDetectedMarkers(img, corners, ids)
             detections = []
 
             if len(corners) == 0:
-                print("No aruco markers found")
+                # self._ros_logger.info("No aruco markers found")
+                return detections
 
             elif len(corners) != len(ids):
-                print("Mismatched id and corners arrays from the aruco detector")
+                self._ros_logger.error("Mismatched id and corners arrays from the aruco detector")
+                return detections
 
             else:
                 for i in range(0, len(corners)):
@@ -120,7 +153,7 @@ class DetectVisionTargets:
                     obj = sl.CustomBoxObjectData()
                     obj.unique_object_id = DetectVisionTargets.create_aruco_unique_label(cameraMapping, markerID)
                     obj.bounding_box_2d = reshapedCorners # Converts to unsigned int so values MUST be positive or it fails
-                    obj.label = int(markerID)
+                    obj.label = 1 if cameraMapping == CameraType.ZED else 2
                     obj.probability = 0.99
                     obj.is_grounded = False
                     detections.append(obj)
@@ -128,7 +161,7 @@ class DetectVisionTargets:
             return detections
 
         except Exception as e:
-            print(f"Encounted exception trying to detect aruco markers: {e}")
+            self._ros_logger.error(f"Encounted exception trying to detect aruco markers: {e}")
             return detections
 
 
@@ -136,17 +169,20 @@ class DetectVisionTargets:
         detections = []
 
         # Blue LEDS
-        mask = self.blue_led_processing.process_mask(zed_img)
-        bounding_boxes = self.blue_led_processing.process_contours(mask, zed_img)
+        bounding_boxes, tags, timings = self.blue_led_processing.process_image(zed_img)
+        self._ros_logger.info("Blue LED " + timings)
 
         for i in range(0, len(bounding_boxes)):
-            obj = sl.CustomBoxObjectData()
-            obj.unique_object_id = f"BlueLED-{i}"
-            obj.bounding_box_2d = bounding_boxes[i]
-            obj.label = 3
-            obj.probability = 0.99
-            obj.is_grounded = False
-            detections.append(obj)
+            unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"BlueLED-{i}", tags[i])
+
+            if unique_object_id != "":
+                obj = sl.CustomBoxObjectData()
+                obj.unique_object_id = unique_object_id
+                obj.bounding_box_2d = bounding_boxes[i]
+                obj.label = 3
+                obj.probability = 0.99
+                obj.is_grounded = False
+                detections.append(obj)
 
         return detections
     
@@ -154,21 +190,95 @@ class DetectVisionTargets:
         detections = []
 
         # Red LEDS
-        mask = self.red_led_processing.process_mask(zed_img)
-        bounding_boxes = self.red_led_processing.process_contours(mask, zed_img)
+        bounding_boxes, tags, timings = self.red_led_processing.process_image(zed_img)
+        self._ros_logger.info("Red LED " + timings)
 
         for i in range(0, len(bounding_boxes)):
-            obj = sl.CustomBoxObjectData()
-            obj.unique_object_id = f"RedLED-{i}"
-            obj.bounding_box_2d = bounding_boxes[i]
-            obj.label = 4
-            obj.probability = 0.99
-            obj.is_grounded = False
-            detections.append(obj)
+            unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"RedLED-{i}", tags[i])
 
-        return detections
+            if unique_object_id != "":
+                obj = sl.CustomBoxObjectData()
+                obj.unique_object_id = unique_object_id
+                obj.bounding_box_2d = bounding_boxes[i]
+                obj.label = 4
+                obj.probability = 0.99
+                obj.is_grounded = False
+                detections.append(obj)
+
+        return detections, timings
 
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
+        detections = []
+
+        # IR LEDS
+        bounding_boxes, tags, timings = self.red_led_processing.process_image(ir_img)
+        # self._ros_logger.info("IR LED " + timings)
+
+        for i in range(0, len(bounding_boxes)):
+            unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"RedLED-{i}", tags[i])
+
+            if unique_object_id != "":
+                for points in bounding_boxes:
+                    # print(f"    REMAPPING: {points}")
+                    pitchYaw = cameraMapping.value.pitchYawFromXY(Point(points[0], points[1]))
+                    xy = CameraType.ZED.xyFromPitchYaw(pitchYaw)
+                    points[0] = max(0, xy.x) # Ensure values are not negative
+                    points[1] = max(0, xy.y)
+                    # print(f"           TO: {points}")
+                    # print(f"     PitchYaw: {pitchYaw}")
+
+                obj = sl.CustomBoxObjectData()
+                obj.unique_object_id = unique_object_id
+                obj.bounding_box_2d = bounding_boxes[i]
+                obj.label = 4
+                obj.probability = 0.99
+                obj.is_grounded = False
+                detections.append(obj)
+
+        return detections, timings
+
+    def detect_6x6_arucos(self, zed_img) -> List[sl.CustomBoxObjectData]:
+        corners, ids, rejected = self.aruco_detector_6x6.detectMarkers(zed_img)
+        cv2.aruco.drawDetectedMarkers(zed_img, corners, ids)
+        detections = []
+
+        if len(corners) == 0:
+            # self._ros_logger.info("No aruco markers of the 6x6_100 family found")
+            return
+
+        elif len(corners) != len(ids):
+            self._ros_logger.error("Mismatched id and corners arrays from the aruco detector")
+            return
+        
+        else:
+            for i in range(0, len(corners)):
+                markerCorners = corners[i]
+                markerID: int = int(ids[i][0])
+
+                reshapedCorners = DetectVisionTargets.bounding_box(markerCorners.reshape((4, 2)))
+
+                if markerID >= 0 and markerID <= 20:
+                    unique_object_id = f"BlueLED-Aruco6x6-{i}"
+
+                elif markerID <= 40:
+                    unique_object_id = f"RedLED-Aruco6x6-{i}"
+
+                elif markerID <= 60:
+                    unique_object_id = f"IRLED-Aruco6x6-{i}"
+
+                else:
+                    continue
+
+                # Creating ingestable objects for the ZED SDK
+                obj = sl.CustomBoxObjectData()
+                obj.unique_object_id = unique_object_id
+                obj.bounding_box_2d = reshapedCorners # Converts to unsigned int so values MUST be positive or it fails
+                obj.label = 6
+                obj.probability = 0.99
+                obj.is_grounded = False
+                detections.append(obj)
+
+
         detections = []
         return detections
 
@@ -191,6 +301,6 @@ class DetectVisionTargets:
         cY = int((topLeft[1] + bottomRight[1]) / 2.0)
         cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
 
-        # TODO: Change to a better label for LEDs and Arucos
+        # Draw unique_object_id beside the contour
         text = str(object_data.unique_object_id)
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
