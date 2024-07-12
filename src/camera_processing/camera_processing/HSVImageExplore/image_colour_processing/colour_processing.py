@@ -150,10 +150,10 @@ class ColourProcessing:
         return bounding_boxes, tags, str_timings
 
     def __repr__(self) -> str:
-        repr_msg = '"ColourProcess(\n'
+        repr_msg = '"ColourProcessing(\n'
         repr_msg += f"        image_scaling={self._image_scaling},\n"
         repr_msg += f"        display_scaling={self._display_scaling},\n"
-        repr_msg += f"        mask_steps=tuple([\n"
+        repr_msg += f"        process_steps=tuple([\n"
         for step in self._process_steps:
             repr_msg += f"            {repr(step)},\n"
         repr_msg += f'        ]))\n"'

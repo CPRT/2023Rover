@@ -115,8 +115,14 @@ class FilterByContourArea(MathStep):
         """
         new_contours = []
         new_hierarchy = []
+        new_tags = []
 
         removed_contours = []
+
+        print(f"Contours: {len(contours)}")
+        print(f"Hierarchy: {len(hierarchy)}")
+        print(f"Tags: {len(tags)}")
+
 
         for i in range(0, len(contours)):
             area = cv2.contourArea(contours[i])
@@ -128,14 +134,21 @@ class FilterByContourArea(MathStep):
                 tags[i].add("far")
                 new_contours.append(contours[i])
                 new_hierarchy.append(hierarchy[i])
+                new_tags.append(tags[i])
 
             elif area < self._reject_above:
                 tags[i].add("close")
                 new_contours.append(contours[i])
                 new_hierarchy.append(hierarchy[i])
+                new_tags.append(tags[i])
 
             else:
                 removed_contours.append(contours[i])
+
+        print(f"Removed {len(removed_contours)} contours")
+        print(f"New Contours: {len(new_contours)}")
+        print(f"New Hierarchy: {len(new_hierarchy)}")
+        print(f"New Tags: {new_tags}")
 
         if self._is_display_active:
             self._reject_below = cv2.getTrackbarPos(FilterByContourArea.REJECT_BELOW_NAME, self._window_name)
@@ -146,17 +159,19 @@ class FilterByContourArea(MathStep):
             mask_img[:, :] = (255, 255, 255)
             mask_image_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
 
-            cv2.drawContours(mask_image_contours, new_contours, -1, (36,255,12), 2)
             cv2.drawContours(mask_image_contours, removed_contours, -1, (0, 0, 255), 2)
 
-            for i in range(0, len(contours)):
-                if "close" in tags[i]:
-                    x, y, w, h = cv2.boundingRect(contours[i])
-                    cv2.putText(mask_image_contours, f"close-{int(cv2.contourArea(contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,25,12), 2)
-                elif "far" in tags[i]:
-                    x, y, w, h = cv2.boundingRect(contours[i])
-                    cv2.putText(mask_image_contours, f"far-{int(cv2.contourArea(contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (36,255,12), 2)
-
+            for i in range(0, len(new_contours)):
+                if "close" in new_tags[i]:
+                    x, y, w, h = cv2.boundingRect(new_contours[i])
+                    cv2.drawContours(mask_image_contours, new_contours, i, (255,25,12), 2)
+                    cv2.putText(mask_image_contours, f"close-{int(cv2.contourArea(new_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,25,12), 2)
+                elif "far" in new_tags[i]:
+                    x, y, w, h = cv2.boundingRect(new_contours[i])
+                    cv2.drawContours(mask_image_contours, new_contours, i, (36,255,12), 2)
+                    cv2.putText(mask_image_contours, f"far-{int(cv2.contourArea(new_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (36,255,12), 2)
+                else:
+                    print(f"EDGE CASE. i: {i}, tags[i]: {tags[i]}")
             for i in range(0, len(removed_contours)):
                 x, y, w, h = cv2.boundingRect(removed_contours[i])
                 cv2.putText(mask_image_contours, f"reject-{int(cv2.contourArea(removed_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)

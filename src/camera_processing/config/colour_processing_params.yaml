@@ -12,10 +12,10 @@
     #             ErodeDilateStep('Step 4 - Erode Dilate - Remove small contours then group the rings', 2, 6, return_mask=True),
     #         ]))"
 
-    blue_led: "ColourProcess(
+    blue_led: "ColourProcessing(
         image_scaling=0.5,
         display_scaling=1.0,
-        mask_steps=tuple([
+        process_steps=tuple([
             HSVRangeMaskStep('Step 1 - HSV - Blue', HSVRange(HSV(95, 192, 96), HSV(127, 255, 255)), return_mask=True),
             ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=1, dilation=4, erosion_before_dilate=True, return_mask=True),
             FindContours('Step 3 - Find Contours'),
