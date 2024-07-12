@@ -34,6 +34,7 @@ class ColourProcessing:
         self._in_tuning_mode: bool
         self._process_steps: Tuple[ProcessStep] = process_steps
         self._image_scaling: float = image_scaling
+        self._image_reverse_scaling: float = 1 / image_scaling
         self._display_scaling: float = display_scaling
     
         if len(self._process_steps) == 0:
@@ -68,6 +69,16 @@ class ColourProcessing:
             else:
                 steps_class_list.append(f"{step.__class__.__name__} ~~ UNKNOWN ~~")
      
+    def __repr__(self) -> str:
+        repr_msg = '"ColourProcessing(\n'
+        repr_msg += f"        image_scaling={self._image_scaling},\n"
+        repr_msg += f"        display_scaling={self._display_scaling},\n"
+        repr_msg += f"        process_steps=tuple([\n"
+        for step in self._process_steps:
+            repr_msg += f"            {repr(step)},\n"
+        repr_msg += f'        ]))"\n'
+        return repr_msg
+    
     @classmethod    
     def from_string(colour_processing_class, python_eval: str) -> Union[ColourProcessing, str]:
         """
@@ -106,9 +117,13 @@ class ColourProcessing:
         """
         start = time.time()
 
+        # Resize the image
+        img_resize_start = time.time()
+        processed_image = image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
+        img_resize_end = time.time()
+
         # Process the image through the mask steps
         mask_timings = []
-        processed_image = image
         for i in range(0, self._mask_to_mask_index):
             mask_step_start = time.time()
             processed_image = self._process_steps[i].process(image, processed_image)
@@ -137,52 +152,20 @@ class ColourProcessing:
         bounding_box_start = time.time()
         bounding_boxes = []
         for contour in contours:
-            bounding_boxes.append(ColourProcessing._contour_to_bounding_box(contour))
+            bounding_boxes.append(
+                self._scale_bounding_box( # Scale bounding box back into the original images size
+                    ColourProcessing._contour_to_bounding_box(contour))) # Convert contour to ZED bounding box
         bounding_box_end = time.time()
 
-        # Print the timings
-        str_timings = f"TIMINGS: Total: {time.time() - start:.{ColourProcessing.DECIMALS}f}, " + \
-                      f"Mask: {mask_timings}, " + \
-                      f"MaskToMath: {mask_to_math_end - mask_to_math_start:.{ColourProcessing.DECIMALS}f}, " + \
-                      f"Math: {math_timings}, " + \
-                      f"BoundingBoxes: {bounding_box_end - bounding_box_start:.{ColourProcessing.DECIMALS}f}"
+        # Create a string for all the timings
+        str_timings = f"TIMINGS - Total: {time.time() - start:.{ColourProcessing.DECIMALS}f}, " + \
+                        f"Resize: {img_resize_end - img_resize_start:.{ColourProcessing.DECIMALS}f}, " + \
+                        f"Mask: {mask_timings}, " + \
+                        f"MaskToMath: {mask_to_math_end - mask_to_math_start:.{ColourProcessing.DECIMALS}f}, " + \
+                        f"Math: {math_timings}, " + \
+                        f"BoundingBoxes: {bounding_box_end - bounding_box_start:.{ColourProcessing.DECIMALS}f}"
 
         return bounding_boxes, tags, str_timings
-
-    def __repr__(self) -> str:
-        repr_msg = '"ColourProcessing(\n'
-        repr_msg += f"        image_scaling={self._image_scaling},\n"
-        repr_msg += f"        display_scaling={self._display_scaling},\n"
-        repr_msg += f"        process_steps=tuple([\n"
-        for step in self._process_steps:
-            repr_msg += f"            {repr(step)},\n"
-        repr_msg += f'        ]))\n"'
-        return repr_msg
-
-    def process_contours(self, mask: ndarray, draw_contours_img: ndarray = None) -> list:
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)   # cv2.CHAIN_APPROX_NONE   cv2.CHAIN_APPROX_SIMPLE
-
-        if draw_contours_img is not None:
-            cv2.drawContours(draw_contours_img, contours, contourIdx=-1, color=(0, 255, 0), thickness=3, hierarchy=hierarchy)
-
-        detections = []
-
-        for i in range(0, len(contours)):
-            c = contours[i]
-            h = hierarchy[0][i]
-            if h[2] != -1:
-                child_area = cv2.contourArea(contours[h[2]])
-                percent = int(100 * child_area / cv2.contourArea(c))
-            else:
-                child_area = 0
-                percent = 0
-
-            # If it doesn't have a child contour, its the outermost contour
-            if h[2] != -1:
-                detections.append(ColourProcessing._contour_to_bounding_box(c))
-
-            print(f"Contour Stuffs: Area: {cv2.contourArea(c)}. Child Area: {child_area}. Percent {percent}")
-        return detections
     
     def _contour_to_bounding_box(contour) -> list:
         xywh = cv2.boundingRect(contour)
@@ -213,19 +196,21 @@ class ColourProcessing:
         output[3][1] = y_max
         return output
 
-    def single_image_process(self, filename: str):
-        image: ndarray = cv2.imread(filename)
+    def _scale_bounding_box(self, bounding_box):
+        for point_index, point in enumerate(bounding_box):
+            for xy_index, val in enumerate(point):
+                bounding_box[point_index][xy_index] = val * self._image_reverse_scaling
+
+        return bounding_box
+
+    def single_image_process(self, image: ndarray):
         print(f"Image size: {image.shape}")
-        image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
-        print(f"Image size scaled: {image.shape}")
 
         for i in range(0, 10):
             bounding_box, tags, timings = self.process_image(image)
             print(timings)
 
     def process_steps_tuning(self, image: ndarray, starting_step: int = 0) -> Tuple[int, int]:
-        image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
-
         process_step_index: int = starting_step
         self._process_steps[process_step_index].start_display()
         

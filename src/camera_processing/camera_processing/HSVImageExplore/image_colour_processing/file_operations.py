@@ -7,6 +7,9 @@ class MultipleImages:
         self._images: List[ndarray] = []
         self._index_accessed: int = -1
 
+    def as_list(self) -> List[ndarray]:
+        return list(self._images)
+    
     def add_from_directory(self, directory: str):
         filenames = os.listdir(directory)
         filenames.sort()

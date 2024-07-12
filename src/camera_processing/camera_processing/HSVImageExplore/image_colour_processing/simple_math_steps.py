@@ -18,7 +18,7 @@ except Exception as e:
 # 
 class FindContours(MaskToMathStep):
     
-    def __init__(self, window_name: str, mode: int = cv2.RETR_CCOMP, method: int = cv2.CHAIN_APPROX_SIMPLE):
+    def __init__(self, window_name: str, mode: int = cv2.RETR_TREE, method: int = cv2.CHAIN_APPROX_SIMPLE):
         """
         
         Example: FindContours("Find Contours", cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -48,11 +48,16 @@ class FindContours(MaskToMathStep):
 
             mask_img = np.zeros(original_image.shape, original_image.dtype)
             mask_img[:, :] = (255, 255, 255)
-            mask_image_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+            mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
 
-            cv2.drawContours(mask_image_contours, contours, -1, (0, 255, 0), 2)
+            cv2.drawContours(mask_with_contours, contours, -1, (0, 255, 0), 2)
 
-            images_stacked_horizontally = np.hstack([original_image, mask_image_contours])
+            for i, contour in enumerate(contours):
+                x, y, w, h = cv2.boundingRect(contour)
+                cv2.putText(mask_with_contours, str(i), (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)
+                
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours])
             self.imshow_scaled(self._window_name, images_stacked_horizontally)
 
         return contours, hierarchy
@@ -72,7 +77,73 @@ class FindContours(MaskToMathStep):
         """
         cv2.destroyWindow(self._window_name)
 
+class FilterInnerContours(MathStep):
+    REJECT_INNER_CONTOURS = "Reject Inner Contours"
 
+    def __init__(self, window_name: str, reject_inner_contours: bool = True):
+        """
+        Remove contours that are within other contours, or remove contours that are not within other contours.
+        """
+        super().__init__(window_name)
+
+        self._reject_inner_contours = reject_inner_contours
+
+    def __repr__(self) -> str:
+        return f"FilterInnerContours('{self._window_name}', reject_inner_contours={bool(self._reject_inner_contours)})"
+
+    def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
+        """
+        Process contours to remove bad contours or tag various contours
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            mask (ndarray): The mask produced from the MaskSteps
+            contours (list): The original image with no processing
+            hierarchy (list): The processed image returned from the previous step
+            tags (List[Set[str]]): The tags for each contour
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        removed_contours = []
+
+        for i in range(0, len(contours)):
+            if MathStep.CoreTag.REJECT in tags[i]:
+                continue
+
+            # If it has a parent contour, its an inner contour
+            is_inner_contour: bool = (hierarchy[i][3] != -1)
+
+            if (self._reject_inner_contours and is_inner_contour) or (not self._reject_inner_contours and not is_inner_contour):
+                tags[i].add(MathStep.CoreTag.REJECT)
+                removed_contours.append(contours[i])
+
+        if self._is_display_active:
+            self._reject_inner_contours = bool(cv2.getTrackbarPos(FilterInnerContours.REJECT_INNER_CONTOURS, self._window_name))
+            mask_with_contours = self.draw_contours(original_image, mask, contours, tags, removed_contours)
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours])
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        return contours, hierarchy, tags
+
+
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+        cv2.createTrackbar(FilterInnerContours.REJECT_INNER_CONTOURS, self._window_name, self._reject_inner_contours, 1, cv2_helper.do_nothing)
+
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+    
 class FilterByContourArea(MathStep):
     REJECT_BELOW_NAME = "Reject Below"
     FAR_CLOSE_DIVIDER_NAME = "Far Close Divider"
@@ -109,46 +180,28 @@ class FilterByContourArea(MathStep):
 
         Returns:
             ndarray: The newly processed image
-
-        Raises: 
-            NotImplementedError - This method must be overriden by a subclass
         """
-        new_contours = []
-        new_hierarchy = []
-        new_tags = []
-
         removed_contours = []
 
-        print(f"Contours: {len(contours)}")
-        print(f"Hierarchy: {len(hierarchy)}")
-        print(f"Tags: {len(tags)}")
+        for i, contour in enumerate(contours):
+            if MathStep.CoreTag.REJECT in tags[i]:
+                continue
 
-
-        for i in range(0, len(contours)):
-            area = cv2.contourArea(contours[i])
+            area = cv2.contourArea(contour)
 
             if area < self._reject_below:
-                removed_contours.append(contours[i])
+                tags[i].add(MathStep.CoreTag.REJECT)
+                removed_contours.append(contour)
                 
             elif area < self._far_close_divider:
-                tags[i].add("far")
-                new_contours.append(contours[i])
-                new_hierarchy.append(hierarchy[i])
-                new_tags.append(tags[i])
+                tags[i].add(MathStep.CoreTag.FAR)
 
             elif area < self._reject_above:
-                tags[i].add("close")
-                new_contours.append(contours[i])
-                new_hierarchy.append(hierarchy[i])
-                new_tags.append(tags[i])
+                tags[i].add(MathStep.CoreTag.CLOSE)
 
             else:
+                tags[i].add(MathStep.CoreTag.REJECT)
                 removed_contours.append(contours[i])
-
-        print(f"Removed {len(removed_contours)} contours")
-        print(f"New Contours: {len(new_contours)}")
-        print(f"New Hierarchy: {len(new_hierarchy)}")
-        print(f"New Tags: {new_tags}")
 
         if self._is_display_active:
             self._reject_below = cv2.getTrackbarPos(FilterByContourArea.REJECT_BELOW_NAME, self._window_name)
@@ -157,26 +210,33 @@ class FilterByContourArea(MathStep):
 
             mask_img = np.zeros(original_image.shape, original_image.dtype)
             mask_img[:, :] = (255, 255, 255)
-            mask_image_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+            mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
 
-            cv2.drawContours(mask_image_contours, removed_contours, -1, (0, 0, 255), 2)
+            cv2.drawContours(mask_with_contours, removed_contours, -1, MathStep.Colour.RED, 2)
 
-            for i in range(0, len(new_contours)):
-                if "close" in new_tags[i]:
-                    x, y, w, h = cv2.boundingRect(new_contours[i])
-                    cv2.drawContours(mask_image_contours, new_contours, i, (255,25,12), 2)
-                    cv2.putText(mask_image_contours, f"close-{int(cv2.contourArea(new_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,25,12), 2)
-                elif "far" in new_tags[i]:
-                    x, y, w, h = cv2.boundingRect(new_contours[i])
-                    cv2.drawContours(mask_image_contours, new_contours, i, (36,255,12), 2)
-                    cv2.putText(mask_image_contours, f"far-{int(cv2.contourArea(new_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (36,255,12), 2)
+            for i, contour in enumerate(contours):
+
+                if MathStep.CoreTag.REJECT in tags[i]:
+                    continue
+
+                elif MathStep.CoreTag.CLOSE in tags[i]:
+                    cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.GREEN, 2)
+                    x, y, w, h = cv2.boundingRect(contour)
+                    cv2.putText(mask_with_contours, f"close-{int(cv2.contourArea(contour))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)
+                
+                elif MathStep.CoreTag.FAR in tags[i]:
+                    cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.LIGHT_BLUE, 2)
+                    x, y, w, h = cv2.boundingRect(contour)
+                    cv2.putText(mask_with_contours, f"far-{int(cv2.contourArea(contour))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.LIGHT_BLUE, 2)
+                
                 else:
                     print(f"EDGE CASE. i: {i}, tags[i]: {tags[i]}")
-            for i in range(0, len(removed_contours)):
-                x, y, w, h = cv2.boundingRect(removed_contours[i])
-                cv2.putText(mask_image_contours, f"reject-{int(cv2.contourArea(removed_contours[i]))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            images_stacked_horizontally = np.hstack([original_image, mask_image_contours])
+            for contour in removed_contours:
+                x, y, w, h = cv2.boundingRect(contour)
+                cv2.putText(mask_with_contours, f"reject-{int(cv2.contourArea(contour))}", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, MathStep.Colour.RED, 2)
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours])
             self.imshow_scaled(self._window_name, images_stacked_horizontally)
 
         return contours, hierarchy, tags

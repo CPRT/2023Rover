@@ -1,6 +1,9 @@
-from __future__ import annotations # Import ProcessStep as a type hint
+from __future__ import annotations
+from enum import Enum # Import ProcessStep as a type hint
 from numpy import ndarray
 from typing import Tuple, List, Set
+import numpy as np
+import cv2
 
 try:
     # Import for CLI usage
@@ -122,6 +125,16 @@ class MaskToMathStep(ProcessStep):
         raise NotImplementedError
 
 class MathStep(ProcessStep):
+    class Colour:
+        GREEN = (36,255,12)
+        LIGHT_BLUE = (247, 255, 2)
+        RED = (0, 0, 255)
+
+    class CoreTag(Enum):
+        REJECT = "reject"
+        FAR = "far"
+        CLOSE = "close"
+
     def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: list) -> Tuple[list, list, List[Set[str]]]:
         """
         Process contours to remove bad contours or tag various contours
@@ -139,4 +152,22 @@ class MathStep(ProcessStep):
         """
         raise NotImplementedError
     
+    def draw_contours(self, original_image: ndarray, mask: ndarray, contours, tags: List[Set[str]], removed_contours) -> ndarray:
+        mask_img = np.zeros(original_image.shape, original_image.dtype)
+        mask_img[:, :] = (255, 255, 255)
+        mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+
+        cv2.drawContours(mask_with_contours, removed_contours, -1, MathStep.Colour.RED, 2)
+    
+        for i, contour in enumerate(contours):
+            if MathStep.CoreTag.REJECT not in tags[i]:
+                cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.GREEN, 2)
+                x, y, w, h = cv2.boundingRect(contour)
+                cv2.putText(mask_with_contours, "accept", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)
+
+        for contour in removed_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.putText(mask_with_contours, "reject", (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.RED, 2)
+            
+        return mask_with_contours
 

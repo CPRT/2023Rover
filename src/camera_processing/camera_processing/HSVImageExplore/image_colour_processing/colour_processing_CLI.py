@@ -1,5 +1,6 @@
 import argparse
 import yaml
+import cv2
 from colour_processing import ColourProcessing
 from file_operations import MultipleImages
 
@@ -49,19 +50,21 @@ def main():
             if isinstance(colour_processing, str):
                 raise ValueError(f"Failed to load ColourProcessing for red_led. Error: {colour_processing}")
 
-
-
     if args.image and args.image is not None:
         if args.tune:
             colour_processing.single_image_process_tuning(args.image)
         else:
-            colour_processing.single_image_process(args.image)
+            colour_processing.single_image_process(cv2.imread(args.image))
 
     if args.folder and args.folder is not None:
         images = MultipleImages()
         images.add_from_directory(args.folder)
         if args.tune:
             colour_processing.multi_image_process_tuning(images.get_next_image)
+        else:
+            for image in images.as_list():
+                colour_processing.single_image_process(image)
+            
 
 if __name__ == "__main__":
     main()
