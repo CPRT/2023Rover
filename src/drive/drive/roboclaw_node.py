@@ -319,9 +319,8 @@ class RoboclawNode(Node):
     def cmd_vel_callback(self, twist):
         self.movement.last_set_speed_time = self.get_clock().now().nanoseconds
         self.movement.twist = twist
-        
+
     def cmd_estop_callback(self, stopped):
-        self.movement.twist = None
         self.movement.stopped = stopped.data
 
     # TODO: Need to make this work when more than one error is raised
