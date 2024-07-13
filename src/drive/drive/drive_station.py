@@ -12,7 +12,7 @@ from interfaces.msg import PIDmsg
 
 class driveStation(Node):
     def __init__(self):
-        super().__init__("test")
+        super().__init__("drivestation")
         self.liveTunePub = self.create_publisher(
                 LiveTune, "drive_liveTune", 10)
         self.statePub = self.create_publisher(

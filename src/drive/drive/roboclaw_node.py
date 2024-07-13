@@ -5,14 +5,13 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Bool
 
 from . import roboclaw_driver as roboclaw
 from . import utils as u
 from .electrical_wrapper import ElectricalWrapper
 from .encoder_wrapper import EncoderWrapper
 
-__author__ = "bwbazemore@uga.edu (Brad Bazemore)"
 
 # TODO need to find some better was of handling OSerror 11 or preventing it, any ideas?
 
@@ -44,7 +43,7 @@ class Movement:
         self.stopped = True
 
     def run(self):
-        if self.twist is None:
+        if self.twist is None or self.stopped is True:
             return
 
         if self.twist.linear.x != 0 or self.twist.angular.z != 0:
@@ -68,31 +67,19 @@ class Movement:
 
         try:
             # This is a hack way to keep a poorly tuned PID from making noise at speed 0
-
-            ####### PID DRIVE #######
             if vr_ticks == 0 and vl_ticks == 0:
                 roboclaw.ForwardM1(self.address, 0)
                 roboclaw.ForwardM2(self.address, 0)
+            ####### PID DRIVE #######
             else:
                 roboclaw.SpeedM1M2(self.address, -vr_ticks, vl_ticks)
             self.logger.info("tryng PID vr = " + str(-vr_ticks) + " vl = " + str(vl_ticks))
 
             ####### VOLTAGE DRIVE #######
-            # dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
-            # dutyCycle2 = int(vl / 12 * 32767)
-            # roboclaw.DutyM1M2(self.address, -dutyCycle1, dutyCycle2)
-            # if vr_ticks == 0 and vl_ticks == 0:
-            #     self.logger.info("ticks are zero")
-            #     roboclaw.ForwardM1(self.address, 0)
-            #     roboclaw.ForwardM2(self.address, 0)
-            #     self.vr_ticks = 0
-            #     self.vl_ticks = 0
             # else:
-            #     self.logger.info("tryng PID vr = " + str(vr) + " vl = " + str(vl))
-            #     gain = 0.5
-            #     self.vr_ticks = gain * vr_ticks + (1 - gain) * self.vr_ticks
-            #     self.vl_ticks = gain * vl_ticks + (1 - gain) * self.vl_ticks
-            #     roboclaw.SpeedM1M2(self.address, int(self.vr_ticks), int(self.vl_ticks))
+            #   dutyCycle1 = int(vr / 12 * 32767) #mainBatteryVoltage * 32767
+            #   dutyCycle2 = int(vl / 12 * 32767)
+            #   roboclaw.DutyM1M2(self.address, -dutyCycle1, dutyCycle2)
         except OSError as e:
             self.logger.warn("SpeedM1M2 OSError: " + str(e.errno))
             self.logger.debug(e)
@@ -138,19 +125,6 @@ class RoboclawNode(Node):
         self.updater.add(
             diagnostic_updater.FunctionDiagnosticTask("Vitals", self.check_vitals)
         )
-        # m1_pid = roboclaw.ReadM1VelocityPID(self.address)
-        # self.get_logger().info(f"M1 Velocity PID for address {self.address}: P={m1_pid[1]}, I={m1_pid[2]}, D={m1_pid[3]}, QPPS={m1_pid[4]}")
-
-        # m2_pid = roboclaw.ReadM2VelocityPID(self.address)
-        # self.get_logger().info(f"M2 Velocity PID for address {self.address}: P={m2_pid[1]}, I={m2_pid[2]}, D={m2_pid[3]}, QPPS={m2_pid[4]}")
-
-        # m1_position_pid = roboclaw.ReadM1PositionPID(self.address)
-        # self.get_logger().info(f"M1 Position PID for address {self.address}: P={m1_position_pid[0]}, I={m1_position_pid[1]}, D={m1_position_pid[2]}, MaxI={m1_position_pid[3]}, Deadzone={m1_position_pid[4]}, MinPos={m1_position_pid[5]}, MaxPos={m1_position_pid[6]}")
-
-        # m2_position_pid = roboclaw.ReadM2PositionPID(self.address)
-        # self.get_logger().info(f"M2 Position PID for address {self.address}: P={m2_position_pid[0]}, I={m2_position_pid[1]}, D={m2_position_pid[2]}, MaxI={m2_position_pid[3]}, Deadzone={m2_position_pid[4]}, MinPos={m2_position_pid[5]}, MaxPos={m2_position_pid[6]}")
-
-
         try:
             version = roboclaw.ReadVersion(self.address)
         except Exception as e:
@@ -203,7 +177,7 @@ class RoboclawNode(Node):
             self.electr = ElectricalWrapper(self)
 
         if self.PUB_ODOM:
-            self.odom_pub = self.create_publisher(Odometry, "/odom_roboclaw", 1)
+            self.odom_pub = self.create_publisher(Odometry, dev_name + "/odom_roboclaw", 1)
             self.left_encoder_pub = self.create_publisher(
                 Float64,  dev_name + "/left_encoder_angular_velocity", 1
             )
@@ -228,7 +202,10 @@ class RoboclawNode(Node):
         self.last_set_speed_time = self.get_clock().now().nanoseconds
 
         self.cmd_vel_sub = self.create_subscription(
-            Twist, "/cmd_vel", self.cmd_vel_callback, 1
+            Twist, "/drive/cmd_vel", self.cmd_vel_callback, 1
+        )
+        self.cmd_estop_sub = self.create_subscription(
+            Bool, "/drive/estop", self.cmd_estop_callback, 1
         )
         self.get_clock().sleep_for(rclpy.duration.Duration(seconds=1.0))
 
@@ -342,6 +319,9 @@ class RoboclawNode(Node):
     def cmd_vel_callback(self, twist):
         self.movement.last_set_speed_time = self.get_clock().now().nanoseconds
         self.movement.twist = twist
+
+    def cmd_estop_callback(self, stopped):
+        self.movement.stopped = stopped.data
 
     # TODO: Need to make this work when more than one error is raised
     def check_vitals(self, stat):
