@@ -28,7 +28,6 @@ class TestNode : public rclcpp::Node
     
     std::string node_name;
     moveit::planning_interface::MoveGroupInterfacePtr move_group_ptr;
-    moveit::planning_interface::MoveGroupInterfacePtr gripper_ptr;
     rclcpp::Node::SharedPtr node_ptr;
     rclcpp::Executor::SharedPtr executor_ptr;
     std::thread executor_thread;
