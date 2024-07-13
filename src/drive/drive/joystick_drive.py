@@ -1,5 +1,6 @@
 from math import radians
 import rclpy
+import rclpy.logging
 from rclpy.node import Node
 
 import rclpy.time
@@ -20,7 +21,7 @@ def map_range(value, old_min, old_max, new_min, new_max):
 
 class joystickDrive(Node):
     def __init__(self):
-        super().__init__("Joystick Drive Node")
+        super().__init__("JoystickNode")
         self.twist = Twist()
         self.estop = Bool()
         self.estop.data = False
@@ -63,15 +64,15 @@ class joystickDrive(Node):
         self.timer = self.create_timer(period, self.joystick_timeout_handler)
 
     def joystick_timeout_handler(self):
-        if(rclpy.time.Time.nanoseconds - self.lastTimestamp > 500_000_000):
+        if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2):
             self.estopTimeout.data = True
             self.setEstop.publish(self.estopTimeout)
-        elif(rclpy.time.Time.nanoseconds - self.lastTimestamp <= 500_000_000 and (self.estopTimeout.data and not self.estop)):
+        elif(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp <= 2 and (self.estopTimeout.data and not self.estop)):
             self.estopTimeout.data = False
             self.setEstop.publish(self.estopTimeout)
 
     def cmd_joy_callback(self, msg: Joy):
-        self.lastTimestamp = msg.header.stamp.nanosec
+        self.lastTimestamp = msg.header.stamp.sec
         if(msg.buttons[0] == 1): #able to change buttons later on
             self.estop.data = True
             self.setEstop.publish(self.estop)
