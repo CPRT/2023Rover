@@ -115,8 +115,7 @@ def generate_launch_description():
     default_bt_xml_filename_cmd = DeclareLaunchArgument(
         "default_nav_to_pose_bt_xml",
         default_value=os.path.join(
-            get_package_share_directory("nav2_bt_navigator"),
-            "behavior_trees", "navigate_w_replanning_time.xml"),
+            pkg_dir, "behavior_trees", "behaviorTree.xml"),
         description="Full path to the behavior tree xml file to use")
 
     load_nodes = GroupAction(

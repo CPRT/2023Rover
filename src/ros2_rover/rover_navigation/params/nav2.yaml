@@ -91,14 +91,13 @@ controller_server:
       plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
       transform_tolerance: 1.0
 
-      desired_linear_vel: 0.25
-      max_angular_accel: 3.2
+      desired_linear_vel: 0.5
       max_robot_pose_search_dist: 10.0
 
       lookahead_dist: 1.0
       min_lookahead_dist: 0.3
-      max_lookahead_dist: 1.0
-      lookahead_time: 2.0
+      max_lookahead_dist: 5.0
+      lookahead_time: 1.0
       use_velocity_scaled_lookahead_dist: true
 
       min_approach_linear_velocity: 0.1
@@ -112,11 +111,15 @@ controller_server:
       use_rotate_to_heading: false
       rotate_to_heading_min_angle: 0.785
       rotate_to_heading_angular_vel: 0.1
+      max_angular_accel: 0.02
+
 
       use_interpolation: false
       cost_scaling_dist: 0.3
       cost_scaling_gain: 1.0
       inflation_cost_scaling_factor: 3.0
+
+      allow_reversing: true
 
 local_costmap:
   local_costmap:
@@ -130,12 +133,12 @@ local_costmap:
       width: 10
       height: 10
       resolution: 0.05
-      footprint: "[[0.3, 0.3], [0.3, -0.3], [-0.3, -0.3], [-0.3, 0.3]]"
-      plugins: [stvl_layer, inflation_layer]
-      stvl_layer:
+      footprint: "[[0.55, 0.50], [0.55, -0.50], [-0.60, -0.50], [-0.60, 0.50]]"
+      plugins: [obstacle_layer, inflation_layer]
+      obstacle_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
         enabled: true
-        voxel_decay: 15.
+        voxel_decay: 0.5
         decay_model: 0
         voxel_size: 0.05
         track_unknown_space: true
@@ -148,22 +151,39 @@ local_costmap:
         transform_tolerance: 0.2
         mapping_mode: false
         map_save_duration: 60.0
-        observation_sources: pointcloud
-        pointcloud:
+        observation_sources: objectDetection cliffDetection
+        objectDetection:
           data_type: PointCloud2
           topic: /ouster/points
           use_sensor_frame_z: true
-          max_z: 8.0                  # default 0, meters
-          min_z: 0.0                  # default 10, meters
+          max_z: 10.0                  # default 10, meters
+          min_z: -10.0                 # default 0, meters 
+          vertical_fov_angle: 0.7   # default 0.7, radians. For 3D lidars it's the symmetric FOV about the planar axis.
+          vertical_fov_padding: 0.0    # 3D Lidar only. Default 0, in meters 
+          horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
+          decay_acceleration: 5.0     # default 0, 1/s^2. 
+          model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
+          max_obstacle_height: 1.0    # default 2.0, meters
+          min_obstacle_height: -0.45   # default 0.0, meters
+          obstacle_range: 5.0
+        cliffDetection:
+          data_type: PointCloud2
+          topic: /ouster/points
+          use_sensor_frame_z: true
+          max_z: 10.0                  # default 10, meters
+          min_z: -10.0                 # default 0, meters 
           vertical_fov_angle: 0.523   # default 0.7, radians. For 3D lidars it's the symmetric FOV about the planar axis.
           vertical_fov_padding: 0.05    # 3D Lidar only. Default 0, in meters 
           horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
           decay_acceleration: 5.0     # default 0, 1/s^2. 
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
+          max_obstacle_height: -0.9  # default 2.0, meters -height of lidar - cliff drop
+          min_obstacle_height: -99.0  # default 0.0, meters
+          obstacle_range: 5.0
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 10.0
-        inflation_radius: 0.55
+        inflation_radius: 0.10
       always_send_full_costmap: True
 
 global_costmap:
@@ -173,20 +193,68 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_link
+      height: 1000
+      width: 1000
       use_sim_time: True
-      footprint: "[[0.3, 0.3], [0.3, -0.3], [-0.3, -0.3], [-0.3, 0.3]]"
+      footprint: "[[0.55, 0.50], [0.55, -0.50], [-0.55, -0.50], [-0.55, 0.50]]"
       resolution: 0.05
       track_unknown_space: True
-      plugins: [static_layer, inflation_layer]
+      plugins: [static_layer, obstacle_layer, inflation_layer]
       static_layer:
+        enabled: False
         plugin: nav2_costmap_2d::StaticLayer
         map_subscribe_transient_local: True
         subscribe_to_updates: True
         map_topic: /map
+      obstacle_layer:
+        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+        enabled: True
+        voxel_decay: 0.5
+        decay_model: 0
+        voxel_size: 0.05
+        track_unknown_space: true
+        unknown_threshold: 15
+        mark_threshold: 0
+        update_footprint_enabled: true
+        combination_method: 1
+        origin_z: 0.0
+        publish_voxel_map: true
+        transform_tolerance: 0.2
+        mapping_mode: false
+        map_save_duration: 60.0
+        observation_sources: objectDetection cliffDetection
+        objectDetection:
+          data_type: PointCloud2
+          topic: /ouster/points
+          use_sensor_frame_z: true
+          max_z: 10.0                  # default 10, meters
+          min_z: -10.0                 # default 0, meters 
+          vertical_fov_angle: 0.7   # default 0.7, radians. For 3D lidars it's the symmetric FOV about the planar axis.
+          vertical_fov_padding: 0.0    # 3D Lidar only. Default 0, in meters 
+          horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
+          decay_acceleration: 5.0     # default 0, 1/s^2. 
+          model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
+          max_obstacle_height: 1.0    # default 2.0, meters
+          min_obstacle_height: -0.45   # default 0.0, meters
+          obstacle_range: 5.0
+        cliffDetection:
+          data_type: PointCloud2
+          topic: /ouster/points
+          use_sensor_frame_z: true
+          max_z: 10.0                  # default 10, meters
+          min_z: -10.0                 # default 0, meters 
+          vertical_fov_angle: 0.523   # default 0.7, radians. For 3D lidars it's the symmetric FOV about the planar axis.
+          vertical_fov_padding: 0.05    # 3D Lidar only. Default 0, in meters 
+          horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
+          decay_acceleration: 5.0     # default 0, 1/s^2. 
+          model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
+          max_obstacle_height: -0.9  # default 2.0, meters -height of lidar - cliff drop
+          min_obstacle_height: -99.0  # default 0.0, meters
+          obstacle_range: 5.0
       inflation_layer:
         plugin: nav2_costmap_2d::InflationLayer
         cost_scaling_factor: 10.0
-        inflation_radius: 0.55
+        inflation_radius: 0.10
       always_send_full_costmap: True
 
 map_server:
@@ -209,7 +277,7 @@ planner_server:
 
     GridBased:
       plugin: nav2_smac_planner/SmacPlannerHybrid
-      tolerance: 0.01 # tolerance for planning if unable to reach exact pose, in meters
+      tolerance: 1.0 # tolerance for planning if unable to reach exact pose, in meters
       downsample_costmap: false # whether or not to downsample the map
       downsampling_factor: 1 # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
       allow_unknown: true # allow traveling in unknown space
@@ -221,7 +289,7 @@ planner_server:
       angle_quantization_bins: 256 # For Hybrid nodes: Number of angle bins for search, must be 1 for 2D node (no angle search)
       analytic_expansion_ratio: 3.5 # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 3.0 # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting (in meters). This should be scaled with minimum turning radius and be no less than 4-5x the minimum radius
-      minimum_turning_radius: 0.50 # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
+      minimum_turning_radius: 1.0 # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
       reverse_penalty: 2.1 # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 1.5 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
       non_straight_penalty: 1.5 # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
@@ -268,9 +336,9 @@ behavior_server:
     transform_tolerance: 0.1
     use_sim_time: true
     simulate_ahead_time: 2.0
-    max_rotational_vel: 1.0
-    min_rotational_vel: 0.4
-    rotational_acc_lim: 3.2
+    max_rotational_vel: 0.05
+    min_rotational_vel: 0.02
+    rotational_acc_lim: 0.02
 
 robot_state_publisher:
   ros__parameters:
@@ -290,14 +358,14 @@ waypoint_follower:
 velocity_smoother:
   ros__parameters:
     use_sim_time: True
-    smoothing_frequency: 20.0
+    smoothing_frequency: 40.0
     scale_velocities: False
     feedback: OPEN_LOOP
-    max_velocity: [0.5, 0.0, 1.0]
-    min_velocity: [-0.5, 0.0, -1.0]
-    max_accel: [2.5, 0.0, 3.2]
-    max_decel: [-2.5, 0.0, -3.2]
-    odom_topic: odom
+    max_velocity: [1.0, 0.0, 1.0]
+    min_velocity: [-1.0, 0.0, -1.0]
+    max_accel: [0.1, 0.0, 0.01]
+    max_decel: [-0.1, 0.0, -0.01]
+    odom_topic: odometry/filtered/local
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
