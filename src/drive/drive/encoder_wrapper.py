@@ -83,7 +83,7 @@ class EncoderWrapper:
             self.cur_y += dist * sin(self.cur_theta)
         else:
             # delta theta
-            d_theta = (dist_right - dist_left) / self.BASE_WIDTH
+            d_theta = -(dist_right - dist_left) / self.BASE_WIDTH
             r = dist / d_theta
             self.cur_x += r * (sin(d_theta + self.cur_theta) - sin(self.cur_theta))
             self.cur_y -= r * (cos(d_theta + self.cur_theta) - cos(self.cur_theta))
@@ -178,12 +178,12 @@ class EncoderWrapper:
             x=quat[0], y=quat[1], z=quat[2], w=quat[3]
         )
 
-        odom.pose.covariance[0] = 0.01
-        odom.pose.covariance[7] = 0.01
+        odom.pose.covariance[0] = 0.03
+        odom.pose.covariance[7] = 0.03
         odom.pose.covariance[14] = 99999
         odom.pose.covariance[21] = 99999
         odom.pose.covariance[28] = 99999
-        odom.pose.covariance[35] = 0.01
+        odom.pose.covariance[35] = 0.03
 
         odom.child_frame_id = "base_link"
         odom.twist.twist.linear.x = vx
