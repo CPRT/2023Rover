@@ -205,7 +205,7 @@ class DetectVisionTargets:
                 obj.is_grounded = False
                 detections.append(obj)
 
-        return detections, timings
+        return detections
 
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
@@ -244,11 +244,11 @@ class DetectVisionTargets:
 
         if len(corners) == 0:
             # self._ros_logger.info("No aruco markers of the 6x6_100 family found")
-            return
+            return detections
 
         elif len(corners) != len(ids):
             self._ros_logger.error("Mismatched id and corners arrays from the aruco detector")
-            return
+            return detections
         
         else:
             for i in range(0, len(corners)):
@@ -278,8 +278,6 @@ class DetectVisionTargets:
                 obj.is_grounded = False
                 detections.append(obj)
 
-
-        detections = []
         return detections
 
     def draw_object_detection(img, object_data: sl.ObjectData):

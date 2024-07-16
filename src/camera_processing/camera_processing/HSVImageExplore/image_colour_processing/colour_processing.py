@@ -24,6 +24,7 @@ except Exception as e:
     from .simple_mask_steps import *
     from .hsv_range_mask_step import HSVRangeMaskStep
     from .simple_math_steps import *
+    from .datatypes import * 
 
 class ColourProcessing:
     DECIMALS = 5

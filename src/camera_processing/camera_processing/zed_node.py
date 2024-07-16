@@ -315,6 +315,8 @@ class ZedNode(Node):
         if self.should_detect_6x6_aruco:
             detections += self.detectVisionTargets.detect_6x6_arucos(zed_img)
 
+        self.get_logger().info(f"Detections: {repr(detections)}")
+
         # Ingest detections and get objects
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
