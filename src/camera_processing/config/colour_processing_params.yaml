@@ -1,9 +1,9 @@
 /**:
   ros__parameters:
-    resize_for_processing: {"HD1080": 0.5, "HD2K": 0.25, "default": 0.5}
+    resize_for_processing: {"HD1080": 0.6, "HD2K": 0.4, "default": 0.6}
 
     blue_led: "ColourProcessing(
-        image_scaling=0.6,
+        image_scaling=1.0,
         display_scaling=0.7,
         process_steps=tuple([
             HSVRangeMaskStep('Step 1 - HSV - Blue', HSVRange(HSV(115, 196, 95), HSV(134, 255, 167)), return_mask=True),
@@ -14,7 +14,7 @@
         ]))"
 
     red_led: "ColourProcessing(
-        image_scaling=0.6,
+        image_scaling=1.0,
         display_scaling=0.7,
         process_steps=tuple([
             HSVRangeMaskStep('Step 1 - HSV - Red', HSVRange(HSV(6, 190, 41), HSV(175, 250, 151)), return_mask=True, invert_hue=True),
@@ -24,6 +24,13 @@
             FilterByContourArea('Step 5 - Reject By Area', reject_below=40, far_close_divider=230, reject_above=4629),
         ]))"
 
-
-
-    ir_led: ""
+    ir_led: "ColourProcessing(
+        image_scaling=0.6,
+        display_scaling=0.7,
+        process_steps=tuple([
+            HSVRangeMaskStep('Step 1 - HSV - White', HSVRange(HSV(0, 0, 185), HSV(110, 18, 255)), return_mask=True),
+            ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=-1, dilation=4, erosion_before_dilate=True, return_mask=True),
+            FindContours('Step 3 - Find Contours'),
+            FilterInnerContours('Step 4 - Reject Inner Contours', reject_inner_contours=True),
+            FilterByContourArea('Step 5 - Reject By Area', reject_below=32, far_close_divider=199, reject_above=3584),
+        ]))"

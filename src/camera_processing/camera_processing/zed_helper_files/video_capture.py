@@ -8,10 +8,13 @@ Captures video from a camera and always gives the latest frame.
 """
 class VideoCapture:
     def __init__(self, name, cam: CameraType = None):
+        self.xRes = cam.value.xRes
+        self.yRes = cam.value.yRes
+
         self.cap = cv2.VideoCapture(name)
         self.cam_type = cam
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, cam.value.xRes)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam.value.yRes)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.xRes)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.yRes)
 
         self.lock = threading.Lock()
         self.t = threading.Thread(target=self._reader)

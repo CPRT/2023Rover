@@ -17,6 +17,7 @@ def main():
     parser.add_argument('-t', '--tune', action='store_true')
     parser.add_argument('-b', '--cprtTrailsBlue')
     parser.add_argument('-r', '--cprtTrailsRed')
+    parser.add_argument('--cprtTrailsIR')
 
     args = parser.parse_args()
 
@@ -49,6 +50,13 @@ def main():
             colour_processing = ColourProcessing.from_string(parameters['/**']['ros__parameters']['red_led'])
             if isinstance(colour_processing, str):
                 raise ValueError(f"Failed to load ColourProcessing for red_led. Error: {colour_processing}")
+
+    elif args.cprtTrailsIR is not None:
+        with open(args.cprtTrailsIR) as yml:
+            parameters = yaml.safe_load(yml)
+            colour_processing = ColourProcessing.from_string(parameters['/**']['ros__parameters']['ir_led'])
+            if isinstance(colour_processing, str):
+                raise ValueError(f"Failed to load ColourProcessing for ir_led. Error: {colour_processing}")
 
     if args.image and args.image is not None:
         if args.tune:

@@ -1,8 +1,10 @@
+from __future__ import annotations
 import cv2
 import pyzed.sl as sl
 import numpy as np
 from enum import Enum
 from typing import List, Set
+from math import sqrt
 
 # from ZedNode import STRING_TO_RESOLUTION
 from ..HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
@@ -36,6 +38,14 @@ IR_CAM_NAME = "IRCam"
 class CameraType(Enum):
     ZED = CameraUtil(ZED_CAM_NAME, 2208, 1242, 110, 70)
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
+    IRCAM_ELP = CameraUtil(IR_CAM_NAME, 1280, 720, 62.91*2, 37.91*2)
+
+    def update_scaling(self, image_scaling: float):
+        """
+        Resize the camera resolution based on a image_scaling factor
+        """
+        self.value.xRes *= image_scaling
+        self.value.yRes *= image_scaling
 
 class DetectVisionTargets:
     def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
@@ -121,7 +131,6 @@ class DetectVisionTargets:
     def detectArucoMarkers(self, img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         try:
             corners, ids, rejected = self.aruco_detector_4x4.detectMarkers(img)
-            # cv2.aruco.drawDetectedMarkers(img, corners, ids)
             detections = []
 
             if len(corners) == 0:
@@ -139,15 +148,15 @@ class DetectVisionTargets:
 
                     reshapedCorners = DetectVisionTargets.bounding_box(markerCorners.reshape((4, 2)))
 
-                    if (cameraMapping != CameraType.ZED):
-                        for points in reshapedCorners:
-                            # print(f"    REMAPPING: {points}")
-                            pitchYaw = cameraMapping.value.pitchYawFromXY(Point(points[0], points[1]))
-                            xy = CameraType.ZED.xyFromPitchYaw(pitchYaw)
-                            points[0] = max(0, xy.x) # Ensure values are not negative
-                            points[1] = max(0, xy.y)
-                            # print(f"           TO: {points}")
-                            # print(f"     PitchYaw: {pitchYaw}")
+                    # if (cameraMapping != CameraType.ZED):
+                    #     for points in reshapedCorners:
+                    #         # print(f"    REMAPPING: {points}")
+                    #         pitchYaw = cameraMapping.value.pitchYawFromXY(Point(points[0], points[1]))
+                    #         xy = CameraType.ZED.xyFromPitchYaw(pitchYaw)
+                    #         points[0] = max(0, xy.x) # Ensure values are not negative
+                    #         points[1] = max(0, xy.y)
+                    #         # print(f"           TO: {points}")
+                    #         # print(f"     PitchYaw: {pitchYaw}")
 
                     # Creating ingestable objects for the ZED SDK
                     obj = sl.CustomBoxObjectData()
@@ -221,7 +230,7 @@ class DetectVisionTargets:
                 for points in bounding_boxes:
                     # print(f"    REMAPPING: {points}")
                     pitchYaw = cameraMapping.value.pitchYawFromXY(Point(points[0], points[1]))
-                    xy = CameraType.ZED.xyFromPitchYaw(pitchYaw)
+                    xy = CameraType.ZED.value.xyFromPitchYaw(pitchYaw)
                     points[0] = max(0, xy.x) # Ensure values are not negative
                     points[1] = max(0, xy.y)
                     # print(f"           TO: {points}")
@@ -280,7 +289,18 @@ class DetectVisionTargets:
 
         return detections
 
+    def calculate_distance(position: np.array) -> str:
+        if len(position) < 3:
+            return ""
+        
+        distance = sqrt(position[0]*position[0] + position[1]*position[1] + position[2]*position[2])
+
+        return f"-{distance}m"
+
     def draw_object_detection(img, object_data: sl.ObjectData):
+        if not isinstance(object_data, sl.ObjectData):
+            return
+        
         (topLeft, topRight, bottomRight, bottomLeft) = object_data.bounding_box_2d
 
         topRight = (int(topRight[0]), int(topRight[1]))
@@ -300,5 +320,5 @@ class DetectVisionTargets:
         cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
 
         # Draw unique_object_id beside the contour
-        text = str(object_data.unique_object_id)
+        text = str(object_data.unique_object_id) + DetectVisionTargets.calculate_distance(object_data.position)
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)

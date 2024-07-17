@@ -10,6 +10,8 @@ zed:
     publish_raw_image: True
     publish_cv_processed_image: True
 
+    enable_gl_viewer: False
+
     svo_realtime_mode: False # Doesn't work on Jetson Nano
     always_record: False
     default_record_filename: ''

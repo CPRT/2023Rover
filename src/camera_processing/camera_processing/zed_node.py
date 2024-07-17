@@ -39,7 +39,8 @@ class ZedNode(Node):
         self.cv_bridge = CvBridge()
 
         if self.should_detect_ir_led:
-            self.ir_cam: VideoCapture = VideoCapture(0, CameraType.ERIK_ELP)
+            self.ir_cam: VideoCapture = VideoCapture(0, CameraType.IRCAM_ELP)
+            CameraType.IRCAM_ELP.update_scaling(self.resize_for_processing)
 
         zed_initialized = False
         while not zed_initialized:
@@ -84,6 +85,7 @@ class ZedNode(Node):
 
                 ('publish_raw_image', False),
                 ('publish_cv_processed_image', False),
+                ('enable_gl_viewer', False),
                 ('svo_realtime_mode', False), # Doesn't work on Jetson Nano
                 ('always_record', False),
                 ('default_record_filename', ''),
@@ -97,13 +99,9 @@ class ZedNode(Node):
                 ('enable_object_tracking', False),
 
                 # From colour_processing_params.yaml. This yaml file is required
-                # ('resize_for_processing', Parameter.Type.DOUBLE),
-                # ('blue_led', Parameter.Type.STRING),
-                ('red_led', Parameter.Type.STRING),
-                # ('ir_led', Parameter.Type.STRING),
-                ('resize_for_processing', 1.0),
+                ('resize_for_processing', 0.6),
                 ('blue_led', ""),
-                # ('red_led', ""),
+                ('red_led', ""),
                 ('ir_led', ""),
 
                 # From launch file arguments
@@ -125,6 +123,7 @@ class ZedNode(Node):
 
         self.should_publish_raw_image = bool(self.get_parameter('publish_raw_image').value)
         self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
+        self.enable_gl_viewer = bool(self.get_parameter('enable_gl_viewer').value)
         self.should_publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
         self.should_publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
 
@@ -145,6 +144,7 @@ class ZedNode(Node):
             self.record_svo = True
             self.record_filename = str(self.get_parameter('default_record_filename'))
 
+        self.resize_for_processing = float(self.get_parameter('resize_for_processing').value)
         self.blue_led_str = str(self.get_parameter('blue_led').value)
         self.red_led_str = str(self.get_parameter('red_led').value)
         self.ir_led_str = str(self.get_parameter('ir_led').value)
@@ -238,26 +238,26 @@ class ZedNode(Node):
         return True
 
     def init_visualizers(self):
-        # Get Camera resolution
-        camera_info = self.zed.get_camera_information()
-        camera_res = camera_info.camera_configuration.resolution
+        if self.enable_gl_viewer:
+            # Get Camera resolution
+            camera_info = self.zed.get_camera_information()
+            camera_res = camera_info.camera_configuration.resolution
 
-        self.viewer = gl.GLViewer()
-        self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
-    
+            self.viewer = gl.GLViewer()
+            self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
 
     def cleanup(self):
+        if self.enable_gl_viewer:
+            self.viewer.exit()
 
-        self.viewer.exit()
         # Disable modules and close camera
         self.zed.disable_recording()
         self.zed.disable_object_detection()
         self.zed.disable_positional_tracking()
         self.image_left_tmp.free(memory_type=sl.MEM.CPU)
-        # self.image_for_display.free(memory_type=sl.MEM.CPU)
         
         self.zed.close()
-        cv2.destroyAllWindows()
+        
 
     def run_detections(self):
         self.record_timestamp()
@@ -284,10 +284,11 @@ class ZedNode(Node):
         self.zed.retrieve_image(self.image_left_tmp, sl.VIEW.LEFT)
         zed_left_image_net: np.array = self.image_left_tmp.get_data()
         zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2BGR)
+        resized_zed_img = cv2.resize(zed_img, None, fx=self.resize_for_processing, fy=self.resize_for_processing, interpolation=cv2.INTER_LINEAR)
 
         # Publish Raw Image
         if self.should_publish_raw_image:
-            self.publish_raw_image.publish(self.cv_bridge.cv2_to_imgmsg(zed_img))
+            self.publish_raw_image.publish(self.cv_bridge.cv2_to_imgmsg(resized_zed_img))
 
         # ZED Aruco Markers
         if self.should_detect_arucos:
@@ -295,11 +296,11 @@ class ZedNode(Node):
 
         # ZED Blue LEDS
         if self.should_detect_blue_led:
-            detections += self.detectVisionTargets.detectZEDBlueLEDs(zed_img)
+            detections += self.detectVisionTargets.detectZEDBlueLEDs(resized_zed_img)
 
         # ZED Red LEDS
         if self.should_detect_red_led:
-            detections += self.detectVisionTargets.detectZEDRedLEDs(zed_img)
+            detections += self.detectVisionTargets.detectZEDRedLEDs(resized_zed_img)
 
         # IR Cam Image 
         if self.should_detect_ir_led:
@@ -315,13 +316,11 @@ class ZedNode(Node):
         if self.should_detect_6x6_aruco:
             detections += self.detectVisionTargets.detect_6x6_arucos(zed_img)
 
-        self.get_logger().info(f"Detections: {repr(detections)}")
-
         # Ingest detections and get objects
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
 
-        if self.viewer.is_available():
+        if self.enable_gl_viewer and self.viewer.is_available():
             self.viewer.update_view(self.image_left_tmp, self.objects)
 
         # Iterate object detections
@@ -333,8 +332,9 @@ class ZedNode(Node):
         for object in self.objects.object_list:
             # self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
             
-            # TODO: Wrap this in a if based on if zed_img is getting published
-            DetectVisionTargets.draw_object_detection(zed_img, object)
+            if self.should_publish_cv_processed_image:
+                DetectVisionTargets.draw_object_detection(zed_img, object)
+
             point: Point = self.zed_object_to_point(object)
 
             if DetectVisionTargets.is_zed_marker(object.unique_object_id):
@@ -364,9 +364,6 @@ class ZedNode(Node):
 
         if self.should_publish_cv_processed_image:
             self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(zed_img)) 
-
-        # cv2.imshow("ZED Image Processing", zed_img)
-        # cv2.waitKey(10)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
