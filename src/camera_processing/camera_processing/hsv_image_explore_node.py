@@ -37,7 +37,7 @@ class TuneHSVImageExplore(Node):
         
         self.colour_processing = ColourProcessing.from_string(colour_processing_str)
         if not isinstance(self.colour_processing, ColourProcessing):
-            raise ValueError(f"Invalid colour processing string: {colour_processing_str}")
+            raise ValueError(f"Invalid colour processing string. Error: {self.colour_processing}, string: {repr(colour_processing_str)}")
 
         self.image = None
         self.image_count = 0
@@ -69,7 +69,7 @@ class TuneHSVImageExplore(Node):
     def run_hsv_image_explore(self):
         if self.image is not None and self.image_count != self.image_proceessed_count:
             self.image_proceessed_count = self.image_count
-            self.colour_processing.mask_step_tuning(self.image)
+            self.colour_processing.process_steps_tuning(self.image)
 
 def main(args=None):
     rclpy.init(args=args)
