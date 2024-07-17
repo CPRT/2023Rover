@@ -41,7 +41,7 @@ def imshow_scaled(window_name: str, image: ndarray, image_scaling: float):
         window_name (str): The name for the window to display the image to
         image (ndarray): The image to display
     """
-    image_scaled = cv2.resize(image, None, fx=image_scaling, fy=image_scaling, interpolation = cv2.INTER_AREA)
+    image_scaled = cv2.resize(image, None, fx=image_scaling, fy=image_scaling, interpolation = cv2.INTER_LINEAR)
     cv2.imshow(window_name, image_scaled)
     
 

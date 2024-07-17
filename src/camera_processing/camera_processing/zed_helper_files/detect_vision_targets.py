@@ -110,9 +110,9 @@ class DetectVisionTargets:
         tag_str = ""
         
         if MathStep.CoreTag.FAR in tags:
-            tag_str += f"-{MathStep.CoreTag.FAR}"
+            tag_str += f"-{MathStep.CoreTag.FAR.value}"
         elif MathStep.CoreTag.CLOSE in tags:
-            tag_str += f"-{MathStep.CoreTag.CLOSE}"
+            tag_str += f"-{MathStep.CoreTag.CLOSE.value}"
         else:
             return "" # Error
         
@@ -121,7 +121,7 @@ class DetectVisionTargets:
     def detectArucoMarkers(self, img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         try:
             corners, ids, rejected = self.aruco_detector_4x4.detectMarkers(img)
-            cv2.aruco.drawDetectedMarkers(img, corners, ids)
+            # cv2.aruco.drawDetectedMarkers(img, corners, ids)
             detections = []
 
             if len(corners) == 0:
@@ -239,7 +239,7 @@ class DetectVisionTargets:
 
     def detect_6x6_arucos(self, zed_img) -> List[sl.CustomBoxObjectData]:
         corners, ids, rejected = self.aruco_detector_6x6.detectMarkers(zed_img)
-        cv2.aruco.drawDetectedMarkers(zed_img, corners, ids)
+        # cv2.aruco.drawDetectedMarkers(zed_img, corners, ids)
         detections = []
 
         if len(corners) == 0:

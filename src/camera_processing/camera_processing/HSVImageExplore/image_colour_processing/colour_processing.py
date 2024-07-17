@@ -120,7 +120,7 @@ class ColourProcessing:
 
         # Resize the image
         img_resize_start = time.time()
-        processed_image = image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_AREA)
+        processed_image = image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
         img_resize_end = time.time()
 
         # Process the image through the mask steps

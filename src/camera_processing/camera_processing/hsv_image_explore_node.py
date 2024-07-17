@@ -70,6 +70,7 @@ class TuneHSVImageExplore(Node):
         if self.image is not None and self.image_count != self.image_proceessed_count:
             self.image_proceessed_count = self.image_count
             self.colour_processing.process_steps_tuning(self.image)
+            self.get_logger().info(f"ColourProcessing Object: {repr(self.colour_processing)}")
 
 def main(args=None):
     rclpy.init(args=args)

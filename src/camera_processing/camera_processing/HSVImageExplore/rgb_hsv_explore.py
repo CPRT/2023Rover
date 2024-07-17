@@ -64,11 +64,11 @@ cv2.createTrackbar(vh1, 'step1',240,255,nothing)
 imgOriginal = cv2.imread(input_file)
 
 if argFlip == 'half':
-    imgProcess = cv2.resize(imgOriginal, None, fx=0.5, fy=0.5, interpolation = cv2.INTER_AREA)
+    imgProcess = cv2.resize(imgOriginal, None, fx=0.5, fy=0.5, interpolation = cv2.INTER_LINEAR)
 elif argFlip == 'quar':
-    imgProcess = cv2.resize(imgOriginal, None, fx=0.25, fy=0.25, interpolation = cv2.INTER_AREA)
+    imgProcess = cv2.resize(imgOriginal, None, fx=0.25, fy=0.25, interpolation = cv2.INTER_LINEAR)
 elif argFlip == 'eighth':
-    imgProcess = cv2.resize(imgOriginal, None, fx=0.125, fy=0.125, interpolation = cv2.INTER_AREA)
+    imgProcess = cv2.resize(imgOriginal, None, fx=0.125, fy=0.125, interpolation = cv2.INTER_LINEAR)
 elif argFlip == 'flip':
     imgProcess = cv2.flip(imgOriginal, 0)
 elif argFlip == 'full':
