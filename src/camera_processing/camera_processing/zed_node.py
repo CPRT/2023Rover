@@ -39,8 +39,8 @@ class ZedNode(Node):
         self.cv_bridge = CvBridge()
 
         if self.should_detect_ir_led:
-            self.ir_cam: VideoCapture = VideoCapture(0, CameraType.IRCAM_ELP)
-            CameraType.IRCAM_ELP.update_scaling(self.resize_for_processing)
+            self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_ELP)
+            # CameraType.IRCAM_ELP.update_scaling(self.detectVisionTargets.ir_led_processing._image_scaling)
 
         zed_initialized = False
         while not zed_initialized:
@@ -142,7 +142,7 @@ class ZedNode(Node):
 
         elif self.get_parameter('always_record') and str(self.get_parameter('default_record_filename')) != '':
             self.record_svo = True
-            self.record_filename = str(self.get_parameter('default_record_filename'))
+            self.record_filename = str(self.get_parameter('default_record_filename').value)
 
         self.resize_for_processing = float(self.get_parameter('resize_for_processing').value)
         self.blue_led_str = str(self.get_parameter('blue_led').value)
@@ -225,7 +225,7 @@ class ZedNode(Node):
         obj_param.enable_tracking = bool(self.get_parameter('enable_object_tracking').value)
         self.zed.enable_object_detection(obj_param)
 
-        if not (self.playback_svo and self.playback_filename != "") and self.record_svo and self.record_filename != "":
+        if (not (self.playback_svo and self.playback_filename != "")) and self.record_svo and self.record_filename != "":
             recordingParameters = sl.RecordingParameters()
             recordingParameters.compression_mode = sl.SVO_COMPRESSION_MODE.H264
             recordingParameters.video_filename = self.record_filename
@@ -247,13 +247,14 @@ class ZedNode(Node):
             self.viewer.init(camera_info.camera_configuration.calibration_parameters.left_cam, False)
 
     def cleanup(self):
+        cv2.destroyAllWindows()
         if self.enable_gl_viewer:
             self.viewer.exit()
 
         # Disable modules and close camera
         self.zed.disable_recording()
-        self.zed.disable_object_detection()
-        self.zed.disable_positional_tracking()
+        # self.zed.disable_object_detection()
+        # self.zed.disable_positional_tracking()
         self.image_left_tmp.free(memory_type=sl.MEM.CPU)
         
         self.zed.close()
@@ -304,7 +305,12 @@ class ZedNode(Node):
 
         # IR Cam Image 
         if self.should_detect_ir_led:
-            ir_image = self.ir_cam.read()
+            try:
+                ir_image, ir_timing = self.ir_cam.read()
+                self.get_logger().info(f"IR Retrieve timing: {ir_timing}")
+                
+            except Exception as e:
+                self.get_logger().error("Got error reading IR Cam: " + str(e))
 
             # IR Cam Aruco Markers
             detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
@@ -316,7 +322,7 @@ class ZedNode(Node):
         if self.should_detect_6x6_aruco:
             detections += self.detectVisionTargets.detect_6x6_arucos(zed_img)
 
-        # Ingest detections and get objects
+        # Ingest detections and get objects (TODO: Verify all objects in list are correct type to prevent crashing)
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
 
@@ -353,7 +359,7 @@ class ZedNode(Node):
                 ir_led_point_arr.points.append(point)
                 
             else:
-                self.get_logger.warn("Lost object after zed detections called " + object.unique_object_id)
+                self.get_logger().warn("Lost object after zed detections called " + object.unique_object_id)
 
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
         self.publish_blue_led_points.publish(blue_led_point_arr)

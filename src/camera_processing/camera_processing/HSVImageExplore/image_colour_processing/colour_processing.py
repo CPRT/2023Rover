@@ -5,6 +5,7 @@ import cv2
 from numpy import ndarray
 import time
 import numpy as np
+from copy import deepcopy
 
 try:
     # Import for CLI usage
@@ -29,11 +30,12 @@ except Exception as e:
 class ColourProcessing:
     DECIMALS = 5
 
-    def __init__(self, image_scaling: float, display_scaling: float, process_steps: Tuple[ProcessStep]):
+    def __init__(self, image_scaling: float, pre_scaled: bool, display_scaling: float, process_steps: Tuple[ProcessStep]):
         """
         """
         self._in_tuning_mode: bool
         self._process_steps: Tuple[ProcessStep] = process_steps
+        self._pre_scaled: bool = pre_scaled
         self._image_scaling: float = image_scaling
         self._image_reverse_scaling: float = 1 / image_scaling
         self._display_scaling: float = display_scaling
@@ -120,8 +122,10 @@ class ColourProcessing:
 
         # Resize the image
         img_resize_start = time.time()
-        if self._image_scaling != 1.0:
-            processed_image = image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+        if not self._pre_scaled and self._image_scaling != 1.0:
+            processed_image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+        else:
+            processed_image = deepcopy(image)
         img_resize_end = time.time()
 
         # Process the image through the mask steps

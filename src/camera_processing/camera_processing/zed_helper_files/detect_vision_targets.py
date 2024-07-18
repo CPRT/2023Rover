@@ -38,14 +38,14 @@ IR_CAM_NAME = "IRCam"
 class CameraType(Enum):
     ZED = CameraUtil(ZED_CAM_NAME, 2208, 1242, 110, 70)
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
-    IRCAM_ELP = CameraUtil(IR_CAM_NAME, 1280, 720, 62.91*2, 37.91*2)
+    IRCAM_ELP = CameraUtil(IR_CAM_NAME, 1280, 720, 62.91*2, 37.91*2, "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")
 
     def update_scaling(self, image_scaling: float):
         """
         Resize the camera resolution based on a image_scaling factor
         """
-        self.value.xRes *= image_scaling
-        self.value.yRes *= image_scaling
+        self.value.xRes = float(self.value.xRes * image_scaling)
+        self.value.yRes = float(self.value.yRes * image_scaling)
 
 class DetectVisionTargets:
     def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
@@ -220,31 +220,40 @@ class DetectVisionTargets:
         detections = []
 
         # IR LEDS
-        bounding_boxes, tags, timings = self.red_led_processing.process_image(ir_img)
-        # self._ros_logger.info("IR LED " + timings)
+        bounding_boxes, tags, timings = self.ir_led_processing.process_image(ir_img)
+        self._ros_logger.info("IR LED " + timings)
 
-        for i in range(0, len(bounding_boxes)):
-            unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"RedLED-{i}", tags[i])
+        for box_index, bounding_box in enumerate(bounding_boxes):
+            unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"IRLED-{box_index}", tags[box_index])
 
             if unique_object_id != "":
-                for points in bounding_boxes:
-                    # print(f"    REMAPPING: {points}")
-                    pitchYaw = cameraMapping.value.pitchYawFromXY(Point(points[0], points[1]))
+                for point_index, point in enumerate(bounding_boxes[box_index]):
+                    self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
+                    
+                    pitchYaw = cameraMapping.value.pitchYawFromXY(Point(point[0], point[1]))
                     xy = CameraType.ZED.value.xyFromPitchYaw(pitchYaw)
-                    points[0] = max(0, xy.x) # Ensure values are not negative
-                    points[1] = max(0, xy.y)
+                    # self._ros_logger.info(f"bounding_boxes: {repr(bounding_boxes)}\npoints: {repr(points)}\n  XY.x: {repr(xy.x)}, XY.y: {repr(xy.y)}")
+
+                    
+                    try:
+                        bounding_boxes[box_index][point_index][0] = max(0, int(xy.x)) # Ensure values are not negative
+                        bounding_boxes[box_index][point_index][1] = max(0, int(xy.y))
+                    except Exception as e:
+                        self._ros_logger.info(f"Failed to scale bounding boxes: {e}")
+
+                    self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
                     # print(f"           TO: {points}")
                     # print(f"     PitchYaw: {pitchYaw}")
 
                 obj = sl.CustomBoxObjectData()
                 obj.unique_object_id = unique_object_id
-                obj.bounding_box_2d = bounding_boxes[i]
+                obj.bounding_box_2d = bounding_boxes[box_index]
                 obj.label = 4
                 obj.probability = 0.99
                 obj.is_grounded = False
                 detections.append(obj)
 
-        return detections, timings
+        return detections
 
     def detect_6x6_arucos(self, zed_img) -> List[sl.CustomBoxObjectData]:
         corners, ids, rejected = self.aruco_detector_6x6.detectMarkers(zed_img)

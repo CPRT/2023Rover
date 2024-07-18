@@ -15,12 +15,13 @@ class Point:
         return f"Point({self.x}, {self.y}"
 
 class CameraUtil:
-    def __init__(self, name: str, xRes, yRes, xFov, yFov):
+    def __init__(self, name: str, xRes, yRes, xFov, yFov, v4l_byid_name: str = None):
         self.name = name
         self.xRes = xRes
         self.yRes = yRes
         self.xFov = xFov
         self.yFov = yFov
+        self.v4l_byid_name = v4l_byid_name
             
     def pitchYawFromXY(self, point: Point) -> PitchYaw:
         aX = (point.x - self.xRes / 2.0) / (self.xRes / 2.0)
