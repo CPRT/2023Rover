@@ -66,7 +66,7 @@ def generate_launch_description():
         "Grid/MinClusterSize": "20",
         "Grid/MaxGroundAngle": "35",
         "Grid/NormalK": "20",
-        "Grid/CellSize": "0.1",
+        "Grid/CellSize": "0.2",
         "Grid/FlatObstacleDetected": "false",
         #"Grid/Sensor": "True",
 

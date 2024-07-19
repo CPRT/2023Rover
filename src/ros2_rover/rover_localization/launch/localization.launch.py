@@ -74,7 +74,7 @@ def generate_launch_description():
     navsat_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
-                         "launch", "ouster.launch.py")
+                         "launch", "navsat.launch.py")
         )
     )
 
@@ -105,13 +105,10 @@ def generate_launch_description():
 
     ld.add_action(use_sim_time_cmd)
     ld.add_action(launch_ouster_cmd)
-    ld.add_action(launch_navsat_cmd)
     ld.add_action(launch_rviz_cmd)
 
     if(launch_ouster):
         ld.add_action(ouster_cmd)
-    if(launch_navsat):
-        ld.add_action(navsat_cmd)
     if(launch_rviz):
         ld.add_action(rviz_cmd)
 

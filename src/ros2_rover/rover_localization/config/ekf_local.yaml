@@ -1,6 +1,6 @@
 local_ekf:
   ros__parameters:
-    # frequency: 50.0
+    frequency: 20.0
     # sensor_timeout: 20.0
     use_sim_time: false
 

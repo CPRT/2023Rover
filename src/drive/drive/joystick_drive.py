@@ -49,6 +49,7 @@ class joystickDrive(Node):
         self.MAX_VOLTAGE_TURN = (
             self.get_parameter("voltage_max_turn").get_parameter_value().double_value
         )
+        self.active = True
 
         self.setTwistPub = self.create_publisher(
             Twist, "/drive/cmd_vel", 1)
@@ -72,6 +73,8 @@ class joystickDrive(Node):
             self.setEstop.publish(self.estopTimeout)
 
     def cmd_joy_callback(self, msg: Joy):
+        if (msg.buttons[7] == 1 and self.last_msg.buttons[7] == 0):
+            self.active = not self.active
         self.lastTimestamp = msg.header.stamp.sec
         if(msg.buttons[0] == 1): #able to change buttons later on
             self.estop.data = True
@@ -80,7 +83,7 @@ class joystickDrive(Node):
             self.estop.data = False
             self.setEstop.publish(self.estop)
 
-        if(self.pidMode == 1):
+        if(self.pidMode == 1 and self.active):
             self.twist.linear.x = map_range(msg.axes[1], -1, 1, -self.MAX_PID_SPEED, self.MAX_PID_SPEED) 
             self.twist.angular.z = map_range(-msg.axes[0], -1, 1, -self.MAX_PID_TURN, self.MAX_PID_TURN)
             self.setTwistPub.publish(self.twist)
