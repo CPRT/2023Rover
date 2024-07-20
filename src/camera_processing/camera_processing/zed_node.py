@@ -227,12 +227,12 @@ class ZedNode(Node):
                 self.get_logger().error("Failed to zed.open(init_params) Got ZED error code: " + repr(status))
                 return False
         
-        self.get_logger().info(f"white_balance: {int(self.get_parameter('white_balance').value)}")
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, int(self.get_parameter('exposure').value))
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, int(self.get_parameter('white_balance').value))
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, 0 if int(self.get_parameter('white_balance').value) == -1 else 1)
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, int(self.get_parameter('gain').value))
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, int(self.get_parameter('gamma').value))
+        # self.get_logger().info(f"white_balance: {int(self.get_parameter('white_balance').value)}")
+        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, int(self.get_parameter('exposure').value))
+        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, int(self.get_parameter('white_balance').value))
+        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, 0 if int(self.get_parameter('white_balance').value) == -1 else 1)
+        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, int(self.get_parameter('gain').value))
+        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, int(self.get_parameter('gamma').value))
 
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
