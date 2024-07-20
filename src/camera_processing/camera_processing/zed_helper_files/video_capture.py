@@ -16,7 +16,11 @@ class VideoCapture:
         self.xRes = cam.value.xRes
         self.yRes = cam.value.yRes
 
-        self.cap = cv2.VideoCapture(VideoCapture._find_video_index(cam.value.v4l_byid_name))
+        try:
+            self.cap = cv2.VideoCapture(VideoCapture._find_video_index(cam.value.v4l_byid_name))
+        except Exception as e:
+            raise ValueError(f"Could not find the video index for the camera. Error: {e}")
+        
         self.cam_type = cam
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.xRes)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.yRes)

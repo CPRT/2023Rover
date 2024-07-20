@@ -40,7 +40,11 @@ class ZedNode(Node):
         self.cv_bridge = CvBridge()
 
         if self.should_detect_ir_led:
-            self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_ELP)
+            try:
+                self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_ELP)
+            except Exception as e:
+                self.get_logger().error("Failed to create VideoCapture for IR cam. Disabling IR camera. Error: " + str(e))
+                self.should_detect_ir_led = False
 
         zed_initialized = False
         while not zed_initialized:
