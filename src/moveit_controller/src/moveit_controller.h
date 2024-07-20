@@ -37,6 +37,8 @@ class TestNode : public rclcpp::Node
     moveit::planning_interface::MoveGroupInterface::Plan rotationPlan;
     
     void topic_callback(const interfaces::msg::ArmCmd & armMsg);
+    
+    rclcpp::Publisher<moveit_msgs::msg::RobotTrajectory>::SharedPtr publisher_;
 };
 
 #endif

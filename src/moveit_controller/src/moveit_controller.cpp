@@ -34,6 +34,8 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   subscription_ = this->create_subscription<interfaces::msg::ArmCmd>(
   "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
   
+  publisher_ = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("arm_trajectory", 11);
+  
   //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
   
   move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm2"); //used to be rover_arm
@@ -56,6 +58,8 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 		auto const ok = static_cast<bool>(move_group_ptr->plan(msg));
 		return std::make_pair(ok, msg);
 	}();
+	
+	publisher_->publish(plan.trajectory_);
 
 	// Execute the plan
 	if(success) {
@@ -163,6 +167,8 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 
 		// Execute the plan
 		if(success) {
+		  RCLCPP_INFO(this->get_logger(), "Number of joint trajectory points: %li, number of multiDOFjointtrajectorypoints: %li", std::size(plan.trajectory_.joint_trajectory.points), std::size(plan.trajectory_.multi_dof_joint_trajectory.points));
+		  publisher_->publish(plan.trajectory_);
 			move_group_ptr->execute(plan);
 		} else {
 			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
@@ -213,6 +219,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 			th.join();
 		}
 		RCLCPP_INFO(this->get_logger(), "What??");
+		publisher_->publish(trajectory);
 		th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
 		RCLCPP_INFO(this->get_logger(), "Why");
 	  
@@ -252,6 +259,24 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 		//launch thread
 		RCLCPP_INFO(this->get_logger(), "What");
 		RCLCPP_INFO(this->get_logger(), "What??");
+		RCLCPP_INFO(this->get_logger(), "Number of joint trajectory points: %li, number of multiDOFjointtrajectorypoints: %li", std::size(trajectory.joint_trajectory.points), std::size(trajectory.multi_dof_joint_trajectory.points));
+		for (int i = 0; i < (int)std::size(trajectory.joint_trajectory.points); i++)
+		{
+		  RCLCPP_INFO(this->get_logger(), "Positions: %li, Velocity: %li, Accelerations: %li, effort: %li, duration: %u", std::size(trajectory.joint_trajectory.points[i].positions), std::size(trajectory.joint_trajectory.points[i].velocities), std::size(trajectory.joint_trajectory.points[i].accelerations), std::size(trajectory.joint_trajectory.points[i].effort), trajectory.joint_trajectory.points[i].time_from_start.nanosec);
+		  for (int j = 0; j < (int)std::size(trajectory.joint_trajectory.points[i].positions); j++)
+		  {
+		    RCLCPP_INFO(this->get_logger(), "positions: %f", trajectory.joint_trajectory.points[i].positions[j]);
+		  }
+		  for (int j = 0; j < (int)std::size(trajectory.joint_trajectory.points[i].positions); j++)
+		  {
+		    RCLCPP_INFO(this->get_logger(), "velocity: %f", trajectory.joint_trajectory.points[i].velocities[j]);
+		  }
+		  for (int j = 0; j < (int)std::size(trajectory.joint_trajectory.points[i].positions); j++)
+		  {
+		    RCLCPP_INFO(this->get_logger(), "acceleration: %f", trajectory.joint_trajectory.points[i].accelerations[j]);
+		  }
+		}
+		publisher_->publish(trajectory);
 		th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
 		RCLCPP_INFO(this->get_logger(), "Why");
 	}

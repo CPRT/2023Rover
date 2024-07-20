@@ -9,8 +9,7 @@ MinimalPublisher::MinimalPublisher()
 : Node("minimal_publisher"), count_(0)
 {
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
-  timer_ = this->create_wall_timer(
-  500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
+  timer_ = this->create_wall_timer(500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
   std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units). Type 'n' to reset. Type 'm' to open/close gripper."<<std::endl;
 }
 
