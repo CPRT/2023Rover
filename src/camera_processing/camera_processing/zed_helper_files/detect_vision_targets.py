@@ -308,6 +308,14 @@ class DetectVisionTargets:
         
         return f"-{distance:.2f}m"
 
+    def is_good_object(object_data: sl.ObjectData, logger):
+        if (object_data.tracking_state == sl.OBJECT_TRACKING_STATE.SEARCHING or 
+            object_data.tracking_state == sl.OBJECT_TRACKING_STATE.TERMINATE):
+            logger.info("Removed OBJECT due to state: " + str(object_data.tracking_state))
+            return False
+
+        return True
+
     def draw_object_detection(img, object_data: sl.ObjectData):
         if not isinstance(object_data, sl.ObjectData):
             return
@@ -331,5 +339,6 @@ class DetectVisionTargets:
         cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
 
         # Draw unique_object_id beside the contour
-        text = str(object_data.unique_object_id) + DetectVisionTargets.calculate_distance(object_data.position)
+        text = str(object_data.id) + str(object_data.unique_object_id) + DetectVisionTargets.calculate_distance(object_data.position)
+        text = f"T:{object_data.tracking_state}-A:{object_data.action_state}{text}"
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)

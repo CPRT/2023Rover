@@ -17,6 +17,7 @@ from cv_bridge import CvBridge
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
 from sensor_msgs.msg import CompressedImage, Image
+from visualization_msgs.msg import MarkerArray, Marker
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
@@ -53,7 +54,7 @@ class ZedNode(Node):
         self.image_left_tmp: sl.Mat = sl.Mat()
         self.objects: sl.Object = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
-        self.runtime_params = sl.RuntimeParameters()
+        self.zed_pose = sl.Pose()
 
         self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
         self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
@@ -62,6 +63,8 @@ class ZedNode(Node):
 
         self.publish_raw_image = self.create_publisher(CompressedImage, '/zed_raw_image', 10)
         self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 10)
+
+        self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed_rviz_detections', 10)
 
         self.timer_period = 0.03  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections)
@@ -203,6 +206,11 @@ class ZedNode(Node):
         init_params.camera_resolution = ZedNode.STRING_TO_RESOLUTION[str(self.get_parameter('resolution').value)]   # HD720   HD1080   HD1200    HD2K
         init_params.camera_fps = int(self.get_parameter('fps').value) # Use 15 FPS to improve low-light performance
 
+        # Setup runtime parameters
+        self.runtime_params = sl.RuntimeParameters()
+        # self.runtime_params.measure3D_reference_frame = sl.REFERENCE_FRAME.WORLD
+        self.runtime_params.measure3D_reference_frame = sl.REFERENCE_FRAME.CAMERA
+
         if self.playback_svo and self.playback_filename != "":
             init_params.set_from_svo_file(self.playback_filename)
             self.get_logger().info(f"Playing back SVO. Data from the ZED is a recording and NOT LIVE. Filename: {self.playback_filename}")
@@ -327,6 +335,9 @@ class ZedNode(Node):
         if self.should_detect_6x6_aruco:
             detections += self.detectVisionTargets.detect_6x6_arucos(zed_img)
 
+        # ZED get position in it's world frame to publish
+        tracking_state = self.zed.get_position(self.zed_pose, sl.REFERENCE_FRAME.WORLD)
+
         # Ingest detections and get objects (TODO: Verify all objects in list are correct type to prevent crashing)
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
@@ -340,36 +351,42 @@ class ZedNode(Node):
         red_led_point_arr = self.create_point_array()
         ir_led_point_arr = self.create_point_array()
 
-        for object in self.objects.object_list:
+        # Remove bad object detections
+        object_list_trimmed = [obj for obj in self.objects.object_list if DetectVisionTargets.is_good_object(obj, self.get_logger())]
+         
+        for obj in self.objects.object_list:
             # self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
-            
-            if self.should_publish_cv_processed_image:
-                DetectVisionTargets.draw_object_detection(zed_img, object)
 
-            point: Point = self.zed_object_to_point(object)
+            point: Point = self.zed_object_to_point(obj)
 
-            if DetectVisionTargets.is_zed_marker(object.unique_object_id):
+            if DetectVisionTargets.is_zed_marker(obj.unique_object_id):
                 zed_aruco_markers_msg.points.append(point)
-                zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(object.unique_object_id))
+                zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(obj.unique_object_id))
 
                 self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
 
-            elif DetectVisionTargets.is_blue_led(object.unique_object_id):
+            elif DetectVisionTargets.is_blue_led(obj.unique_object_id):
                 blue_led_point_arr.points.append(point)
 
-            elif DetectVisionTargets.is_red_led(object.unique_object_id):
+            elif DetectVisionTargets.is_red_led(obj.unique_object_id):
                 red_led_point_arr.points.append(point)
 
-            elif DetectVisionTargets.is_ir_led(object.unique_object_id):
+            elif DetectVisionTargets.is_ir_led(obj.unique_object_id):
                 ir_led_point_arr.points.append(point)
                 
             else:
-                self.get_logger().warn("Lost object after zed detections called " + object.unique_object_id)
+                self.get_logger().warn("Lost object after zed detections called " + obj.unique_object_id)
+                continue
+
+            if self.should_publish_cv_processed_image:
+                DetectVisionTargets.draw_object_detection(zed_img, obj)
 
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
         self.publish_blue_led_points.publish(blue_led_point_arr)
         self.publish_red_led_points.publish(red_led_point_arr)
         self.publish_ir_led_points.publish(ir_led_point_arr)
+
+        self.publish_rviz_markers.publish(ZedNode.get_rviz_markers(self.objects.object_list, self.header_timestamp))
 
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
@@ -401,6 +418,43 @@ class ZedNode(Node):
 
     def delta_time(self):
         return (self.get_clock().now() - self.timestamp).nanoseconds / 1000000000
+
+    def get_rviz_markers(object_list: sl.ObjectData, header_timestamp) -> MarkerArray:
+        markerArray: MarkerArray = MarkerArray()
+
+        for object_index, object in enumerate(object_list):
+            marker = Marker()
+            marker.id = object_index
+            marker.header.stamp = header_timestamp
+            marker.header.frame_id = "/zed_link"
+            marker.type = marker.CUBE
+            marker.action = marker.ADD
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            marker.scale.z = 0.1
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.pose.orientation.w = 1.0
+            marker.pose.position.x = object.position[0]
+            marker.pose.position.y = object.position[1]
+            marker.pose.position.z = object.position[2]
+            marker.lifetime = rclpy.time.Duration(seconds=0).to_msg()
+            marker.frame_locked = False
+            markerArray.markers.append(marker)
+
+        for i in range(len(object_list), 12):
+            marker = Marker()
+            marker.id = i
+            marker.header.stamp = header_timestamp
+            marker.header.frame_id = "/zed_link"
+            marker.action = 2
+            marker.lifetime = rclpy.time.Duration(seconds=0).to_msg()
+            marker.frame_locked = False
+            markerArray.markers.append(marker)
+
+        return markerArray
 
 def main(args=None):
     rclpy.init(args=args)
