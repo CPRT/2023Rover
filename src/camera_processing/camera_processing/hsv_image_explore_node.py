@@ -14,7 +14,7 @@ class TuneHSVImageExplore(Node):
             parameters=[
                 # ('window_name', 'HSV'),
                 ('image_topic', '/zed_raw_image'),
-                ('is_image_compressed', False),
+                ('is_image_compressed', True),
                 ('depth_history', 10),
 
                 # options are blue, red, or ir

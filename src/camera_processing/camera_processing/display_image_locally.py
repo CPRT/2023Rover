@@ -29,6 +29,7 @@ class DisplayImageLocally(Node):
         )
 
         self.cv_bridge = CvBridge()
+        self.image_count = 0
 
         self.get_logger().info(f"Subscribed to {self.get_parameter('image_topic').value}")
         self.get_logger().info(f"Expecting {'CompressedImage' if self.is_image_compressed else 'Image'} message")
@@ -39,7 +40,9 @@ class DisplayImageLocally(Node):
         else:
             cv2.imshow(self.window_name, self.cv_bridge.imgmsg_to_cv2(image))
 
-        cv2.waitKey(5)
+        self.image_count += 1
+        self.get_logger().info(f"Image count: {self.image_count}")
+        cv2.waitKey(500)
 
 
 def main(args=None):

@@ -1,9 +1,10 @@
 /**:
   ros__parameters:
-    resize_for_processing: {"HD1080": 0.6, "HD2K": 0.4, "default": 0.6}
+    resize_for_processing: 0.4
+    resize_for_displaying: 0.6
 
     blue_led: "ColourProcessing(
-        image_scaling=0.6,
+        image_scaling=0.4,
         display_scaling=0.7,
         pre_scaled=True,
         process_steps=tuple([
@@ -15,7 +16,7 @@
         ]))"
 
     red_led: "ColourProcessing(
-        image_scaling=0.6,
+        image_scaling=0.4,
         display_scaling=0.7,
         pre_scaled=True,
         process_steps=tuple([
@@ -27,7 +28,7 @@
         ]))"
 
     ir_led: "ColourProcessing(
-        image_scaling=0.6,
+        image_scaling=0.4,
         display_scaling=0.7,
         pre_scaled=False,
         process_steps=tuple([

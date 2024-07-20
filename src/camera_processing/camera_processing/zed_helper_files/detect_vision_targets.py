@@ -4,7 +4,7 @@ import pyzed.sl as sl
 import numpy as np
 from enum import Enum
 from typing import List, Set
-from math import sqrt
+from math import sqrt, isnan
 
 # from ZedNode import STRING_TO_RESOLUTION
 from ..HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
@@ -228,7 +228,7 @@ class DetectVisionTargets:
 
             if unique_object_id != "":
                 for point_index, point in enumerate(bounding_boxes[box_index]):
-                    self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
+                    # self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
                     
                     pitchYaw = cameraMapping.value.pitchYawFromXY(Point(point[0], point[1]))
                     xy = CameraType.ZED.value.xyFromPitchYaw(pitchYaw)
@@ -241,7 +241,7 @@ class DetectVisionTargets:
                     except Exception as e:
                         self._ros_logger.info(f"Failed to scale bounding boxes: {e}")
 
-                    self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
+                    # self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
                     # print(f"           TO: {points}")
                     # print(f"     PitchYaw: {pitchYaw}")
 
@@ -303,8 +303,10 @@ class DetectVisionTargets:
             return ""
         
         distance = sqrt(position[0]*position[0] + position[1]*position[1] + position[2]*position[2])
-
-        return f"-{distance}m"
+        if isnan(distance):
+            return f"-nan-[{position[0]:.1f}, {position[1]:.1f}, {position[2]:.1f}]"
+        
+        return f"-{distance:.2f}m"
 
     def draw_object_detection(img, object_data: sl.ObjectData):
         if not isinstance(object_data, sl.ObjectData):

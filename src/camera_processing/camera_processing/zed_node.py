@@ -40,7 +40,6 @@ class ZedNode(Node):
 
         if self.should_detect_ir_led:
             self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_ELP)
-            # CameraType.IRCAM_ELP.update_scaling(self.detectVisionTargets.ir_led_processing._image_scaling)
 
         zed_initialized = False
         while not zed_initialized:
@@ -61,7 +60,7 @@ class ZedNode(Node):
         self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points', 10)
         self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points', 10)
 
-        self.publish_raw_image = self.create_publisher(Image, '/zed_raw_image', 10)
+        self.publish_raw_image = self.create_publisher(CompressedImage, '/zed_raw_image', 10)
         self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 10)
 
         self.timer_period = 0.03  # 0.066 for 15 FPS
@@ -99,7 +98,8 @@ class ZedNode(Node):
                 ('enable_object_tracking', False),
 
                 # From colour_processing_params.yaml. This yaml file is required
-                ('resize_for_processing', 0.6),
+                ('resize_for_processing', 0.4),
+                ('resize_for_displaying', 0.6),
                 ('blue_led', ""),
                 ('red_led', ""),
                 ('ir_led', ""),
@@ -145,9 +145,12 @@ class ZedNode(Node):
             self.record_filename = str(self.get_parameter('default_record_filename').value)
 
         self.resize_for_processing = float(self.get_parameter('resize_for_processing').value)
+        self.resize_for_displaying = float(self.get_parameter('resize_for_displaying').value)
         self.blue_led_str = str(self.get_parameter('blue_led').value)
         self.red_led_str = str(self.get_parameter('red_led').value)
         self.ir_led_str = str(self.get_parameter('ir_led').value)
+
+        self.get_logger().info(f"Blue/Red processing resized by {self.resize_for_processing}")
     
     def setup_detect_vision_targets(self):
         """
@@ -156,6 +159,8 @@ class ZedNode(Node):
         blue_led_colour_processing = ColourProcessing.from_string(self.blue_led_str)
         red_led_colour_processing = ColourProcessing.from_string(self.red_led_str)
         ir_led_colour_processing = ColourProcessing.from_string(self.ir_led_str)
+        self.get_logger().info(f"Blue image reverse scaled by {blue_led_colour_processing._image_reverse_scaling}")
+        self.get_logger().info(f"Red image reverse scaled by {red_led_colour_processing._image_reverse_scaling}")
 
         if not blue_led_colour_processing or isinstance(blue_led_colour_processing, str):
             self.get_logger().error(f"Failed to create blue_led_colour_processing: {blue_led_colour_processing}") 
@@ -289,7 +294,7 @@ class ZedNode(Node):
 
         # Publish Raw Image
         if self.should_publish_raw_image:
-            self.publish_raw_image.publish(self.cv_bridge.cv2_to_imgmsg(resized_zed_img))
+            self.publish_raw_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(resized_zed_img))
 
         # ZED Aruco Markers
         if self.should_detect_arucos:
@@ -369,7 +374,8 @@ class ZedNode(Node):
         self.get_logger().info(f"Zed computations finished in {self.delta_time()} seconds")
 
         if self.should_publish_cv_processed_image:
-            self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(zed_img)) 
+            display_image = cv2.resize(zed_img, None, fx=self.resize_for_displaying, fy=self.resize_for_displaying, interpolation=cv2.INTER_LINEAR)
+            self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(display_image)) 
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
