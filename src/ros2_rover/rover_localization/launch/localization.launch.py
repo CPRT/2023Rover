@@ -21,6 +21,8 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
+from pathlib import Path
+from launch.conditions import IfCondition
 
 
 def generate_launch_description():
@@ -34,16 +36,45 @@ def generate_launch_description():
         description="Use simulation (Gazebo) clock if True")
     
     launch_ouster = LaunchConfiguration("launch_ouster")
-    launch_ouster = DeclareLaunchArgument(
+    launch_ouster_cmd = DeclareLaunchArgument(
         "launch_ouster",
         default_value="True",
         description="Launch ouster driver if True")
+    
+    launch_navsat = LaunchConfiguration("launch_navsat")
+    launch_navsat_cmd = DeclareLaunchArgument(
+        "launch_navsat",
+        default_value="True",
+        description="Launch navsat node if True")
+    
+    launch_rviz = LaunchConfiguration("launch_rviz")
+    launch_rviz_cmd = DeclareLaunchArgument(
+        "launch_rviz",
+        default_value="True",
+        description="Launch rviz if True")
+    
+
+    rviz_config = os.path.join(get_package_share_directory(
+        "rover_localization"), "config", "rviz.views","basicNavMap.rviz")
+
+    rviz_launch_file_path = Path(pkg_rover_localization) / 'launch' / 'rviz.launch.py'
+    rviz_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([str(rviz_launch_file_path)]),
+        launch_arguments={'rviz_config': rviz_config}.items(),
+        condition=IfCondition(launch_rviz)
+    )
     
 
     ouster_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
                          "launch", "ouster.launch.py")
+        )
+    )
+    navsat_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_rover_localization,
+                         "launch", "navsat.launch.py")
         )
     )
 
@@ -73,10 +104,13 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(use_sim_time_cmd)
-    ld.add_action(launch_ouster)
+    ld.add_action(launch_ouster_cmd)
+    ld.add_action(launch_rviz_cmd)
 
     if(launch_ouster):
         ld.add_action(ouster_cmd)
+    if(launch_rviz):
+        ld.add_action(rviz_cmd)
 
     ld.add_action(icp_odometry_cmd)
     ld.add_action(slam_cmd)

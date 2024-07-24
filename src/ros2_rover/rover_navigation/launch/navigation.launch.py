@@ -109,14 +109,13 @@ def generate_launch_description():
 
     cmd_vel_topic_cmd = DeclareLaunchArgument(
         "cmd_vel_topic",
-        default_value="/cmd_vel",
+        default_value="/drive/cmd_vel",
         description="cmd_vel topic (for remmaping)")
 
     default_bt_xml_filename_cmd = DeclareLaunchArgument(
         "default_nav_to_pose_bt_xml",
         default_value=os.path.join(
-            get_package_share_directory("nav2_bt_navigator"),
-            "behavior_trees", "navigate_w_replanning_time.xml"),
+            pkg_dir, "behavior_trees", "behaviorTree.xml"),
         description="Full path to the behavior tree xml file to use")
 
     load_nodes = GroupAction(
@@ -248,6 +247,7 @@ def generate_launch_description():
                 parameters=[configured_params]),
         ],
     )
+
 
     # Create the launch description and populate
     ld = LaunchDescription()

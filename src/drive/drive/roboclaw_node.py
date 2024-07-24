@@ -56,8 +56,8 @@ class Movement:
             linear_x = -self.MAX_SPEED
 
 
-        vr = linear_x + self.twist.angular.z * self.BASE_WIDTH / 2 # m/s
-        vl = linear_x - self.twist.angular.z * self.BASE_WIDTH / 2
+        vr = linear_x - self.twist.angular.z * self.BASE_WIDTH / 2 # m/s
+        vl = linear_x + self.twist.angular.z * self.BASE_WIDTH / 2
         self.twist = None
 
         vr_ticks = int(vr * self.TICKS_PER_METER)  # ticks/s

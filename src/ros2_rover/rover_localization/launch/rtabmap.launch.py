@@ -61,12 +61,12 @@ def generate_launch_description():
         "Vis/MaxDepth": "2.5",
 
         "Grid/DepthDecimation": "2",
-        "Grid/RangeMin": "0.5",
+        "Grid/RangeMin": "1.0",
         "Grid/RangeMax": "2.5",
         "Grid/MinClusterSize": "20",
         "Grid/MaxGroundAngle": "35",
         "Grid/NormalK": "20",
-        "Grid/CellSize": "0.1",
+        "Grid/CellSize": "0.2",
         "Grid/FlatObstacleDetected": "false",
         #"Grid/Sensor": "True",
 

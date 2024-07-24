@@ -1,6 +1,6 @@
 local_ekf:
   ros__parameters:
-    # frequency: 50.0
+    frequency: 20.0
     # sensor_timeout: 20.0
     use_sim_time: false
 
@@ -24,7 +24,7 @@ local_ekf:
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, true,
+        true, true, false,
         # orientation
         false, false, true,
         # lineal vel 
@@ -41,7 +41,7 @@ local_ekf:
     # odom0_pose_rejection_threshold: 5.0
     # odom0_twist_rejection_threshold: 1.0
 
-    odom1: odom_roboclaw
+    odom1: /dev/ttyACM2/odom_roboclaw
     odom1_config: [
         # position
         false, false, false,
@@ -57,9 +57,49 @@ local_ekf:
     # odom1_queue_size: 2
     # odom1_nodelay: false
     odom1_differential: true
-    odom1_relative: false
+    odom_relative: false
     # odom1_pose_rejection_threshold: 5.0
     # odom1_twist_rejection_threshold: 1.0
+
+    odom2: /dev/ttyACM0/odom_roboclaw
+    odom2_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        true, true, false,
+        # angular vel
+        false, false, true,
+        # lineal acc
+        false, false, false,
+      ]
+    # odom2_queue_size: 2
+    # odom2_nodelay: false
+    odom2_differential: true
+    odom2_relative: false
+    # odom2_pose_rejection_threshold: 5.0
+    # odom2_twist_rejection_threshold: 1.0
+
+    odom3: /dev/ttyACM1/odom_roboclaw
+    odom3_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        true, true, false,
+        # angular vel
+        false, false, true,
+        # lineal acc
+        false, false, false,
+      ]
+    # odom3_queue_size: 2
+    # odom3_nodelay: false
+    odom3_differential: true
+    odom3_relative: false
+    # odom3_pose_rejection_threshold: 5.0
+    # odom3_twist_rejection_threshold: 1.0
 
     imu0: ouster/imu
     imu0_config: [

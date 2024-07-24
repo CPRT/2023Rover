@@ -38,9 +38,6 @@ def generate_launch_description():
     ouster_ns_arg = DeclareLaunchArgument(
         'ouster_ns', default_value='ouster')
 
-    rviz_enable = LaunchConfiguration('viz')
-    rviz_enable_arg = DeclareLaunchArgument('viz', default_value='True')
-
     os_driver_name = LaunchConfiguration('os_driver_name')
     os_driver_name_arg = DeclareLaunchArgument(
         'os_driver_name', default_value='os_driver')
@@ -87,23 +84,11 @@ def generate_launch_description():
         )
     )
 
-    rviz_config = os.path.join(get_package_share_directory(
-        "rover_localization"), "config", "rviz.views","basicNavMap.rviz")
-
-    rviz_launch_file_path = \
-        Path(ouster_ros_pkg_dir) / 'launch' / 'rviz.launch.py'
-    rviz_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([str(rviz_launch_file_path)]),
-        launch_arguments={'rviz_config': rviz_config}.items(),
-        condition=IfCondition(rviz_enable)
-    )
 
     return launch.LaunchDescription([
         params_file_arg,
         ouster_ns_arg,
-        rviz_enable_arg,
         os_driver_name_arg,
-        rviz_launch,
         os_driver,
         sensor_configure_event,
         sensor_activate_event,
