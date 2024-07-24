@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'nav_commanders'
+package_name = 'image_capture'
 
 setup(
     name=package_name,
