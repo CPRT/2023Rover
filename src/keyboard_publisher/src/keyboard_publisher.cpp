@@ -99,6 +99,15 @@ void MinimalPublisher::timer_callback()
   //geometry_msgs::msg::Pose message;
   //message.data = cmd;
   //RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+  geometry_msgs::msg::Pose current_pose = []{
+		geometry_msgs::msg::Pose msg;
+		msg.orientation.w = 1.0;
+		msg.position.x = 0.636922;
+		msg.position.y = 0.064768;
+		msg.position.z = 0.678810;
+		return msg;
+	}();
+	poseCmd.currentPose = current_pose;
   publisher_->publish(poseCmd);
 }
 

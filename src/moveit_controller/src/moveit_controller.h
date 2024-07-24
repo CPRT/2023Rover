@@ -11,6 +11,9 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "interfaces/msg/arm_cmd.hpp"
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/planning_scene/planning_scene.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 void executeTrajectory(moveit_msgs::msg::RobotTrajectory &traj, moveit::planning_interface::MoveGroupInterfacePtr mgi);
 
@@ -39,6 +42,8 @@ class TestNode : public rclcpp::Node
     void topic_callback(const interfaces::msg::ArmCmd & armMsg);
     
     rclcpp::Publisher<moveit_msgs::msg::RobotTrajectory>::SharedPtr publisher_;
+    moveit::core::RobotStatePtr robotStatePtr;
+    const double num = 0;
 };
 
 #endif

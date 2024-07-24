@@ -39,6 +39,7 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
   
   move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm2"); //used to be rover_arm
+  
   executor_ptr->add_node(node_ptr);
   executor_thread = std::thread([this]() {this->executor_ptr->spin(); });
   
@@ -67,6 +68,14 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 	} else {
 		RCLCPP_ERROR(this->get_logger(), "Planing failed!");
 	}
+	
+	/*//robotStatePtr->setJointPositions("joint_2", 0);
+	RCLCPP_INFO(this->get_logger(), move_group_ptr->getJointNames()[1].c_str());
+	//robotStatePtr->setJointPositions(move_group_ptr->getJointNames()[1].c_str(), &num);
+	//robotStatePtr->setJointGroupPositions(joint_model_group, &num);
+	planning_scene_monitor::CurrentStateMonitor::getCurrentState()->setJointGroupPositions(joint_model_group, &num);
+	//planning_scene->setCurrentState(*robotStatePtr.get());
+	RCLCPP_INFO(this->get_logger(), std::to_string((*robotStatePtr->getJointPositions("joint_2"))).c_str());*/
 	
 }
 
