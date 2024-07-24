@@ -20,7 +20,7 @@ Launch simple controller:
 
 Terminal 1:
 source ros and install
-ros2 launch rover_arm_config demo.launch.py
+ros2 launch test_urdf_v2 demo.launch.py
 
 terminal 2:
 ros2 run moveit_controller moveit_controller
