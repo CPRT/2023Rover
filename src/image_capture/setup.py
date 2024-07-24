@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'science_capture_all = image_capture.science_capture_all:main'
         ],
     },
 )

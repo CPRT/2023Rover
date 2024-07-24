@@ -30,14 +30,18 @@ class VideoCapture:
         self.t.daemon = True
         self.t.start()
 
-    def capture_images(self, num_images: int, time_between_images: float):
+    
+    def close(self):
+        self.cap.release()
+    
+    def save_images(self, num_images: int, time_between_images: float):
         for i in range(0, num_images):
             sleep(time_between_images)
-            self.save_image()
+            self._save_image()
 
-    def save_image(self):
+    def _save_image(self):
         self.images_captured += 1
-        cv2.imwrite(f"{self.output_directory}{self.filename_prefix}{self.images_captured}.png", self.read())
+        cv2.imwrite(f"{self.output_directory}{self.filename_prefix}{self.images_captured}.png", self._read())
 
     def _reader(self):
         """
@@ -50,7 +54,7 @@ class VideoCapture:
                 break
             sleep(0.01)
 
-    def read(self):
+    def _read(self):
         """
         Retrieve the latest frame.
         """
