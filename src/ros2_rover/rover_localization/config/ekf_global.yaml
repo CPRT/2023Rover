@@ -50,7 +50,7 @@ global_ekf:
     odom1_differential: false
     odom1_relative: false
 
-    odom2: odom_roboclaw
+    odom2: /dev/ttyACM0/odom_roboclaw
     odom2_config: [
         # position
         false, false, false,
@@ -69,6 +69,46 @@ global_ekf:
     odom2_relative: false
     # odom2_pose_rejection_threshold: 5.0
     # odom2_twist_rejection_threshold: 1.0
+
+    odom3: /dev/ttyACM1/odom_roboclaw
+    odom3_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        true, true, false,
+        # angular vel
+        false, false, true,
+        # lineal acc
+        false, false, false,
+      ]
+    # odom3_queue_size: 2
+    # odom3_nodelay: false
+    odom3_differential: true
+    odom3_relative: false
+    # odom3_pose_rejection_threshold: 5.0
+    # odom3_twist_rejection_threshold: 1.0
+
+    odom4: /dev/ttyACM2/odom_roboclaw
+    odom4_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        true, true, false,
+        # angular vel
+        false, false, true,
+        # lineal acc
+        false, false, false,
+      ]
+    # odom4_queue_size: 2
+    # odom4_nodelay: false
+    odom4_differential: true
+    odom4_relative: false
+    # odom4_pose_rejection_threshold: 5.0
+    # odom4_twist_rejection_threshold: 1.0
 
     imu0: ouster/imu
     imu0_config: [
