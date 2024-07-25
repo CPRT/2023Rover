@@ -18,7 +18,7 @@ class VideoCapture:
             self.output_directory += "/"
         
         try:
-            self.cap = cv2.VideoCapture(cam_index)
+            self.cap = cv2.VideoCapture(cam_index, cv2.CAP_V4L2)
         except Exception as e:
             raise ValueError(f"Could not find the video index for the camera. Error: {e}")
         
