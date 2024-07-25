@@ -1,33 +1,24 @@
 ublox_gps_node:
   ros__parameters:
-    debug: 0                    # Range 0-4 (0 means no debug statements will print)
+    debug: 1                    # Range 0-4 (0 means no debug statements will print)
     device: /dev/ublox/gnss-receiver
-    frame_id: gps
+    frame_id: base_link
+    config_on_startup: false
     uart1:
-      baudrate: 460800
-    gnss:
-      glonass: false
-      beidou: false
-      gps: true
-      qzss: false
-      galileo: false
-      imes: false
-    # TMODE3 Config
-    tmode3: 1                   # Survey-In Mode
-    sv_in:
-      reset: True               # True: disables and re-enables survey-in (resets)
-                                # False: Disables survey-in only if TMODE3 is
-                                # disabled
-      min_dur: 300              # Survey-In Minimum Duration [s]
-      acc_lim: 3.0              # Survey-In Accuracy Limit [m]
- 
-    inf:
-      all: true                   # Whether to display all INF messages in console
- 
+      baudrate: 115200
+    
     publish:
-      all: false
-      nav:
-        all: true
-        relposned: true
-        posllh: true
-        posecef: true
+      all: true
+
+
+navsat_transform_node:
+  ros__parameters:
+    frequency: 10.0
+    delay: 0.0
+    magnetic_declination_radians: 0.20944 # 0.226893 for Drumheller, 0.20944 for Ottawa
+    yaw_offset: 1.570796327  # IMU reads 0 facing magnetic north, not east
+    zero_altitude: True
+    broadcast_utm_transform: False
+    publish_filtered_gps: False
+    use_odometry_yaw: False
+    wait_for_datum: False
