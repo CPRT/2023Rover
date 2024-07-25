@@ -41,7 +41,7 @@ class VideoCapture:
 
     def _save_image(self):
         self.images_captured += 1
-        cv2.imwrite(f"{self.output_directory}{self.filename_prefix}{self.images_captured}.png", self._read())
+        cv2.imwrite(f"{self.output_directory}{self.filename_prefix}-Image{self.images_captured}.png", self._read())
 
     def _reader(self):
         """
