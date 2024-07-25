@@ -121,7 +121,7 @@ class ScienceCaptureAll(Node):
 
                     break
         
-        self.get_logger().info("Number of cameras found " + str(len(self.camera_details)))
+        self.get_logger().info("Number of cameras found " + str(len(cam_details)))
         
         for details in cam_details:
             self.get_logger().info(f"Name: {details.name}, Device: {details.device_path}")
