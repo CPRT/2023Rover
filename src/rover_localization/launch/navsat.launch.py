@@ -12,12 +12,12 @@ def generate_launch_description():
         default_value="False",
         description="Use simulation (Gazebo) clock if True")
 
-    parameters = [{
+    navsat_parameters = [{
         "frequency": 10.0,
         "delay": 0.0,
         "magnetic_declination_radians": 0.20944, # 0.226893 for Drumheller, 0.20944 for Ottawa
         "yaw_offset": 1.570796327,  # IMU reads 0 facing magnetic north, not east
-        "zero_altitude": true,
+        "zero_altitude": True,
         "broadcast_utm_transform": False,
         "publish_filtered_gps": False,
         "use_odometry_yaw": False,
@@ -36,7 +36,7 @@ def generate_launch_description():
             package="robot_localization",
             executable="navsat_transform_node",
             output="log",
-            parameters=[parameters],
+            parameters=[navsat_parameters],
             remappings=navsat_remappings,
             arguments=["--ros-args", "--log-level", "Warn"]
         )

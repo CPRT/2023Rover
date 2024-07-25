@@ -53,6 +53,12 @@ def generate_launch_description():
         default_value="True",
         description="Launch rviz if True")
     
+    launch_gps = LaunchConfiguration("launch_gps")
+    launch_gps_cmd = DeclareLaunchArgument(
+        "launch_gps",
+        default_value="True",
+        description="Launch ublox if True")
+    
 
     rviz_config = os.path.join(get_package_share_directory(
         "rover_localization"), "config", "rviz.views","basicNavMap.rviz")
@@ -62,6 +68,12 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([str(rviz_launch_file_path)]),
         launch_arguments={'rviz_config': rviz_config}.items(),
         condition=IfCondition(launch_rviz)
+    )
+
+    gps_launch_file_path = Path(pkg_rover_localization) / 'launch' / 'gps.launch.py'
+    gps_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([str(gps_launch_file_path)]),
+        condition=IfCondition(launch_gps)
     )
     
 
@@ -106,11 +118,14 @@ def generate_launch_description():
     ld.add_action(use_sim_time_cmd)
     ld.add_action(launch_ouster_cmd)
     ld.add_action(launch_rviz_cmd)
+    ld.add_action(launch_gps_cmd)
 
     if(launch_ouster):
         ld.add_action(ouster_cmd)
     if(launch_rviz):
         ld.add_action(rviz_cmd)
+    if(launch_gps):
+        ld.add_action(gps_cmd)
 
     ld.add_action(icp_odometry_cmd)
     ld.add_action(slam_cmd)

@@ -10,22 +10,39 @@ from launch.actions import DeclareLaunchArgument
 
 
 def generate_launch_description():
-    default_params_file = os.path.join(get_package_share_directory(
-        "rover_localization"), "config", "gps.yaml")
+    config_dir = os.path.join(get_package_share_directory(
+        "rover_localization"), "config")
 
-    params_file = LaunchConfiguration('params_file')
-    params_file_arg = DeclareLaunchArgument('params_file',
-                                            default_value=str(
-                                                default_params_file),
-                                            description='name or path to the parameters file to use.')
+    params_file = os.path.join(config_dir, "gps.yaml")
+
+    ublox_remappings = [
+        ("fix", "gps/fix"),
+        ("/navheading", "gps/heading")
+    ]
     
     ublox_gps_node = launch_ros.actions.Node(package='ublox_gps',
                                              executable='ublox_gps_node',
                                              output='both',
+                                             remappings=ublox_remappings,
                                              parameters=[params_file])
+
+    navsat_remappings = [
+        ("imu/data", "gps/heading"),
+        ("gps/fix", "gps/fix"),
+        ("odometry/filtered", "odometry/filtered/global"),
+        ("odometry/gps", "gps/odom"),
+    ]
+
+    navsat_node = launch_ros.actions.Node(
+            package="robot_localization",
+            executable="navsat_transform_node",
+            output="log",
+            parameters=[params_file],
+            remappings=navsat_remappings,
+            arguments=["--ros-args", "--log-level", "Warn"])
  
     return launch.LaunchDescription([ublox_gps_node,
-                                     params_file_arg,
+                                     navsat_node,
                                      launch.actions.RegisterEventHandler(
                                          event_handler=launch.event_handlers.OnProcessExit(
                                              target_action=ublox_gps_node,
