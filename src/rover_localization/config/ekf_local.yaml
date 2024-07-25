@@ -41,7 +41,7 @@ local_ekf:
     # odom0_pose_rejection_threshold: 5.0
     # odom0_twist_rejection_threshold: 1.0
 
-    odom1: /dev/ttyACM2/odom_roboclaw
+    odom1: /dev/roboclaws/front/odom_roboclaw
     odom1_config: [
         # position
         false, false, false,
@@ -61,7 +61,7 @@ local_ekf:
     # odom1_pose_rejection_threshold: 5.0
     # odom1_twist_rejection_threshold: 1.0
 
-    odom2: /dev/ttyACM0/odom_roboclaw
+    odom2: /dev/roboclaws/mid/odom_roboclaw
     odom2_config: [
         # position
         false, false, false,
@@ -81,7 +81,7 @@ local_ekf:
     # odom2_pose_rejection_threshold: 5.0
     # odom2_twist_rejection_threshold: 1.0
 
-    odom3: /dev/ttyACM1/odom_roboclaw
+    odom3: /dev/roboclaws/back/odom_roboclaw
     odom3_config: [
         # position
         false, false, false,
