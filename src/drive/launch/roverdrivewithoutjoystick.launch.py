@@ -19,6 +19,7 @@ def generate_launch_description():
                 {'pub_odom': True},
                 {'pub_elec': True},
                 {'stop_movement': False},
+{'max_current': 20},
             ]
         ),
         launch_ros.actions.Node(
@@ -36,6 +37,7 @@ def generate_launch_description():
                 {'pub_odom': True},
                 {'pub_elec': True},
                 {'stop_movement': False},
+{'max_current': 20},
             ]
         ),
         launch_ros.actions.Node(
@@ -53,6 +55,7 @@ def generate_launch_description():
                 {'pub_odom': True},
                 {'pub_elec': True},
                 {'stop_movement': False},
+{'max_current': 20},
             ]
         )
   ]
