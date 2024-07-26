@@ -107,7 +107,7 @@ void MinimalPublisher::timer_callback()
 		msg.position.z = 0.678810;
 		return msg;
 	}();
-	poseCmd.currentPose = current_pose;
+	poseCmd.current_pose = current_pose;
   publisher_->publish(poseCmd);
 }
 

@@ -37,8 +37,11 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   publisher_ = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("arm_trajectory", 11);
   
   //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
+  //auto psm = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
+  //psm->startSceneMonitor("/move_group/monitored_planning_scene");
   
   move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm2"); //used to be rover_arm
+  planning_scene::PlanningScene planning_scene(move_group_ptr->getRobotModel());
   
   executor_ptr->add_node(node_ptr);
   executor_thread = std::thread([this]() {this->executor_ptr->spin(); });
@@ -76,6 +79,10 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 	planning_scene_monitor::CurrentStateMonitor::getCurrentState()->setJointGroupPositions(joint_model_group, &num);
 	//planning_scene->setCurrentState(*robotStatePtr.get());
 	RCLCPP_INFO(this->get_logger(), std::to_string((*robotStatePtr->getJointPositions("joint_2"))).c_str());*/
+	moveit::core::RobotState& current_state = planning_scene.getCurrentStateNonConst();
+	//current_state.setJointPositions("joint_2", &num);
+	current_state.setToRandomPositions();
+	current_state.printStatePositions();
 	
 }
 
