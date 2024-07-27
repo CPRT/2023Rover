@@ -16,7 +16,7 @@ from cv_bridge import CvBridge
 
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
-from sensor_msgs.msg import CompressedImage, Image
+from sensor_msgs.msg import CompressedImage, Image, PointCloud2, PointField
 from visualization_msgs.msg import MarkerArray, Marker
 
 from .zed_helper import imageToROSMsg, slTime2Ros
@@ -62,8 +62,10 @@ class ZedNode(Node):
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
         self.zed_pose = sl.Pose()
         self.depth_mat = sl.Mat()
+        self.point_cloud = sl.Mat()
 
         self.publisher_depth_image = self.create_publisher(Image, '/zed_depth_image', 10)
+        self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed_point_cloud', 10)
 
         self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
         self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
@@ -316,6 +318,9 @@ class ZedNode(Node):
         # Publish Depth Image
         self.publish_depth_image()
 
+        # Publish Point Cloud
+        self.publish_point_cloud()
+        
         # Publish Raw Image
         if self.should_publish_raw_image:
             self.publish_raw_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(resized_zed_img))
@@ -420,6 +425,32 @@ class ZedNode(Node):
         depth_image_msg: Image = imageToROSMsg(self.depth_mat, self.frame_id, self.header_timestamp)
 
         self.publisher_depth_image.publish(depth_image_msg)
+
+    def publish_point_cloud(self):
+        self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZBGRA, sl.MEM.CPU)
+        point_cloud_msg: PointCloud2 = PointCloud2()
+        
+        point_cloud_msg.header.frame_id = self.frame_id
+        point_cloud_msg.header.stamp = self.header_timestamp
+        point_cloud_msg.height = self.point_cloud.get_height()
+        point_cloud_msg.width = self.point_cloud.get_width()
+
+        point_cloud_msg.is_bigendian = False
+        point_cloud_msg.is_dense = False
+
+        point_cloud_msg.fields = [
+            PointField(name="x", offset=0, datatype=7, count=1),
+            PointField(name="y", offset=4, datatype=7, count=1),
+            PointField(name="z", offset=8, datatype=7, count=1),
+            PointField(name="rgb", offset=12, datatype=7, count=1)
+        ]
+
+        point_cloud_msg.point_step = 16
+        point_cloud_msg.row_step = point_cloud_msg.point_step * point_cloud_msg.width
+
+        point_cloud_msg.data = self.point_cloud.get_data(memory_type=sl.MEM.CPU, deep_copy=True).tobytes()
+
+        self.publisher_point_cloud.publish(point_cloud_msg)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
