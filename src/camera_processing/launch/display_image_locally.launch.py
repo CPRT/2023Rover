@@ -28,6 +28,20 @@ def generate_launch_description():
         description='Options: True or False. True to expect a sensor_msgs.msg.CompressedImage, False to expect a sensor_msgs.msg.Image'
     )
 
+    image_encoding = LaunchConfiguration('encoding')
+    image_encoding_args = DeclareLaunchArgument(
+        'encoding',
+        default_value='passthrough',
+        description='Optional encoding to use with cv_bridge'
+    )
+
+    is_depth_image = LaunchConfiguration('is_depth_image')
+    is_depth_image_args = DeclareLaunchArgument(
+        'is_depth_image',
+        default_value='False',
+        description='Options: True or False. True to expect a depth image, False to expect a regular image'
+    )
+
     # Nodes
     node = Node(
         package="camera_processing",
@@ -37,11 +51,15 @@ def generate_launch_description():
             {"window_name": window_name},
             {'image_topic': image_topic},
             {'is_image_compressed': is_image_compressed},
+            {'encoding': image_encoding},
+            {'is_depth_image': is_depth_image}
         ]
     )
 
     ld.add_action(window_name_arg)
     ld.add_action(image_topic_arg)
     ld.add_action(is_image_compressed_args)
+    ld.add_action(image_encoding_args)
+    ld.add_action(is_depth_image_args)
     ld.add_action(node)
     return ld

@@ -3,6 +3,7 @@ zed:
 
     # openni_depth_mode: Convert 32bit depth in meters to 16bit in millimeters
     openni_depth_mode: false
+    depth_image_scaling: 0.4444444444444444 # 4/9
 
     zed_arucos_detections: True
     blue_led_detections: True

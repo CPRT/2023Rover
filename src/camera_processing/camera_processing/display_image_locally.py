@@ -14,12 +14,16 @@ class DisplayImageLocally(Node):
                 ('window_name', 'DisplayImage'),
                 ('image_topic', '/cv_zed_image'),
                 ('is_image_compressed', True),
-                ('depth_history', 10)
+                ('depth_history', 10),
+                ('encoding', 'passthrough'),
+                ('is_depth_image', False)
             ]
         )
 
         self.is_image_compressed = bool(self.get_parameter('is_image_compressed').value)
         self.window_name = str(self.get_parameter('window_name').value)
+        self.image_encoding = str(self.get_parameter('encoding').value)
+        self.is_depth_image = bool(self.get_parameter('is_depth_image').value)
 
         self.image_subscriber = self.create_subscription(
             CompressedImage if self.is_image_compressed else Image,
@@ -33,13 +37,21 @@ class DisplayImageLocally(Node):
 
         self.get_logger().info(f"Subscribed to {self.get_parameter('image_topic').value}")
         self.get_logger().info(f"Expecting {'CompressedImage' if self.is_image_compressed else 'Image'} message")
+        self.get_logger().info(f"Window name: {self.window_name}")
+        self.get_logger().info(f"Encoding: {self.image_encoding}")
+        self.get_logger().info(f"Depth image: {self.is_depth_image}")
 
     def image_callback(self, image):
         if self.is_image_compressed:
-            cv2.imshow(self.window_name, self.cv_bridge.compressed_imgmsg_to_cv2(image))
+            img = self.cv_bridge.compressed_imgmsg_to_cv2(image, self.image_encoding)
         else:
-            cv2.imshow(self.window_name, self.cv_bridge.imgmsg_to_cv2(image))
+            img = self.cv_bridge.imgmsg_to_cv2(image, self.image_encoding)
 
+        if self.is_depth_image:
+            img = cv2.equalizeHist(img)
+
+        cv2.imshow(self.window_name, img)
+                   
         self.image_count += 1
         self.get_logger().info(f"Image count: {self.image_count}")
         cv2.waitKey(500)

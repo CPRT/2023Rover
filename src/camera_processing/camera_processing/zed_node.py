@@ -102,6 +102,7 @@ class ZedNode(Node):
             parameters=[ 
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
                 ('openni_depth_mode', False),
+                ('depth_image_scaling', 0.25),
                 
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
@@ -143,6 +144,7 @@ class ZedNode(Node):
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
 
         self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
+        self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
 
         self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
@@ -178,8 +180,6 @@ class ZedNode(Node):
         self.blue_led_str = str(self.get_parameter('blue_led').value)
         self.red_led_str = str(self.get_parameter('red_led').value)
         self.ir_led_str = str(self.get_parameter('ir_led').value)
-
-        self.get_logger().info(f"Blue/Red processing resized by {self.resize_for_processing}")
     
     def setup_detect_vision_targets(self):
         """
@@ -276,7 +276,7 @@ class ZedNode(Node):
 
         camera_info = self.zed.get_camera_information()
         camera_res = camera_info.camera_configuration.resolution
-        self.depth_mat_res = sl.Resolution(int(camera_res.width / 4), int(camera_res.height / 4))
+        self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
 
 
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")

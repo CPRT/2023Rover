@@ -34,7 +34,7 @@ def imageToROSMsg(img: sl.Mat, frame_id: str, timestamp) -> Image:
 
     dataType: sl.MAT_TYPE = img.get_data_type()
 
-    imgMessage.data = img.get_data(memory_type=sl.MEM.CPU, deep_copy=False).tobytes()
+    imgMessage.data = img.get_data(memory_type=sl.MEM.CPU, deep_copy=True).tobytes()
 
     if dataType == sl.MAT_TYPE.F32_C1: # float 1 channel
         imgMessage.encoding = ImageEncoding.TYPE_32FC1.value
