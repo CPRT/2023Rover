@@ -19,6 +19,8 @@ from interfaces.msg import PointArray, ArucoMarkers
 from sensor_msgs.msg import CompressedImage, Image
 from visualization_msgs.msg import MarkerArray, Marker
 
+from .zed_helper import imageToROSMsg, slTime2Ros
+
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
 
@@ -59,6 +61,9 @@ class ZedNode(Node):
         self.objects: sl.Object = sl.Objects()
         self.obj_runtime_param = sl.ObjectDetectionRuntimeParameters()
         self.zed_pose = sl.Pose()
+        self.depth_mat = sl.Mat()
+
+        self.publisher_depth_image = self.create_publisher(Image, '/zed_depth_image', 10)
 
         self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
         self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
@@ -83,6 +88,8 @@ class ZedNode(Node):
             namespace="",
             parameters=[ 
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
+                ('openni_depth_mode', False),
+                
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
                 ('red_led_detections', True),
@@ -121,6 +128,8 @@ class ZedNode(Node):
 
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
+
+        self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
 
         self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
@@ -304,6 +313,9 @@ class ZedNode(Node):
         zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2BGR)
         resized_zed_img = cv2.resize(zed_img, None, fx=self.resize_for_processing, fy=self.resize_for_processing, interpolation=cv2.INTER_LINEAR)
 
+        # Publish Depth Image
+        self.publish_depth_image()
+
         # Publish Raw Image
         if self.should_publish_raw_image:
             self.publish_raw_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(resized_zed_img))
@@ -397,6 +409,17 @@ class ZedNode(Node):
         if self.should_publish_cv_processed_image:
             display_image = cv2.resize(zed_img, None, fx=self.resize_for_displaying, fy=self.resize_for_displaying, interpolation=cv2.INTER_LINEAR)
             self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(display_image)) 
+
+    def publish_depth_image(self):
+        if not self.openni_depth_mode:
+            self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH, sl.MEM.CPU)
+        else:
+            self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH_U16_MM, sl.MEM.CPU)
+
+        # timestamp: rclpy.time.Time = slTime2Ros(self.depth_mat.timestamp)
+        depth_image_msg: Image = imageToROSMsg(self.depth_mat, self.frame_id, self.header_timestamp)
+
+        self.publisher_depth_image.publish(depth_image_msg)
 
     def create_aruco_markers_msg(self) -> ArucoMarkers:
         markers = ArucoMarkers()
