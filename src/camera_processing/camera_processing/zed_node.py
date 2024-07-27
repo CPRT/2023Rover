@@ -319,8 +319,8 @@ class ZedNode(Node):
         self.publish_depth_image()
 
         # Publish Point Cloud
-        self.publish_point_cloud()
-        
+        # self.publish_point_cloud()
+
         # Publish Raw Image
         if self.should_publish_raw_image:
             self.publish_raw_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(resized_zed_img))
@@ -416,15 +416,24 @@ class ZedNode(Node):
             self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(display_image)) 
 
     def publish_depth_image(self):
+        start_time = self.get_clock().now()
+
         if not self.openni_depth_mode:
             self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH, sl.MEM.CPU)
         else:
             self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH_U16_MM, sl.MEM.CPU)
 
+        delta_time = (self.get_clock().now() - start_time).nanoseconds / 1000000000
+        self.get_logger().info("Depth measure retrieved in " + str(delta_time) + " seconds")
+                               
         # timestamp: rclpy.time.Time = slTime2Ros(self.depth_mat.timestamp)
         depth_image_msg: Image = imageToROSMsg(self.depth_mat, self.frame_id, self.header_timestamp)
 
         self.publisher_depth_image.publish(depth_image_msg)
+
+        delta_time = (self.get_clock().now() - start_time).nanoseconds / 1000000000
+        self.get_logger().info("Depth image published in " + str(delta_time) + " seconds")
+        
 
     def publish_point_cloud(self):
         self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZBGRA, sl.MEM.CPU)
