@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
 import rclpy
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
+from rclpy.node import Node
+from rclpy import Parameter
+
 import cv2
 import numpy as np
 import pyzed.sl as sl
+from threading import Lock, Thread
+from copy import deepcopy
 
-from rclpy.node import Node
-from rclpy import Parameter
 # import rclpy.time as Time
 from typing import List
 from threading import Lock, Thread
@@ -64,6 +69,9 @@ class ZedNode(Node):
         self.depth_mat = sl.Mat()
         self.point_cloud = sl.Mat()
 
+        self.depth_mat_lock = Lock()
+        self.has_new_depth_image = False
+
         self.publisher_depth_image = self.create_publisher(Image, '/zed_depth_image', 10)
         self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed_point_cloud', 10)
 
@@ -78,7 +86,10 @@ class ZedNode(Node):
         self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed_rviz_detections', 10)
 
         self.timer_period = 0.03  # 0.066 for 15 FPS
-        self.timer = self.create_timer(self.timer_period, self.run_detections)
+        self.timer = self.create_timer(self.timer_period, self.run_detections, callback_group=None)
+
+        self.depth_callback_group = MutuallyExclusiveCallbackGroup()
+        self.timer_depth = self.create_timer(0.1, self.publish_depth_image, callback_group=self.depth_callback_group)
 
         self.timestamp = self.get_clock().now()
         self.header_timestamp = self.get_clock().now().to_msg()
@@ -262,6 +273,12 @@ class ZedNode(Node):
             if err != sl.ERROR_CODE.SUCCESS:
                 self.get_logger().error(f"Failed to enable SVO recording on ZED. Error: {err}")
 
+
+        camera_info = self.zed.get_camera_information()
+        camera_res = camera_info.camera_configuration.resolution
+        self.depth_mat_res = sl.Resolution(int(camera_res.width / 4), int(camera_res.height / 4))
+
+
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
         return True
 
@@ -315,8 +332,19 @@ class ZedNode(Node):
         zed_img = cv2.cvtColor(zed_left_image_net, cv2.COLOR_BGRA2BGR)
         resized_zed_img = cv2.resize(zed_img, None, fx=self.resize_for_processing, fy=self.resize_for_processing, interpolation=cv2.INTER_LINEAR)
 
-        # Publish Depth Image
-        self.publish_depth_image()
+        # Store Depth Image
+        if not self.depth_mat_lock.locked():
+            self.depth_mat_lock.acquire(blocking=True)
+            try:
+                if not self.openni_depth_mode:
+                    self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH, sl.MEM.CPU, self.depth_mat_res)
+                else:
+                    self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH_U16_MM, sl.MEM.CPU, self.depth_mat_res)
+                self.has_new_depth_image = True
+            finally:
+                self.depth_mat_lock.release()
+        else:
+            self.get_logger().info("Depth image is still being processed")
 
         # Publish Point Cloud
         # self.publish_point_cloud()
@@ -416,23 +444,17 @@ class ZedNode(Node):
             self.publish_cv_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(display_image)) 
 
     def publish_depth_image(self):
-        start_time = self.get_clock().now()
-
-        if not self.openni_depth_mode:
-            self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH, sl.MEM.CPU)
-        else:
-            self.zed.retrieve_measure(self.depth_mat, sl.MEASURE.DEPTH_U16_MM, sl.MEM.CPU)
-
-        delta_time = (self.get_clock().now() - start_time).nanoseconds / 1000000000
-        self.get_logger().info("Depth measure retrieved in " + str(delta_time) + " seconds")
-                               
-        # timestamp: rclpy.time.Time = slTime2Ros(self.depth_mat.timestamp)
-        depth_image_msg: Image = imageToROSMsg(self.depth_mat, self.frame_id, self.header_timestamp)
-
-        self.publisher_depth_image.publish(depth_image_msg)
-
-        delta_time = (self.get_clock().now() - start_time).nanoseconds / 1000000000
-        self.get_logger().info("Depth image published in " + str(delta_time) + " seconds")
+        if self.has_new_depth_image:
+            try:
+                self.depth_mat_lock.acquire(blocking=True)
+                self.has_new_depth_image = False
+                start_time = self.get_clock().now()
+                depth_image_msg: Image = imageToROSMsg(self.depth_mat, self.frame_id, self.header_timestamp)
+                self.get_logger().info(f"\nDepth image converted in {self.delta_time(start_time)} seconds\n")
+                self.publisher_depth_image.publish(depth_image_msg)
+                sleep(0.9)
+            finally:
+                self.depth_mat_lock.release()
         
 
     def publish_point_cloud(self):
@@ -483,8 +505,11 @@ class ZedNode(Node):
     def record_timestamp(self):
             self.timestamp = self.get_clock().now()
 
-    def delta_time(self):
-        return (self.get_clock().now() - self.timestamp).nanoseconds / 1000000000
+    def delta_time(self, start_timestamp=None) -> float:
+        if start_timestamp is None:
+            return (self.get_clock().now() - self.timestamp).nanoseconds / 1000000000
+        else:
+            return (self.get_clock().now() - start_timestamp).nanoseconds / 1000000000
 
     def get_rviz_markers(object_list: sl.ObjectData, header_timestamp) -> MarkerArray:
         markerArray: MarkerArray = MarkerArray()
@@ -527,9 +552,11 @@ def main(args=None):
     rclpy.init(args=args)
 
     node = ZedNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
 
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
