@@ -4,6 +4,7 @@ import time
 import threading
 
 _trystimeout = 3
+__author__ = "bwbazemore@uga.edu (Brad Bazemore)"
 
 
 # Command Enums
