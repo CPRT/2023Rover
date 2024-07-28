@@ -30,6 +30,7 @@
     <depend>interfaces</depend>
     <depend>rclpy</depend>
     <depend>ros_phoenix</depend>
+    <depend>joy</depend>
     <depend>interfaces</depend>
   </export>
 </package>

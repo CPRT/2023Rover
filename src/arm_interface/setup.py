@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'trajectoryInterpreter = arm_interface.trajectoryInterpreter:main'
+            'joystickController = arm_interface.joystickController:main'
         ],
     },
 )
