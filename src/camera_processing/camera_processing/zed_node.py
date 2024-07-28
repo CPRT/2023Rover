@@ -5,8 +5,10 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 from rclpy.node import Node
 from rclpy import Parameter
+from ament_index_python.packages import get_package_share_directory
 
 import cv2
+import os
 import numpy as np
 import pyzed.sl as sl
 from threading import Lock, Thread
@@ -103,6 +105,7 @@ class ZedNode(Node):
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
                 ('openni_depth_mode', False),
                 ('depth_image_scaling', 0.25),
+                ('mask_filename', 'ZEDMask.png'),
                 
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
@@ -145,6 +148,7 @@ class ZedNode(Node):
 
         self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
         self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
+        self.mask_filename = str(self.get_parameter('mask_filename').value)
 
         self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
@@ -230,7 +234,7 @@ class ZedNode(Node):
         init_params.depth_mode = sl.DEPTH_MODE.PERFORMANCE  # Can use PERFORMANCE MODE but it misses some details (sl.DEPTH_MODE.ULTRA) (sl.DEPTH_MODE.PERFORMANCE)
         init_params.depth_maximum_distance = int(self.get_parameter('depth_maximum_distance').value)
         init_params.camera_resolution = ZedNode.STRING_TO_RESOLUTION[str(self.get_parameter('resolution').value)]   # HD720   HD1080   HD1200    HD2K
-        init_params.camera_fps = int(self.get_parameter('fps').value) # Use 15 FPS to improve low-light performance
+        init_params.camera_fps = int(self.get_parameter('fps').value)
 
         # Setup runtime parameters
         self.runtime_params = sl.RuntimeParameters()
@@ -278,6 +282,21 @@ class ZedNode(Node):
         camera_res = camera_info.camera_configuration.resolution
         self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
 
+
+        mask_filename = os.path.join(
+            get_package_share_directory('camera_processing'),
+            'zed_mask',
+            self.mask_filename)
+        self._roi_mask = sl.Mat()
+        self._roi_mask.read(mask_filename)
+
+        allowed_mask_datatypes = (sl.MAT_TYPE.U8_C1, sl.MAT_TYPE.U8_C3, sl.MAT_TYPE.U8_C4)
+        if self._roi_mask.get_data_type() not in allowed_mask_datatypes:
+            self.get_logger().error(f"Invalid mask datatype. Expected one of {allowed_mask_datatypes}. Got {self._roi_mask.get_data_type()}")
+        else:
+            self.zed.set_region_of_interest(self._roi_mask)
+            self.get_logger().info(f"Set region of interest mask from {mask_filename}")
+            
 
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
         return True
