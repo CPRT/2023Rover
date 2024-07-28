@@ -140,6 +140,7 @@ class ZedNode(Node):
                 ('record_filename', ''),
                 ('publish_gl_viewer_data', False),
                 ('publish_6x6_aruco_as_leds', False),
+                ('playback_start_index', 0)
             ]
         )
 
@@ -161,6 +162,7 @@ class ZedNode(Node):
         self.enable_gl_viewer = bool(self.get_parameter('enable_gl_viewer').value)
         self.should_publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
         self.should_publish_6x6_aruco_as_leds = bool(self.get_parameter('publish_6x6_aruco_as_leds').value)
+        self.playback_start_index = int(self.get_parameter('playback_start_index').value)
 
         self.record_svo: bool = False
         self.playback_svo: bool = False
@@ -277,6 +279,9 @@ class ZedNode(Node):
             if err != sl.ERROR_CODE.SUCCESS:
                 self.get_logger().error(f"Failed to enable SVO recording on ZED. Error: {err}")
 
+        if self.playback_svo and self.playback_filename != "":
+            self.zed.set_svo_position(self.playback_start_index)
+            self.get_logger().info(f"Set SVO position to {self.playback_start_index}")
 
         camera_info = self.zed.get_camera_information()
         camera_res = camera_info.camera_configuration.resolution

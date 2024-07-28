@@ -17,6 +17,13 @@ def generate_launch_description():
         description='When set to a non empty string, plays back the given .svo2 file as if the ZED was connected live.'
     )
 
+    playback_start_index = LaunchConfiguration('playback_start_index')
+    playback_start_index_arg = DeclareLaunchArgument(
+        'playback_start_index',
+        default_value='0',
+        description='When playing back a .svo2 file, start at the given frame index.'
+    )
+
     record_filename = LaunchConfiguration('record_filename')
     record_filename_arg = DeclareLaunchArgument(
         'record_filename',
@@ -66,6 +73,7 @@ def generate_launch_description():
             {'record_filename': record_filename},
             {'publish_gl_viewer_data': publish_gl_viewer_data},
             {'publish_6x6_aruco_as_leds': publish_6x6_aruco_as_leds},
+            {'playback_start_index': playback_start_index}
         ]
     )
 
