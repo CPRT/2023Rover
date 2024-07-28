@@ -26,7 +26,7 @@ class SingleChannelRaiseSaturationStep(MaskStep):
         self._set_saturation = set_sat
 
     def __repr__(self) -> str:
-        return f"SingleChannelRaiseSaturationStep({repr(self._window_name)}, {self._colour_index}, {repr(self._low_bound)}, {repr(self._set_saturation)})"
+        return f"SingleChannelRaiseSaturationStep({repr(self._repr_name)}, {self._colour_index}, {repr(self._low_bound)}, {repr(self._set_saturation)})"
     
     def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
         """
@@ -87,7 +87,7 @@ class ThresholdMaskStep(MaskStep):
         self._greyscale = greyscale
 
     def __repr__(self) -> str:
-        return f"ThresholdMaskStep({repr(self._window_name)}, {repr(self._threshold)}, {repr(self._greyscale)})"
+        return f"ThresholdMaskStep({repr(self._repr_name)}, {repr(self._threshold)}, {repr(self._greyscale)})"
     
     def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
         """
@@ -140,7 +140,7 @@ class EqualizeHistStep(MaskStep):
         super().__init__(window_name)
 
     def __repr__(self) -> str:
-        return f"EqualizeHistStep({repr(self._window_name)})"
+        return f"EqualizeHistStep({repr(self._repr_name)})"
     
     def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
         """
@@ -181,14 +181,15 @@ class ErodeDilateStep(MaskStep):
     erosion_name = "Erosion"
     dilation_name = "Dilation"
     
-    def __init__(self, window_name: str, erosion: int = -1, dilation: int = -1, erosion_before_dilate: bool = False, return_mask: bool = False):
+    def __init__(self, window_name: str, erosion: int = -1, dilation: int = -1, erosion_before_dilate: bool = False, return_mask: bool = False, circular_kernal: bool = False):
         super().__init__(window_name)
+        self._circle_kernal = circular_kernal
         self._set_erosion_dilation_values(erosion, dilation)
         self._erosion_before_dilate = erosion_before_dilate
         self._return_mask = return_mask
 
     def __repr__(self) -> str:
-        repr_str = f"ErodeDilateStep({repr(self._window_name)}, erosion={self._erosion}, dilation={self._dilation}"
+        repr_str = f"ErodeDilateStep({repr(self._repr_name)}, erosion={self._erosion}, dilation={self._dilation}"
         if self._erosion_before_dilate:
             repr_str += ", erosion_before_dilate=True"
         if self._return_mask:
@@ -201,11 +202,17 @@ class ErodeDilateStep(MaskStep):
 
         # Elliptical kernal
         if erosion > 0:
-            self._erode_kernal = np.ones((erosion, erosion))
+            if not self._circle_kernal:
+                self._erode_kernal = np.ones((erosion, erosion))
+            else:
+                self._erode_kernal = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (erosion,erosion))
             # self._erode_kernal = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (erosion,erosion))  # cv2.MORPH_CROSS  cv2.MORPH_ELLIPSE
 
         if dilation > 0:
-            self._dilation_kernal = np.ones((dilation, dilation))
+            if not self._circle_kernal:
+                self._dilation_kernal = np.ones((dilation, dilation))
+            else:
+                self._dilation_kernal = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilation,dilation))
             # self._dilation_kernal = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilation,dilation))
 
     def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
@@ -281,6 +288,152 @@ class ErodeDilateStep(MaskStep):
 
         if self._dilation > 0:
             cv2.createTrackbar(ErodeDilateStep.dilation_name, self._window_name, self._dilation-1, 40, cv2_helper.do_nothing)
+    
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+
+
+class InvertMask(MaskStep):
+    invert_mask_name = "Invert Mask"
+    
+    def __init__(self, window_name: str, invert_mask: bool = True, return_mask: bool = True):
+        super().__init__(window_name)
+        self._invert_mask = invert_mask
+        self._return_mask = return_mask
+
+    def __repr__(self) -> str:
+        repr_str = f"InvertMask({repr(self._repr_name)}"
+        if self._invert_mask:
+            repr_str += ", invert_mask=True"
+        else:
+            repr_str += ", invert_mask=False"
+
+        if self._return_mask:
+            repr_str += ", return_mask=True"
+
+        return repr_str + ")"
+
+    def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
+        """
+        Process an image and return the newly processed image.
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            process_img (ndarray): The processed image returned from the previous step
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        if self._invert_mask:
+            new_process_image = cv2.bitwise_not(process_img)
+        else:
+            new_process_image = process_img
+
+        if self._is_display_active:
+            if cv2.getTrackbarPos(InvertMask.invert_mask_name, self._window_name) == 1:
+                self._invert_mask = True
+            else:
+                self._invert_mask = False
+
+
+            mask_img = new_process_image
+
+            if len(new_process_image.shape) == 2:
+                all_white_mask = np.zeros(original_img.shape, original_img.dtype)
+                all_white_mask[:, :] = (255, 255, 255)
+                mask_img = cv2.bitwise_and(all_white_mask, all_white_mask, mask=new_process_image) # Add in colour channel
+                
+            images_stacked_horizontally = np.hstack([original_img, mask_img])
+
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        if not self._return_mask:
+            new_process_image = cv2.bitwise_and(original_img, original_img, mask=new_process_image)
+
+        return new_process_image
+  
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+        cv2.createTrackbar(InvertMask.invert_mask_name, self._window_name, 1 if self._invert_mask else 0, 1, cv2_helper.do_nothing) 
+    
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+
+
+class BlurStep(MaskStep):
+    gaussian_blur_name = "Use Gaussian Blur"
+    blur_strangth_name = "Blur Strength"
+    
+    def __init__(self, window_name: str, blur_strength: int, gaussian_blur: bool = True):
+        super().__init__(window_name)
+        self._blur_strength = blur_strength
+        self._gaussian_blur = gaussian_blur
+
+    def __repr__(self) -> str:
+        repr_str = f"BlurStep({repr(self._repr_name)}, blur_strength={int(self._blur_strength)}"
+        if self._gaussian_blur:
+            repr_str += ", gaussian_blur=True"
+        else:
+            repr_str += ", gaussian_blur=False"
+
+        return repr_str + ")"
+
+    def process(self, original_img: ndarray, process_img: ndarray) -> ndarray:
+        """
+        Process an image and return the newly processed image.
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            process_img (ndarray): The processed image returned from the previous step
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        if len(process_img.shape) == 2:
+            all_white_mask = np.zeros(original_img.shape, original_img.dtype)
+            all_white_mask[:, :] = (255, 255, 255)
+            process_img = cv2.bitwise_and(all_white_mask, all_white_mask, mask=process_img) # Add in colour channel
+
+        if self._gaussian_blur:
+            new_process_image = cv2.GaussianBlur(process_img, (self._blur_strength, self._blur_strength), 0)
+        else:
+            new_process_image = cv2.blur(process_img, (self._blur_strength, self._blur_strength))
+
+        if self._is_display_active:
+            self._blur_strength = cv2.getTrackbarPos(BlurStep.blur_strangth_name, self._window_name)
+            if cv2.getTrackbarPos(BlurStep.gaussian_blur_name, self._window_name) == 1:
+                self._gaussian_blur = True
+            else:
+                self._gaussian_blur = False
+
+                
+            images_stacked_horizontally = np.hstack([original_img, new_process_image])
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        return new_process_image
+  
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+        cv2.createTrackbar(BlurStep.gaussian_blur_name, self._window_name, 1 if self._gaussian_blur else 0, 1, cv2_helper.do_nothing) 
+        cv2.createTrackbar(BlurStep.blur_strangth_name, self._window_name, self._blur_strength, 400, cv2_helper.do_nothing)
     
     def _destory_display(self):
         """

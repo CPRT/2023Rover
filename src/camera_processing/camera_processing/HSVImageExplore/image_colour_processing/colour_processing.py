@@ -39,6 +39,7 @@ class ColourProcessing:
         self._image_scaling: float = image_scaling
         self._image_reverse_scaling: float = 1 / image_scaling
         self._display_scaling: float = display_scaling
+        self.last_mask = None
     
         if len(self._process_steps) == 0:
             raise IndexError("Must give at least one MaskStep to ColourProcessing")
@@ -60,6 +61,8 @@ class ColourProcessing:
         for step in self._process_steps:
             step.set_display_scaling(display_scaling)
 
+        ProcessStep.STEP_COUNT = 0
+
     def __print_step_classes(self):
         steps_class_list = []
         for step in self._process_steps:
@@ -76,6 +79,7 @@ class ColourProcessing:
         repr_msg = '"ColourProcessing(\n'
         repr_msg += f"        image_scaling={self._image_scaling},\n"
         repr_msg += f"        display_scaling={self._display_scaling},\n"
+        repr_msg += f"        pre_scaled={self._pre_scaled},\n"
         repr_msg += f"        process_steps=tuple([\n"
         for step in self._process_steps:
             repr_msg += f"            {repr(step)},\n"
@@ -101,7 +105,7 @@ class ColourProcessing:
         
         if not isinstance(obj, ColourProcessing):
             return f"Error creating ColourProcessing object. Error: {obj} is not a ColourProcessing object."
-        
+
         return obj
     
     def process_image(self, image: ndarray) -> Tuple[List[Tuple[int, int]], List[List[str]]]:
@@ -134,6 +138,8 @@ class ColourProcessing:
             mask_step_start = time.time()
             processed_image = self._process_steps[i].process(image, processed_image)
             mask_timings.append(f"{time.time() - mask_step_start:.{ColourProcessing.DECIMALS}f}")
+
+        self.last_mask = processed_image
 
         # Process the MaskToMathStep
         mask_to_math_start = time.time()

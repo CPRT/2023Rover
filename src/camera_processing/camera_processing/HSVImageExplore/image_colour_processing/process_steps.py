@@ -15,8 +15,12 @@ except Exception as e:
     from . import cv2_helper
 
 class ProcessStep:
+    STEP_COUNT = 0
+
     def __init__(self, window_name: str):
-        self._window_name = window_name
+        ProcessStep.STEP_COUNT += 1
+        self._window_name = f"Step{ProcessStep.STEP_COUNT}-{window_name}"
+        self._repr_name = window_name
         self._is_display_active = False
         self._display_scaling = 1.0
 

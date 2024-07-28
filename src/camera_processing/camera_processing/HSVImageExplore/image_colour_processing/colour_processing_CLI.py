@@ -18,6 +18,8 @@ def main():
     parser.add_argument('-b', '--cprtTrailsBlue')
     parser.add_argument('-r', '--cprtTrailsRed')
     parser.add_argument('--cprtTrailsIR')
+    parser.add_argument('--custom-pipeline')
+    parser.add_argument('--save')
 
     args = parser.parse_args()
 
@@ -58,6 +60,18 @@ def main():
             if isinstance(colour_processing, str):
                 raise ValueError(f"Failed to load ColourProcessing for ir_led. Error: {colour_processing}")
 
+    elif args.custom_pipeline is not None:
+        with open(args.custom_pipeline) as file:
+            eval_line = ""
+            for line in file:
+                eval_line += line
+
+            eval_line = eval_line.replace(" ", "")
+
+            colour_processing = ColourProcessing.from_string(eval_line)
+            if isinstance(colour_processing, str):
+                raise ValueError(f"Failed to load ColourProcessing for custom pipeline. Error: {colour_processing}")
+
     if args.image and args.image is not None:
         if args.tune:
             colour_processing.single_image_process_tuning(args.image)
@@ -73,6 +87,10 @@ def main():
             for image in images.as_list():
                 colour_processing.single_image_process(image)
             
+    if args.save and args.save is not None:
+        img = colour_processing.last_mask
+        cv2.imwrite(args.save, img)
+        print(f"Saved image to {args.save}")
 
 if __name__ == "__main__":
     main()

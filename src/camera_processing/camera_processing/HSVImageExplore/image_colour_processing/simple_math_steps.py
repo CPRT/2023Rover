@@ -29,7 +29,7 @@ class FindContours(MaskToMathStep):
         self._method = method
 
     def __repr__(self) -> str:
-        return f"FindContours({repr(self._window_name)})"
+        return f"FindContours({repr(self._repr_name)})"
     
     def process(self, original_image: ndarray, mask: ndarray) -> Tuple[list, list]:
         """
@@ -89,7 +89,7 @@ class FilterInnerContours(MathStep):
         self._reject_inner_contours = reject_inner_contours
 
     def __repr__(self) -> str:
-        return f"FilterInnerContours('{self._window_name}', reject_inner_contours={bool(self._reject_inner_contours)})"
+        return f"FilterInnerContours('{self._repr_name}', reject_inner_contours={bool(self._reject_inner_contours)})"
 
     def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
         """
@@ -164,7 +164,7 @@ class FilterByContourArea(MathStep):
         
 
     def __repr__(self) -> str:
-        return f"FilterByContourArea({repr(self._window_name)}, reject_below={self._reject_below}, " + \
+        return f"FilterByContourArea({repr(self._repr_name)}, reject_below={self._reject_below}, " + \
                     f"far_close_divider={self._far_close_divider}, reject_above={self._reject_above})"
     
     def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
@@ -258,3 +258,92 @@ class FilterByContourArea(MathStep):
         Destroy the cv2 windows for this step.
         """
         cv2.destroyWindow(self._window_name)
+
+
+
+class SaveMask(MathStep):
+    CONTOUR_INDEX = "Contour Index"
+
+    def __init__(self, window_name: str, save_contour_index: int = 0, save_filename: str = "mask.png"):
+        """
+        Remove contours below an area threshold from reject_below, tag contours below far_close_divider as far, 
+        tags contours above far_close_divider as close, and remove contours above reject_above.
+        """
+        super().__init__(window_name)
+        self._save_filename = save_filename
+        self._save_contour_index = save_contour_index
+
+        print(f"Saving image to {self._save_filename}")
+        
+
+    def __repr__(self) -> str:
+        return f'SaveMask({repr(self._repr_name)}, save_filename="{self._save_filename}", ' + \
+                    f"save_contour_index={self._save_contour_index})"
+    
+    def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
+        """
+        Process contours to remove bad contours or tag various contours
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            mask (ndarray): The mask produced from the MaskSteps
+            contours (list): The original image with no processing
+            hierarchy (list): The processed image returned from the previous step
+            tags (List[Set[str]]): The tags for each contour
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        sorted_contours = sorted(contours, key=cv2.contourArea, reverse=True)
+
+        if len(sorted_contours) > self._save_contour_index:
+            saved_contour = sorted_contours[self._save_contour_index]
+
+            self.save_mask = np.zeros_like(mask)
+            cv2.fillPoly(self.save_mask, pts=[saved_contour], color=(255))
+
+            cv2.imwrite(self._save_filename, self.save_mask)
+
+            filename_split = self._save_filename.split(".")
+            if len(filename_split) == 2:
+                original_image_name = f"{filename_split[0]}-OriginalImage.{filename_split[1]}"
+                masked_original_image_name = f"{filename_split[0]}-MaskedOriginalImage.{filename_split[1]}"
+
+                masked_original_image = cv2.bitwise_and(original_image, original_image, mask=self.save_mask)
+
+                cv2.imwrite(original_image_name, original_image)
+                cv2.imwrite(masked_original_image_name, masked_original_image)
+
+
+        if self._is_display_active:
+            self._save_contour_index = cv2.getTrackbarPos(SaveMask.CONTOUR_INDEX, self._window_name)
+
+            mask_img = np.zeros(original_image.shape, original_image.dtype)
+            mask_img[:, :] = (255, 255, 255)
+            mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=self.save_mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+
+            cv2.drawContours(mask_with_contours, saved_contour, -1, MathStep.Colour.GREEN, 2)
+
+            new_process_image = cv2.bitwise_and(original_image, original_image, mask=self.save_mask)
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours, new_process_image])
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        return contours, hierarchy, tags
+  
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+        cv2.createTrackbar(SaveMask.CONTOUR_INDEX, self._window_name, self._save_contour_index, 50, cv2_helper.do_nothing)
+
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+        cv2.imwrite(self._save_filename, self.save_mask)

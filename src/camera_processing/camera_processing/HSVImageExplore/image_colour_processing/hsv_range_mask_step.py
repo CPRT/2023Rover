@@ -104,7 +104,7 @@ class HSVRangeMaskStep(MaskStep):
         cv2.destroyWindow(self._window_name)
 
     def __repr__(self) -> str:
-        repr_str = f"HSVRangeMaskStep({repr(self._window_name)}, {repr(self._hsv_range)}"
+        repr_str = f"HSVRangeMaskStep({repr(self._repr_name)}, {repr(self._hsv_range)}"
 
         if self._return_mask:
             repr_str += f", return_mask=True"
