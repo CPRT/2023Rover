@@ -79,6 +79,7 @@ def generate_launch_description():
 
     # Add launch actions
     ld.add_action(playback_filename_arg)
+    ld.add_action(playback_start_index_arg)
     ld.add_action(record_filename_arg)
     ld.add_action(publish_gl_viewer_data_args)
     ld.add_action(publish_6x6_aruco_as_leds_args)
