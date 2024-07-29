@@ -39,20 +39,20 @@ class DisplayImageLocally(Node):
             int(self.get_parameter('depth_history').value)
         )
 
-        self.control_svo_index_topic = self.create_publisher(
+        self.publish_control_svo_index_topic = self.create_publisher(
             Int32,
             self.control_svo_index_topic,
             10
         )
 
-        self.current_svo_index_topic = self.create_subscription(
+        self.sub_current_svo_index_topic = self.create_subscription(
             Int32,
             self.current_svo_index_topic,
             self.current_svo_index_callback,
             10
         )
 
-        self.max_svo_index = self.create_subscription(
+        self.sub_max_svo_index = self.create_subscription(
             Int32,
             self.max_svo_index,
             self.set_max_svo_index,
@@ -63,6 +63,7 @@ class DisplayImageLocally(Node):
         self.image_count = 0
         self.svo_index = 0
         self.control_svo_index = 0
+        self.prev_control_svo_index = 0
         self.max_svo_index = 30000
         self.time = self.get_clock().now()
         self.create_display()
@@ -93,11 +94,15 @@ class DisplayImageLocally(Node):
         # Check the control SVO index trackbar
         control_svo_index = cv2.getTrackbarPos('Control SVO Index', self.window_name)
         if control_svo_index != self.control_svo_index:
-            if ((self.get_clock().now() - self.time).nanoseconds / 1000000000) > 3:
+            if control_svo_index != self.prev_control_svo_index:
+                self.prev_control_svo_index = control_svo_index
+                self.time = self.get_clock().now()
+            elif ((self.get_clock().now() - self.time).nanoseconds / 1000000000) > 2:
                 self.control_svo_index = control_svo_index
                 msg = Int32()
                 msg.data = self.control_svo_index
-                self.control_svo_index_topic.publish(msg)
+                self.publish_control_svo_index_topic.publish(msg)
+                self.get_logger().info(f"Control SVO Index: {self.control_svo_index}")
                 self.time = self.get_clock().now()
         else:
             self.time = self.get_clock().now()
@@ -117,7 +122,7 @@ class DisplayImageLocally(Node):
         self.get_logger().info(f"Image count: {self.image_count}")
         cv2.waitKey(500)
 
-    def nothing():
+    def nothing(self, x):
         pass
 
 def main(args=None):

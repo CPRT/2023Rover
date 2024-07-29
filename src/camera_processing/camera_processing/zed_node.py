@@ -56,8 +56,6 @@ class ZedNode(Node):
                 self.get_logger().error("Failed to create VideoCapture for IR cam. Disabling IR camera. Error: " + str(e))
                 self.should_detect_ir_led = False
 
-        self.control_svo_index = 0
-        self.subscribe_control_svo_index_topic = self.create_subscription(Int32, "/control_svo_index", self.set_svo_index, 10)
         self.publish_current_svo_index_topic = self.create_publisher(Int32, "/current_svo_index", 10)
         self.publish_max_svo_index = self.create_publisher(Int32, "/max_svo_index", 10)
 
@@ -92,6 +90,9 @@ class ZedNode(Node):
         self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 10)
 
         self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed_rviz_detections', 10)
+
+        self.control_svo_index = 0
+        self.subscribe_control_svo_index_topic = self.create_subscription(Int32, "/control_svo_index", self.set_svo_index, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.timer_period = 0.03  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections, callback_group=None)
@@ -302,6 +303,8 @@ class ZedNode(Node):
             self.mask_filename)
         self._roi_mask = sl.Mat()
         self._roi_mask.read(mask_filename)
+        # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
+
 
         allowed_mask_datatypes = (sl.MAT_TYPE.U8_C1, sl.MAT_TYPE.U8_C3, sl.MAT_TYPE.U8_C4)
         if self._roi_mask.get_data_type() not in allowed_mask_datatypes:
@@ -353,6 +356,7 @@ class ZedNode(Node):
         
         if self.playback_svo:
             self.publish_current_svo_index_topic.publish(Int32(data=self.zed.get_svo_position()))
+            self.publish_max_svo_index.publish(Int32(data=self.zed.get_svo_number_of_frames()))
 
         self.header_timestamp = self.get_clock().now().to_msg()
 
@@ -583,9 +587,11 @@ class ZedNode(Node):
 
         return markerArray
 
-    def set_svo_index(self, msg: Int32):
+    def set_svo_index(self, msg):
+        self.get_logger().info(f"Setting SVO index to {msg.data}")
         if self.control_svo_index != msg.data:
-            self.control_svo_index = msg.data
+            self.control_svo_index = int(msg.data)
+            self.zed.set_svo_position(self.control_svo_index)
             self.get_logger().info(f"Set SVO index to {msg.data}")
 
 def main(args=None):
