@@ -157,6 +157,7 @@ class ZedNode(Node):
         self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
         self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
         self.mask_filename = str(self.get_parameter('mask_filename').value)
+        self.mask_full_filepath = os.path.join(get_package_share_directory('camera_processing'), 'zed_mask', self.mask_filename)
 
         self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
@@ -201,8 +202,10 @@ class ZedNode(Node):
         blue_led_colour_processing = ColourProcessing.from_string(self.blue_led_str)
         red_led_colour_processing = ColourProcessing.from_string(self.red_led_str)
         ir_led_colour_processing = ColourProcessing.from_string(self.ir_led_str)
-        self.get_logger().info(f"Blue image reverse scaled by {blue_led_colour_processing._image_reverse_scaling}")
-        self.get_logger().info(f"Red image reverse scaled by {red_led_colour_processing._image_reverse_scaling}")
+        
+        blue_led_colour_processing.set_static_mask(self.mask_full_filepath)
+        red_led_colour_processing.set_static_mask(self.mask_full_filepath)
+        ir_led_colour_processing.set_static_mask(self.mask_full_filepath)
 
         if not blue_led_colour_processing or isinstance(blue_led_colour_processing, str):
             self.get_logger().error(f"Failed to create blue_led_colour_processing: {blue_led_colour_processing}") 
@@ -296,13 +299,8 @@ class ZedNode(Node):
         camera_res = camera_info.camera_configuration.resolution
         self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
 
-
-        mask_filename = os.path.join(
-            get_package_share_directory('camera_processing'),
-            'zed_mask',
-            self.mask_filename)
         self._roi_mask = sl.Mat()
-        self._roi_mask.read(mask_filename)
+        self._roi_mask.read(self.mask_full_filepath)
         # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
 
 

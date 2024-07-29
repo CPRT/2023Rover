@@ -40,6 +40,9 @@ class ColourProcessing:
         self._image_reverse_scaling: float = 1 / image_scaling
         self._display_scaling: float = display_scaling
         self.last_mask = None
+        self._static_mask = None
+        self._static_mask_resized = None
+        self._has_static_mask = False
     
         if len(self._process_steps) == 0:
             raise IndexError("Must give at least one MaskStep to ColourProcessing")
@@ -108,6 +111,21 @@ class ColourProcessing:
 
         return obj
     
+    def set_static_mask(self, filename: str, invert_colour: bool):
+        """
+        """
+        try:
+            image = cv2.imread(filename)
+            self._static_mask = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+            
+            if invert_colour:
+                self._static_mask = cv2.bitwise_not(self._static_mask)
+
+            self._static_mask_resized = cv2.resize(self._static_mask, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+            self._has_static_mask = True
+        except Exception as e:
+            self._has_static_mask = False
+
     def process_image(self, image: ndarray) -> Tuple[List[Tuple[int, int]], List[List[str]]]:
         """
         Process an image and return a bounding box and tag for targets.
@@ -126,11 +144,22 @@ class ColourProcessing:
 
         # Resize the image
         img_resize_start = time.time()
-        if not self._pre_scaled and self._image_scaling != 1.0:
+        scale_img = bool(not self._pre_scaled and self._image_scaling != 1.0)
+        if scale_img:
             processed_image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
         else:
             processed_image = deepcopy(image)
         img_resize_end = time.time()
+
+        # Apply the static mask
+        if self._has_static_mask:
+            try:
+                if scale_img:
+                    processed_image = cv2.bitwise_and(processed_image, processed_image, mask=self._static_mask_resized)
+                else:
+                    processed_image = cv2.bitwise_and(processed_image, processed_image, mask=self._static_mask)
+            except Exception as e:
+                self._has_static_mask = False
 
         # Process the image through the mask steps
         mask_timings = []
