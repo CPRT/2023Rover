@@ -104,7 +104,7 @@ class ZedNode(Node):
         self.header_timestamp = self.get_clock().now().to_msg()
 
     def setup_params(self) -> bool:
-        self.frame_id = "/zed_link"
+        self.frame_id = "zed_link"
 
         self.declare_parameters(
             namespace="",
@@ -557,7 +557,7 @@ class ZedNode(Node):
             marker = Marker()
             marker.id = object_index
             marker.header.stamp = header_timestamp
-            marker.header.frame_id = "/zed_link"
+            marker.header.frame_id = "zed_link"
             marker.type = marker.CUBE
             marker.action = marker.ADD
             marker.scale.x = 0.1
@@ -579,7 +579,7 @@ class ZedNode(Node):
             marker = Marker()
             marker.id = i
             marker.header.stamp = header_timestamp
-            marker.header.frame_id = "/zed_link"
+            marker.header.frame_id = "zed_link"
             marker.action = 2
             marker.lifetime = rclpy.time.Duration(seconds=0).to_msg()
             marker.frame_locked = False

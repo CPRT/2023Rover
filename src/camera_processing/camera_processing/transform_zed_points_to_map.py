@@ -1,0 +1,153 @@
+import rclpy, cv2
+from rclpy.node import Node 
+
+import tf2_geomtry_msgs
+
+from tf2_ros import TransformException, LookupException, ConnectivityException, ExtrapolationException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+
+from std_msgs.msg import Header
+from geometry_msgs.msg import Point, PointStamped
+from interfaces.msg import PointArray, ArucoMarkers
+
+from typing import List, Union
+
+class TransformZedPointsToMap(Node):
+    def __init__(self):
+        super().__init__('transform_zed_points_to_map')
+
+        self.declare_parameters(
+            namespace="",
+            parameters=[
+                ('expected_input_frame', 'zed_link')
+                ('desired_frame', 'map'),
+            ]
+        )
+
+        self.expected_input_frame = str(self.get_parameter('expected_input_frame').value)
+        self.desired_frame = str(self.get_parameter('desired_frame').value)
+
+        self.subscribe_zed_aruco_points = self.create_subscription(ArucoMarkers, '/zed_aruco_points', self.zed_aruco_callback, 10)
+        self.subscribe_blue_led_points = self.create_subscription(PointArray, '/blue_led_points', self.blue_led_callback, 10)
+        self.subscribe_red_led_points = self.create_subscription(PointArray, '/red_led_points', self.red_led_callback, 10)
+        self.subscribe_ir_led_points = self.create_subscription(PointArray, '/ir_led_points', self.ir_led_callback, 10)
+
+        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points_map', 10)
+        self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points_map', 10)
+        self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points_map', 10)
+        self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points_map', 10)
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.transform = None
+
+    def update_transform(self) -> bool:
+        try:
+            self.transform = self.tf_buffer.lookup_transform(
+                self.desired_frame,
+                self.expected_input_frame,
+                rclpy.time.Time())
+            return True
+        except (
+            TransformException,
+            LookupException,
+            ConnectivityException,
+            ExtrapolationException,
+        ) as e:
+            self.get_logger().warn(
+                f"Could not retrieve transformation from {self.expected_input_frame} to {self.desired_frame}. Exception: {e}.")
+            return False
+
+    def transform_point_array(self, header: Header, points: List[Point]) -> List[Point]:
+        mapped_points: List[Point] = []
+        for point in points:
+            point_stamped = PointStamped()
+            point_stamped.point = point
+            point_stamped.header = header
+            mapped_point = tf2_geomtry_msgs.do_transform_point(point, self.transform)
+            mapped_points.append(mapped_point.point)
+
+        return mapped_points
+
+    def handle_any_callback(self, msg: Union[ArucoMarkers, PointArray]) -> Union[ArucoMarkers, PointArray, None]:
+        if msg.header.frame_id != self.expected_input_frame:
+            self.get_logger().error(f"Recieved a message with the wrong input frame. " + 
+                    f"Expected {self.expected_input_frame} but got {msg.header.frame_id}")
+            return None
+            
+        if not self.update_transform():
+            return None # Failed to get transform
+
+        initial_length = len(msg.points)
+
+        if isinstance(msg, ArucoMarkers):
+            new_msg = ArucoMarkers()
+            new_msg.marker_ids = msg.marker_ids
+        elif isinstance(msg, PointArray):
+            new_msg = PointArray
+        else:
+            self.get_logger().error(f"Recieved a message that is not either ArucoMarkers or PointArray")
+            return None
+
+        new_msg.points = self.transform_point_array(msg.header, msg.points)
+        new_msg.header = msg.header
+        new_msg.header.frame_id = self.desired_frame
+
+        if initial_length != len(new_msg.points):
+            self.get_logger().error(f"Lost points from array after transforming it")
+            return None
+
+        return new_msg
+
+    def zed_aruco_callback(self, msg: ArucoMarkers):
+        new_msg = self.handle_any_callback(msg)
+        if new_msg is None:
+            return
+        elif not isinstance(new_msg, ArucoMarkers):
+            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for zed_aruco_callback")
+        else:
+            self.publish_zed_aruco_points.publish(new_msg)
+
+    def blue_led_callback(self, msg: PointArray):
+        new_msg = self.handle_any_callback(msg)
+        if new_msg is None:
+            return
+        elif not isinstance(new_msg, PointArray):
+            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
+        else:
+            self.publish_blue_led_points.publish(new_msg)
+
+    def red_led_callback(self, msg: PointArray):
+        new_msg = self.handle_any_callback(msg)
+        if new_msg is None:
+            return
+        elif not isinstance(new_msg, PointArray):
+            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for red_led_callback")
+        else:
+            self.publish_red_led_points.publish(new_msg)
+
+    def ir_led_callback(self, msg: PointArray):
+        new_msg = self.handle_any_callback(msg)
+        if new_msg is None:
+            return
+        elif not isinstance(new_msg, PointArray):
+            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for ir_led_callback")
+        else:
+            self.publish_ir_led_points.publish(new_msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = TransformZedPointsToMap()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+
+    node.destroy_node()
+    rclpy.shutdown()
+  
+if __name__ == '__main__':
+    main()

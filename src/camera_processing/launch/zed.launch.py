@@ -77,6 +77,13 @@ def generate_launch_description():
         ]
     )
 
+    # Nodes 
+    transform_zed_points_node = Node(
+        package="camera_processing",
+        executable="transform_zed_points_node",
+        name="transform_zed_points"
+    )
+
     # Add launch actions
     ld.add_action(playback_filename_arg)
     ld.add_action(playback_start_index_arg)
@@ -84,4 +91,5 @@ def generate_launch_description():
     ld.add_action(publish_gl_viewer_data_args)
     ld.add_action(publish_6x6_aruco_as_leds_args)
     ld.add_action(zed_node)
+    ld.add_action(transform_zed_points_node)
     return ld
