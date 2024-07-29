@@ -7,9 +7,9 @@ zed:
     mask_filename: 'ZEDMask.png'
 
     zed_arucos_detections: True
-    blue_led_detections: True
-    red_led_detections: True
-    ir_led_detections: False
+    blue_led_detections: False
+    red_led_detections: False
+    ir_led_detections: True
 
     detect_6x6_aruco_as_leds: True
 
