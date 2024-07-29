@@ -65,6 +65,7 @@ class DisplayImageLocally(Node):
         self.control_svo_index = 0
         self.max_svo_index = 30000
         self.time = self.get_clock().now()
+        self.create_display()
 
         self.get_logger().info(f"Subscribed to {self.get_parameter('image_topic').value}")
         self.get_logger().info(f"Expecting {'CompressedImage' if self.is_image_compressed else 'Image'} message")
