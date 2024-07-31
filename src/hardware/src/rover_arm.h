@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <rclcpp/rclcpp.hpp>
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
@@ -41,12 +42,15 @@ public:
 
   hardware_interface::return_type write(
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
+    
+  void subscription_callback(const std::string);
 
 private:
   // Store the command for the simulated robot
   std::vector<double> hw_commands_;
   std::vector<double> hw_position_states_;
   std::vector<double> hw_velocity_states_;
+  rclcpp::Subscription<std::string>::SharedPtr subscription_;
 };
 
 }  // namespace ros2_control_demo_example_1
