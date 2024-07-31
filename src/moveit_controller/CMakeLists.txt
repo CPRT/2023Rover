@@ -11,6 +11,8 @@ find_package(moveit_ros_planning_interface REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(interfaces REQUIRED)
+find_package(rviz_common REQUIRED)
+find_package(rviz_default_plugins REQUIRED)
 
 add_executable(moveit_controller src/moveit_controller.cpp)
 target_include_directories(moveit_controller PUBLIC
@@ -23,6 +25,8 @@ ament_target_dependencies(
   "moveit_ros_planning_interface"
   "moveit_core"
   "rclcpp"
+  "rviz_common"
+  "rviz_default_plugins"
 )
 
 install(TARGETS moveit_controller
