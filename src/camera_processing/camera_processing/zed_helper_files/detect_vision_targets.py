@@ -3,14 +3,14 @@ import cv2
 import pyzed.sl as sl
 import numpy as np
 from enum import Enum
-from typing import List, Set
+from typing import List, Set, Tuple
 from math import sqrt, isnan
 
 # from ZedNode import STRING_TO_RESOLUTION
 from ..HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
 from ..HSVImageExplore.image_colour_processing.process_steps import MathStep
 
-from .map_targets_between_cams import PitchYaw, Point, CameraUtil
+from .map_targets_between_cams import PitchYaw, Point, CameraUtil, LinearUndistortion
 
 
 
@@ -48,7 +48,7 @@ class CameraType(Enum):
         self.value.yRes = float(self.value.yRes * image_scaling)
 
 class DetectVisionTargets:
-    def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing):
+    def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing, ir_undistort: LinearUndistortion):
         self._ros_logger = ros_logger
 
         self.aruco_dict_4x4 = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
@@ -62,6 +62,8 @@ class DetectVisionTargets:
         self.blue_led_processing = blue_led
         self.red_led_processing = red_led
         self.ir_led_processing = ir_led
+
+        self.ir_linear_undistort = ir_undistort
 
     def bounding_box(points: np.array):
         """
@@ -219,6 +221,14 @@ class DetectVisionTargets:
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
 
+        try:
+            with open("~/LinearUnDistortionTestParams.txt") as file:
+                new_distortion = LinearUndistortion.from_string(file.readline())
+            if isinstance(new_distortion, LinearUndistortion):
+                self.ir_linear_undistort = new_distortion
+        except:
+            pass
+
         # IR LEDS
         bounding_boxes, tags, timings = self.ir_led_processing.process_image(ir_img)
         self._ros_logger.info("IR LED " + timings)
@@ -226,32 +236,37 @@ class DetectVisionTargets:
         for box_index, bounding_box in enumerate(bounding_boxes):
             unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"IRLED-{box_index}", tags[box_index])
 
-            if unique_object_id != "":
-                for point_index, point in enumerate(bounding_boxes[box_index]):
-                    # self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
-                    
-                    pitchYaw = cameraMapping.value.pitchYawFromXY(Point(point[0], point[1]))
-                    xy = CameraType.ZED.value.xyFromPitchYaw(pitchYaw)
-                    # self._ros_logger.info(f"bounding_boxes: {repr(bounding_boxes)}\npoints: {repr(points)}\n  XY.x: {repr(xy.x)}, XY.y: {repr(xy.y)}")
+            if unique_object_id == "":
+                continue
 
-                    
-                    try:
-                        bounding_boxes[box_index][point_index][0] = max(0, int(xy.x)) # Ensure values are not negative
-                        bounding_boxes[box_index][point_index][1] = max(0, int(xy.y))
-                    except Exception as e:
-                        self._ros_logger.info(f"Failed to scale bounding boxes: {e}")
+            for point_index, point in enumerate(bounding_boxes[box_index]):
+                # self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
+                
+                pitchYaw = cameraMapping.value.pitchYawFromXY(Point(point[0], point[1]))
+                undistorted_pitchYaw = self.ir_linear_undistort.undistort(pitchYaw)
+                xy = CameraType.ZED.value.xyFromPitchYaw(undistorted_pitchYaw)
+                # self._ros_logger.info(f"bounding_boxes: {repr(bounding_boxes)}\npoints: {repr(points)}\n  XY.x: {repr(xy.x)}, XY.y: {repr(xy.y)}")
 
-                    # self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
-                    # print(f"           TO: {points}")
-                    # print(f"     PitchYaw: {pitchYaw}")
+                self._ros_logger.info(f"Original {pitchYaw} --- Undistorted {pitchYaw}")
 
-                obj = sl.CustomBoxObjectData()
-                obj.unique_object_id = unique_object_id
-                obj.bounding_box_2d = bounding_boxes[box_index]
-                obj.label = 4
-                obj.probability = 0.99
-                obj.is_grounded = False
-                detections.append(obj)
+                
+                try:
+                    bounding_boxes[box_index][point_index][0] = max(0, int(xy.x)) # Ensure values are not negative
+                    bounding_boxes[box_index][point_index][1] = max(0, int(xy.y))
+                except Exception as e:
+                    self._ros_logger.info(f"Failed to scale bounding boxes with exception: {e}")
+
+                # self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
+                # print(f"           TO: {points}")
+                # print(f"     PitchYaw: {pitchYaw}")
+
+            obj = sl.CustomBoxObjectData()
+            obj.unique_object_id = unique_object_id
+            obj.bounding_box_2d = bounding_boxes[box_index]
+            obj.label = 4
+            obj.probability = 0.99
+            obj.is_grounded = False
+            detections.append(obj)
 
         return detections
 
@@ -304,9 +319,9 @@ class DetectVisionTargets:
         
         distance = sqrt(position[0]*position[0] + position[1]*position[1] + position[2]*position[2])
         if isnan(distance):
-            return f"-nan-[{position[0]:.1f}, {position[1]:.1f}, {position[2]:.1f}]"
+            return f"nan-[{position[0]:.1f}, {position[1]:.1f}, {position[2]:.1f}]"
         
-        return f"-{distance:.2f}m"
+        return f"{distance:.2f}m"
 
     def is_good_object(object_data: sl.ObjectData, logger):
         if (object_data.tracking_state == sl.OBJECT_TRACKING_STATE.SEARCHING or 
@@ -315,6 +330,27 @@ class DetectVisionTargets:
             return False
 
         return True
+    
+    def seperate_objects_by_zed_state(objects: List[sl.ObjectData], logger) -> Tuple[List[sl.ObjectData], List[sl.ObjectData], List[sl.ObjectData]]
+        searching: List[sl.ObjectData] = []
+        moving: List[sl.ObjectData] = []
+        idle: List[sl.ObjectData] = []
+
+        for obj in objects:
+            if (obj.tracking_state == sl.OBJECT_TRACKING_STATE.SEARCHING or 
+                    obj.tracking_state == sl.OBJECT_TRACKING_STATE.TERMINATE):
+                searching.append(obj)
+            elif obj.action_state == sl.OBJECT_ACTION_STATE.MOVING:
+                moving.append(obj)
+            elif obj.action_state == sl.OBJECT_ACTION_STATE.IDLE:
+                idle.aappend(obj)
+            else:
+                logger.info(f"Removed OBJECT due to unknown tracking/action state. Tracking: {obj.tracking_state}" +
+                            f"Action: {obj.action_state}")
+                
+        return searching, moving, idle
+
+
 
     def draw_object_detection(img, object_data: sl.ObjectData):
         if not isinstance(object_data, sl.ObjectData):
@@ -339,6 +375,7 @@ class DetectVisionTargets:
         cv2.circle(img, (cX, cY), 4, (0, 0, 255), -1)
 
         # Draw unique_object_id beside the contour
-        text = str(object_data.id) + str(object_data.unique_object_id) + DetectVisionTargets.calculate_distance(object_data.position)
-        text = f"T:{object_data.tracking_state}-A:{object_data.action_state}{text}"
+        text = f"{str(object_data.id)}-{str(object_data.unique_object_id)}-{DetectVisionTargets.calculate_distance(object_data.position)}"
+        if object_data.action_state == sl.OBJECT_ACTION_STATE.MOVING: text += "-moving"
+        if object_data.action_state == sl.OBJECT_ACTION_STATE.IDLE: text += "-idle"
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)

@@ -33,6 +33,7 @@ from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
 
 from .zed_helper_files.detect_vision_targets import DetectVisionTargets, CameraType
+from.zed_helper_files.map_targets_between_cams import LinearUndistortion
 from .zed_helper_files.video_capture import VideoCapture
 from .HSVImageExplore.image_colour_processing.colour_processing import ColourProcessing
 from .HSVImageExplore.image_colour_processing.hsv_range_mask_step import HSVRangeMaskStep
@@ -120,6 +121,11 @@ class ZedNode(Node):
                 ('ir_led_detections', True),
                 ('detect_6x6_aruco_as_leds', False),
 
+                ('ir_undistort_pitch_offset', 0.0),
+                ('ir_undistort_pitch_slope', 1.0),
+                ('ir_undistort_yaw_offset', 0.0),
+                ('ir_undistort_yaw_slope', 1.0),
+
                 ('publish_raw_image', False),
                 ('publish_cv_processed_image', False),
                 ('enable_gl_viewer', False),
@@ -164,6 +170,11 @@ class ZedNode(Node):
         self.should_detect_red_led = bool(self.get_parameter('red_led_detections').value)
         self.should_detect_ir_led = bool(self.get_parameter('ir_led_detections').value)
         self.should_detect_6x6_aruco = bool(self.get_parameter('detect_6x6_aruco_as_leds').value)
+
+        self.ir_undistort_pitch_offset = float(self.get_parameter('ir_undistort_pitch_offset').value)
+        self.ir_undistort_pitch_slope = float(self.get_parameter('ir_undistort_pitch_slope').value)
+        self.ir_undistort_yaw_offset = float(self.get_parameter('ir_undistort_yaw_offset').value)
+        self.ir_undistort_yaw_slope = float(self.get_parameter('ir_undistort_yaw_slope').value)
 
         self.should_publish_raw_image = bool(self.get_parameter('publish_raw_image').value)
         self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
@@ -219,11 +230,19 @@ class ZedNode(Node):
             self.get_logger().error(f"Failed to create ir_led_colour_processing: {ir_led_colour_processing}")
             self.should_detect_ir_led = False
 
+        undistort = LinearUndistortion(
+            pitch_offset=self.ir_undistort_pitch_offset, 
+            pitch_slope=self.ir_undistort_pitch_slope,
+            yaw_offset=self.ir_undistort_yaw_offset,
+            yaw_slope=self.ir_undistort_yaw_slope
+        )
+
         self.detectVisionTargets = DetectVisionTargets(
             ros_logger=self.get_logger(),
             blue_led=blue_led_colour_processing,
             red_led=red_led_colour_processing,
-            ir_led=ir_led_colour_processing
+            ir_led=ir_led_colour_processing,
+            ir_undistort=undistort
         )
 
     def init_zed(self) -> bool:
@@ -437,35 +456,63 @@ class ZedNode(Node):
         red_led_point_arr = self.create_point_array()
         ir_led_point_arr = self.create_point_array()
 
-        # Remove bad object detections
-        object_list_trimmed = [obj for obj in self.objects.object_list if DetectVisionTargets.is_good_object(obj, self.get_logger())]
-         
-        for obj in self.objects.object_list:
-            # self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
+        check_aruco = True
+        check_blue = True
+        check_red = True
+        check_ir = True
 
-            point: Point = self.zed_object_to_point(obj)
+        def parse_list(objects: List[sl.ObjectData]):
+            for obj in objects:
+                # self.get_logger().info(f"Object ~ Id: {object.id}, label: {object.label}, Unique Label: {object.unique_object_id}, position: {object.position}")
 
-            if DetectVisionTargets.is_zed_marker(obj.unique_object_id):
-                zed_aruco_markers_msg.points.append(point)
-                zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(obj.unique_object_id))
+                point: Point = self.zed_object_to_point(obj)
 
-                self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
+                if DetectVisionTargets.is_zed_marker(obj.unique_object_id):
+                    if check_aruco:
+                        zed_aruco_markers_msg.points.append(point)
+                        zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(obj.unique_object_id))
 
-            elif DetectVisionTargets.is_blue_led(obj.unique_object_id):
-                blue_led_point_arr.points.append(point)
+                        self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
+                    else:
+                        obj.unique_object_id += "-SKIPPED"
 
-            elif DetectVisionTargets.is_red_led(obj.unique_object_id):
-                red_led_point_arr.points.append(point)
+                elif DetectVisionTargets.is_blue_led(obj.unique_object_id):
+                    if check_blue:
+                        blue_led_point_arr.points.append(point)
+                    else:
+                        obj.unique_object_id += "-SKIPPED"
 
-            elif DetectVisionTargets.is_ir_led(obj.unique_object_id):
-                ir_led_point_arr.points.append(point)
-                
-            else:
-                self.get_logger().warn("Lost object after zed detections called " + obj.unique_object_id)
-                continue
+                elif DetectVisionTargets.is_red_led(obj.unique_object_id):
+                    if check_red:
+                        red_led_point_arr.points.append(point)
+                    else:
+                        obj.unique_object_id += "-SKIPPED"
 
-            if self.should_publish_cv_processed_image:
-                DetectVisionTargets.draw_object_detection(zed_img, obj)
+                elif DetectVisionTargets.is_ir_led(obj.unique_object_id):
+                    if check_ir:
+                        ir_led_point_arr.points.append(point)
+                    else:
+                        obj.unique_object_id += "-SKIPPED"
+                    
+                else:
+                    self.get_logger().warn("Lost object after zed detections called " + obj.unique_object_id)
+                    continue
+
+                if self.should_publish_cv_processed_image:
+                    DetectVisionTargets.draw_object_detection(zed_img, obj)
+
+        # Seperate objects by tracking state and action state
+        searching, moving, idle = DetectVisionTargets.seperate_objects_by_zed_state(self.objects.object_list, self.get_logger())
+
+        # Parse non moving targets
+        parse_list(idle)
+
+        # Parse moving targets, skipping any targets that already had a different non moving target found
+        check_aruco = len(zed_aruco_markers_msg) == 0
+        check_blue = len(blue_led_point_arr) == 0
+        check_red = len(red_led_point_arr) == 0
+        check_ir = len(ir_led_point_arr) == 0
+        parse_list(moving)
 
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
         self.publish_blue_led_points.publish(blue_led_point_arr)

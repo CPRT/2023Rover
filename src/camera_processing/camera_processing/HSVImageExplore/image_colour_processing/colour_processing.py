@@ -126,7 +126,7 @@ class ColourProcessing:
         except Exception as e:
             self._has_static_mask = False
 
-    def process_image(self, image: ndarray) -> Tuple[List[Tuple[int, int]], List[List[str]]]:
+    def process_image(self, image: ndarray) -> Tuple[List[Tuple[int, int]], List[List[str]], str]:
         """
         Process an image and return a bounding box and tag for targets.
 
