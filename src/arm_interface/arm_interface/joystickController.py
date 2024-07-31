@@ -17,16 +17,16 @@ def map_range(value, old_min, old_max, new_min, new_max):
     return mapped_value
 
 def joystick_to_motor_control(vertical, horizontal):
-    vertical = max(min(vertical, 1), -1)
-    horizontal = max(min(horizontal, 1), -1)
+    vertical = max(min(vertical, 1.0), -1.0)
+    horizontal = max(min(horizontal, 1.0), -1.0)
     
     left_motor = vertical + horizontal
     right_motor = vertical - horizontal
     
-    left_motor = max(min(left_motor, 1), -1)
-    right_motor = max(min(right_motor, 1), -1)
+    left_motor = max(min(left_motor, 1.0), -1.0)
+    right_motor = max(min(right_motor, 1.0), -1.0)
     
-    return left_motor, right_motor
+    return -left_motor, -right_motor
 
 class joystickController(Node):
     def __init__(self):
@@ -40,22 +40,22 @@ class joystickController(Node):
         self.estop = Bool()
         self.estopTimestamp = 0.0
         self.lastTimestamp = 0
-        
+
         self.baseCommand = self.create_publisher(
             MotorControl, "/base/set", 1)
         self.diff1Command = self.create_publisher(
-            MotorControl, "/diff1/motorcontrol", 1)
+            MotorControl, "/diff1/set", 1)
         self.diff2Command = self.create_publisher(
-            MotorControl, "/diff2/motorcontrol", 1)
+            MotorControl, "/diff2/set", 1)
         self.elbowCommand = self.create_publisher(
-            MotorControl, "/elbow/motorcontrol", 1)
+            MotorControl, "/elbow/set", 1)
         self.wristTiltCommand = self.create_publisher(
-            MotorControl, "/wristTilt/motorcontrol", 1)
+            MotorControl, "/wristTilt/set", 1)
         self.wristTurnCommand = self.create_publisher(
-            MotorControl, "/wristTurn/motorcontrol", 1)
+            MotorControl, "/wristTurn/set", 1)
         
         self.joystick = self.create_subscription(
-            MotorStatus, "/arm/joy", self.joy_callback, 5)
+            Joy, "/joy", self.joy_callback, 5)
         
         freq = 10
         self.rate = self.create_rate(freq)
@@ -83,28 +83,35 @@ class joystickController(Node):
         self.wristTilt.mode = 0
         self.wristTurn.mode = 0
 
-        if(msg.buttons[7]):#RIGHT BUMPER IDK THE VALUE
-            self.base.value = 0.25
-        elif(msg.buttons[8]): #LEFT BUMPER
-            self.base.value = -0.25
+        if(msg.buttons[5]):#RIGHT BUMPER IDK THE VALUE
+            self.base.value = 0.5
+        elif(msg.buttons[4]): #LEFT BUMPER
+            self.base.value = -0.5
+        else:
+            self.base.value = 0.0
+
+        if(msg.buttons[7]):#RIGHT TRIGGER IDK THE VALUE
+            self.wristTurn.value = 1.0
+        elif(msg.buttons[6]): #LEFT TRIGGER
+            self.wristTurn.value = -1.0
+        else:
+            self.wristTurn.value = 0.0
         
-        if(msg.buttons[9]):#RIGHT TRIGGER IDK THE VALUE
-            self.wristTurn.value = 0.25
-        elif(msg.buttons[10]): #LEFT TRIGGER
-            self.wristTurn.value = -0.25
-        
-        if(msg.buttons[0]):#A IDK THE VALUE
-            self.wristTilt.value = 0.25
-        elif(msg.buttons[1]): #B
-            self.wristTilt.value = -0.25
+        if(msg.buttons[1]):#A IDK THE VALUE
+            self.wristTilt.value = 1.0
+        elif(msg.buttons[0]): #B
+            self.wristTilt.value = -1.0
+        else:
+            self.wristTilt.value = 0.0
         self.elbow.value = msg.axes[3] #LEFT VERTICAL
         diff1, diff2 = joystick_to_motor_control(msg.axes[0], msg.axes[1])
-        self.diff1 = diff1
-        self.diff2 = diff2
-        if(msg.buttons[5]):
+        self.get_logger().info(f'diff1: {self.diff1.value}, diff2: {self.diff2.value}')
+        self.diff1.value = float(diff1)
+        self.diff2.value = float(diff2)
+        if(msg.buttons[9]):
             self.estop.data = True
             self.estopTimestamp = msg.header.stamp.sec
-        if(msg.buttons[6] and msg.header.stamp.sec - self.estopTimestamp > 2):
+        if(msg.buttons[8] and msg.header.stamp.sec - self.estopTimestamp > 2):
             self.estop.data = False
 
 

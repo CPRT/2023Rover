@@ -25,50 +25,46 @@ class trajectoryInterpreter(Node):
         self.motorCommand = MotorControl()
 
 
-
+        self.baseAngle = 0.0
+        self.baseZeroPoint = 0.0
+        self.diff1Cont = 0.0
+        self.diff1Angle = 0.0
+        self.diff1ZeroPoint = 0.0
+        self.diff2Cont = 0.0
+        self.diff2Angle = 0.0
+        self.diff2ZeroPoint = 0.0
         self.elbowAngle = 0.0
         self.elbowZeroPoint = 0.0
-        self.base1Cont = 0.0
-        self.base1Angle = 0.0
-        self.base1ZeroPoint = 0.0
-        self.base2Cont = 0.0
-        self.base2Angle = 0.0
-        self.base2ZeroPoint = 0.0
-
+        self.wristTurnAngle = 0.0
+        self.wristTurnZeroPoint = 0.0
+        self.wristTiltAngle = 0.0
+        self.wristTiltZeroPoint = 0.0
 
 
         self.estop = Bool()
         self.lastTimestamp = 0
 
-        # self.declare_parameter("PID", 0)
-        # self.pidMode = (
-        #     self.get_parameter("PID").get_parameter_value().integer_value
-        # )
-        
-
-        self.currentTrajPub = self.create_publisher(
-            JointTrajectoryPoint, "/arm/currentTraj", 1)
-        self.motoercontrol = self.create_publisher(
-            MotorControl, "/arm/motorcontrol", 1)
         self.setEstop = self.create_publisher(
             Bool, "/drive/estop", 1)
         
-        self.tempAnglepub = self.create_publisher(
-            SixFloats, "/elbow/Angle" , 1)
+        self.anglePub = self.create_publisher(
+            SixFloats, "/arm/Angle" , 1)
         
         self.traj_sub = self.create_subscription(
             JointTrajectoryPoint, "/arm/expectedTraj", self.cmd_traj_callback, 10) 
         
         self.base_motor = self.create_subscription(
-            MotorStatus, "/arm/base", self.base_callback, 5)
+            MotorStatus, "/base/status", self.base_callback, 5)
         self.diff_motor1 = self.create_subscription(
-            MotorStatus, "/base1/status", self.diff1_callback, 5)
+            MotorStatus, "/diff1/status", self.diff1_callback, 5)
         self.diff_motor2 = self.create_subscription(
-            MotorStatus, "/base2/status", self.diff2_callback, 5)
+            MotorStatus, "/diff2/status", self.diff2_callback, 5)
         self.elbow_motor = self.create_subscription(
             MotorStatus, "/elbow/status", self.elbow_callback, 5)
-        self.wrist_vert_motor = self.create_subscription(
-            MotorStatus, "/arm/wrist_vert", self.wrist_vert_callback, 5)
+        self.wrist_turn_motor = self.create_subscription(
+            MotorStatus, "/wristTurn/status", self.wrist_turn_callback, 5)
+        self.wrist_tilt_motor = self.create_subscription(
+            MotorStatus, "/wristTilt/status", self.wrist_tilt_callback, 5)
         
         self.setEstop.publish(self.estop) #init as not estoped
         freq = 10
@@ -77,33 +73,35 @@ class trajectoryInterpreter(Node):
         self.timer = self.create_timer(period, self.anglepublisher)
 
     def base_callback(self, msg: MotorStatus):
-        msg
+        self.baseAngle = 0.0
     def diff1_callback(self, msg: MotorStatus):
-        self.base1Cont = self.base1ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.base1Angle = (self.base1Cont - self.base2Cont) * 4
-        print("bruh1" + str(self.base1Angle))
+        self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
+        self.diff1Angle = (self.diff1Cont - self.diff2Cont) * 4
+        print("bruh1" + str(self.diff1Angle))
     def diff2_callback(self, msg: MotorStatus):
-        self.base2Cont = self.base2ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.base2Angle = (self.base1Cont + self.base2Cont) * 4
-        print("bruh2" + str(self.base2Angle))
+        self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
+        self.diff2Angle = (self.diff1Cont + self.diff2Cont) * 4
+        print("bruh2" + str(self.diff2Angle))
     def elbow_callback(self, msg: MotorStatus):
         self.elbowAngle = (self.elbowZeroPoint + msg.position * ((2*pi)/1000 * ((1/83) * (1/100) * (16/13)))) * 4
-    def wrist_vert_callback(self, msg: MotorStatus):
-        msg
+    def wrist_turn_callback(self, msg: MotorStatus):
+        self.wristTurnAngle = 0.0
+    def wrist_tilt_callback(self, msg: MotorStatus):
+        self.wristTiltAngle = 0.0
 
     def anglepublisher(self):
         out = SixFloats()
-        out.m0 = (self.elbowAngle) * (180/pi)
-        out.m1 = (self.base1Angle) * (180/pi)
-        out.m2 = (self.base2Angle) * (180/pi)
+        out.m0 = self.elbowAngle 
+        out.m1 = self.diff1Angle 
+        out.m2 = self.diff2Angle
+        out.m3 = self.elbowAngle
+        self.m4 = self.wristTiltAngle
+        self.m5 = self.wristTurnAngle
         self.tempAnglepub.publish(out)
 
     def cmd_traj_callback(self, msg: JointTrajectoryPoint):
         self.expectedTraj = msg;
         self.lastTimestamp = Node.get_clock(self).now().seconds_nanoseconds()[0]
-    # def controlPublisher(self):
-    #     self.motoercontrol.publish(self.motorCommand)
-
     def trajToTalon(pt: JointTrajectoryPoint):
         pt.positions
 
@@ -121,15 +119,6 @@ class trajectoryInterpreter(Node):
 
     def wristToTraj(self, status: MotorStatus):
         self.expectedTraj #math to convert status to traj point
-
-    # def joystick_timeout_handler(self):
-    #     if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2):
-    #         self.estopTimeout.data = True
-    #         self.setEstop.publish(self.estopTimeout)
-    #     elif(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp <= 2 and (self.estopTimeout.data and not self.estop)):
-    #         self.estopTimeout.data = False
-    #         self.setEstop.publish(self.estopTimeout)
-
 
 def main(args=None):
     rclpy.init(args=args)
