@@ -10,7 +10,7 @@ MinimalPublisher::MinimalPublisher()
 {
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
   timer_ = this->create_wall_timer(500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
-  std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units). Type 'n' to reset. Type 'm' to open/close gripper."<<std::endl;
+  std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units). Type 'n' to reset. Type 'm' to open/close gripper. Type 'b' to plan to the orange arm in rviz."<<std::endl;
 }
 
 void MinimalPublisher::timer_callback()
@@ -28,6 +28,7 @@ void MinimalPublisher::timer_callback()
 		msg.named_pose = 0;
 		msg.estop = false;
 		msg.reset = false;
+		msg.query_goal_state = false;
 		return msg;
 	}();
   char c;
@@ -94,6 +95,28 @@ void MinimalPublisher::timer_callback()
   {
     isOpen = !isOpen;
     poseCmd.named_pose = 1+isOpen;
+  }
+  else if (c == 'b')
+  {
+    poseCmd.query_goal_state = true;
+    poseCmd.goal_angles.resize(6, 0);
+    double d = 0;
+    std::cin>>d;
+    poseCmd.goal_angles[0] = d/360.0 * 2*3.14159;
+    std::cin>>d;
+    poseCmd.goal_angles[1] = d/360.0 * 2*3.14159;
+    std::cin>>d;
+    poseCmd.goal_angles[2] = d/360.0 * 2*3.14159;
+    std::cin>>d;
+    poseCmd.goal_angles[3] = d/360.0 * 2*3.14159;
+    std::cin>>d;
+    poseCmd.goal_angles[4] = d/360.0 * 2*3.14159;
+    std::cin>>d;
+    poseCmd.goal_angles[5] = d/360.0 * 2*3.14159;
+    for (int i = 0; i < poseCmd.goal_angles.size(); i++)
+    {
+      RCLCPP_INFO(this->get_logger(), std::to_string(poseCmd.goal_angles[i]).c_str());
+    }
   }
   //auto message = std_msgs::msg::String();
   //geometry_msgs::msg::Pose message;

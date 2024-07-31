@@ -4,3 +4,5 @@ float32 speed
 bool estop
 bool reset
 int64 named_pose
+bool query_goal_state
+float64[] goal_angles

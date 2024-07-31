@@ -41,7 +41,8 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   //psm->startSceneMonitor("/move_group/monitored_planning_scene");
   
   move_group_ptr = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_ptr, "rover_arm2"); //used to be rover_arm
-  planning_scene::PlanningScene planning_scene(move_group_ptr->getRobotModel());
+  //moveit_rviz_plugin::MotionPlanningDisplay::getQueryGoalState();
+  //planning_scene::PlanningScene planning_scene(move_group_ptr->getRobotModel());
   
   executor_ptr->add_node(node_ptr);
   executor_thread = std::thread([this]() {this->executor_ptr->spin(); });
@@ -79,10 +80,10 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 	planning_scene_monitor::CurrentStateMonitor::getCurrentState()->setJointGroupPositions(joint_model_group, &num);
 	//planning_scene->setCurrentState(*robotStatePtr.get());
 	RCLCPP_INFO(this->get_logger(), std::to_string((*robotStatePtr->getJointPositions("joint_2"))).c_str());*/
-	moveit::core::RobotState& current_state = planning_scene.getCurrentStateNonConst();
+	/*moveit::core::RobotState& current_state = planning_scene.getCurrentStateNonConst();
 	//current_state.setJointPositions("joint_2", &num);
 	current_state.setToRandomPositions();
-	current_state.printStatePositions();
+	current_state.printStatePositions();*/
 	
 }
 
@@ -107,7 +108,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	{
 		th.join();
 	}
-	if ((isEmpty(poseMsg) && !armMsg.reset && armMsg.named_pose == 0) || armMsg.estop)
+	if ((isEmpty(poseMsg) && !armMsg.reset && armMsg.named_pose == 0 && !armMsg.query_goal_state) || armMsg.estop)
 	{
 	  RCLCPP_INFO(this->get_logger(), "Stopping (for some reason)");
 	  return;
@@ -190,7 +191,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
 		}
 	}
-	else if (armMsg.named_pose != 0)
+	else if (armMsg.named_pose != 0) //currently does not work
 	{
 	  if (armMsg.named_pose == 1 || armMsg.named_pose == 2) //1 = closed, 2 = open
 	  {
@@ -206,6 +207,30 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	    }
 	    //actually add stuff later
 	  }
+	}
+	else if (armMsg.query_goal_state)
+	{
+	  std::vector<double> angles(6);
+	  for (int i = 0; i < angles.size(); i++)
+	  {
+	    angles[i] = armMsg.goal_angles[i];
+	    RCLCPP_INFO(this->get_logger(), std::to_string(armMsg.goal_angles[i]).c_str());
+	  }
+	  move_group_ptr->setJointValueTarget(angles);
+	  auto const [success, plan] = [&]{
+			moveit::planning_interface::MoveGroupInterface::Plan msg;
+			auto const ok = static_cast<bool>(move_group_ptr->plan(msg));
+			return std::make_pair(ok, msg);
+		}();
+
+		// Execute the plan
+		if(success) {
+		  RCLCPP_INFO(this->get_logger(), "Number of joint trajectory points: %li, number of multiDOFjointtrajectorypoints: %li", std::size(plan.trajectory_.joint_trajectory.points), std::size(plan.trajectory_.multi_dof_joint_trajectory.points));
+		  publisher_->publish(plan.trajectory_);
+			move_group_ptr->execute(plan);
+		} else {
+			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
+		}
 	}
 	else if (poseMsg.orientation.x != 0 || poseMsg.orientation.y != 0 || poseMsg.orientation.z != 0 || poseMsg.orientation.w != 0) //rotation required
 	{

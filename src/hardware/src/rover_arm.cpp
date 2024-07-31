@@ -150,7 +150,7 @@ hardware_interface::return_type RoverArmHardwareInterface::read(
   // BEGIN: This part here is for exemplary purposes - Please do not copy to your production code
   //RCLCPP_INFO(rclcpp::get_logger("RoverArmHardwareInterface"), "Reading...");
 
-  for (uint i = 0; i < hw_position_states_.size(); i++)
+  for (uint i = 1; i < hw_position_states_.size(); i++)
   {
     // Simulate RRBot's movement
     hw_position_states_[i] = 0;
@@ -159,7 +159,7 @@ hardware_interface::return_type RoverArmHardwareInterface::read(
       rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Got state %.5f for joint %d!",
       hw_position_states_[i], i);*/
   }
-  hw_position_states_[0]=1;
+  hw_position_states_[0] = 0;
   //RCLCPP_INFO(rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Joints successfully read!");
   // END: This part here is for exemplary purposes - Please do not copy to your production code
 
