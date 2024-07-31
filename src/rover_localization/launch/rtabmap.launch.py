@@ -33,7 +33,7 @@ def generate_launch_description():
     launch_rtabmapviz_cmd = DeclareLaunchArgument(
         "launch_rtabmapviz",
         default_value="False",
-        description="Wheather to launch rtabmapviz")
+        description="Whether to launch rtabmapviz")
 
     parameters = [{
         "frame_id": "base_link",
