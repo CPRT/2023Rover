@@ -17,7 +17,7 @@ def generate_launch_description():
     image_topic = LaunchConfiguration('image_topic')
     image_topic_arg = DeclareLaunchArgument(
         'image_topic',
-        default_value='/cv_zed_image',
+        default_value='/zed/cv_zed_image',
         description='The name of the topic to subscribe and get the image from.'
     )
 

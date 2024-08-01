@@ -57,8 +57,8 @@ class ZedNode(Node):
                 self.get_logger().error("Failed to create VideoCapture for IR cam. Disabling IR camera. Error: " + str(e))
                 self.should_detect_ir_led = False
 
-        self.publish_current_svo_index_topic = self.create_publisher(Int32, "/current_svo_index", 10)
-        self.publish_max_svo_index = self.create_publisher(Int32, "/max_svo_index", 10)
+        self.publish_current_svo_index_topic = self.create_publisher(Int32, "/zed/current_svo_index", 10)
+        self.publish_max_svo_index = self.create_publisher(Int32, "/zed/max_svo_index", 10)
 
         zed_initialized = False
         while not zed_initialized:
@@ -82,23 +82,23 @@ class ZedNode(Node):
         self.depth_mat_lock = Lock()
         self.has_new_depth_image = False
 
-        self.publisher_depth_image = self.create_publisher(Image, '/zed_depth_image', 10)
-        self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed_point_cloud', 10)
+        self.publisher_depth_image = self.create_publisher(Image, '/zed/zed_depth_image', 10)
+        self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed/zed_point_cloud', 10)
 
-        self.publisher_imu_data = self.create_publisher(Imu, '/zed_imu_data', 10)
+        self.publisher_imu_data = self.create_publisher(Imu, '/zed/zed_imu_data', 10)
 
-        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
-        self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
-        self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points', 10)
-        self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points', 10)
+        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed/zed_aruco_points', 10)
+        self.publish_blue_led_points = self.create_publisher(PointArray, '/zed/blue_led_points', 10)
+        self.publish_red_led_points = self.create_publisher(PointArray, '/zed/red_led_points', 10)
+        self.publish_ir_led_points = self.create_publisher(PointArray, '/zed/ir_led_points', 10)
 
-        self.publish_raw_image = self.create_publisher(CompressedImage, '/zed_raw_image', 10)
-        self.publish_cv_image = self.create_publisher(CompressedImage, '/cv_zed_image', 10)
+        self.publish_raw_image = self.create_publisher(CompressedImage, '/zed/zed_raw_image', 10)
+        self.publish_cv_image = self.create_publisher(CompressedImage, '/zed/cv_zed_image', 10)
 
-        self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed_rviz_detections', 10)
+        self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed/zed_rviz_detections', 10)
 
         self.control_svo_index = 0
-        self.subscribe_control_svo_index_topic = self.create_subscription(Int32, "/control_svo_index", self.set_svo_index, 10, callback_group=MutuallyExclusiveCallbackGroup())
+        self.subscribe_control_svo_index_topic = self.create_subscription(Int32, "/zed/control_svo_index", self.set_svo_index, 10, callback_group=MutuallyExclusiveCallbackGroup())
 
         self.timer_period = 0.03  # 0.066 for 15 FPS
         self.timer = self.create_timer(self.timer_period, self.run_detections, callback_group=None)
