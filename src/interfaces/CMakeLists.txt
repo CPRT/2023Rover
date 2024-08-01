@@ -23,6 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArucoMarkers.msg"
   "msg/PointArray.msg"
   "msg/ArmCmd.msg"
+  "srv/ArmPos.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs # Add packages that above messages depend on
  )
 
