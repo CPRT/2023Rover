@@ -10,6 +10,16 @@ MinimalPublisher::MinimalPublisher()
 {
   publisher_ = this->create_publisher<interfaces::msg::ArmCmd>("arm_base_commands", 10);
   timer_ = this->create_wall_timer(500ms, std::bind(&MinimalPublisher::timer_callback, this));//*/
+  
+  client = this->create_client<interfaces::srv::ArmPos>("arm_pos");
+
+  while (!client->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+    }
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+  }
+  
   std::cout<<"Type w, a, s, d to move. Use zxrtfgcv to change orientation. Type 'h' to change step size (default is 10 rviz units). Type 'n' to reset. Type 'm' to open/close gripper. Type 'b' to plan to the orange arm in rviz."<<std::endl;
 }
 
@@ -130,6 +140,9 @@ void MinimalPublisher::timer_callback()
 		msg.position.z = 0.678810;
 		return msg;
 	}();
+	auto request = std::make_shared<interfaces::srv::ArmPos::Request>();
+  request->stop = true;
+  client->async_send_request(request);
 	poseCmd.current_pose = current_pose;
   publisher_->publish(poseCmd);
 }

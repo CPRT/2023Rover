@@ -14,6 +14,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "interfaces/msg/arm_cmd.hpp"
+#include "interfaces/srv/arm_pos.hpp"
 
 bool isOpen = true;
 
@@ -28,6 +29,7 @@ class MinimalPublisher : public rclcpp::Node
     rclcpp::Publisher<interfaces::msg::ArmCmd>::SharedPtr publisher_;
     size_t count_;
     double defSpeed = 10;
+    rclcpp::Client<interfaces::srv::ArmPos>::SharedPtr client;
 };
 
 #endif
