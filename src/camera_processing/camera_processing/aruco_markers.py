@@ -12,12 +12,12 @@ class DetectArucoMarkers(Node):
         self.is_source_image_compressed = True
         self.should_publish_compressed = True
 
-        # source_image_topic = '/camera1/image_raw'
-        source_image_topic = '/camera1/image_compressed'
+        # source_image_topic = '/zed/camera1/image_raw'
+        source_image_topic = '/zed/camera1/image_compressed'
         
-        source_image_topic = '/source_image'
+        source_image_topic = '/zed/source_image'
 
-        processed_image_topic = '/acruco_processed'
+        processed_image_topic = '/zed/acruco_processed'
 
         aruco_ids_array = 'aruco_tag_ids_array'
         aruco_id_largest = 'acruco_tag_id_largest'

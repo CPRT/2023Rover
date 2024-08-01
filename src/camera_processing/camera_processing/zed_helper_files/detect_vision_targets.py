@@ -222,14 +222,14 @@ class DetectVisionTargets:
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
 
-        try:
-            with open("/home/jetson/LinearUnDistortionTestParams.txt") as file:
-                new_distortion = LinearUndistortion.from_string(file.readline())
-            if isinstance(new_distortion, LinearUndistortion):
-                self.ir_linear_undistort = new_distortion
-                self._ros_logger.info(f"New Undistortion: {self.ir_linear_undistort}")
-        except:
-            pass
+        # try:
+        #     with open("/home/jetson/LinearUnDistortionTestParams.txt") as file:
+        #         new_distortion = LinearUndistortion.from_string(file.readline())
+        #     if isinstance(new_distortion, LinearUndistortion):
+        #         self.ir_linear_undistort = new_distortion
+        #         self._ros_logger.info(f"New Undistortion: {self.ir_linear_undistort}")
+        # except:
+        #     pass
 
         # IR LEDS
         bounding_boxes, tags, timings = self.ir_led_processing.process_image(ir_img)
@@ -243,16 +243,12 @@ class DetectVisionTargets:
                 continue
 
             for point_index, point in enumerate(bounding_boxes[box_index]):
-                # self._ros_logger.info(f"~~~POINTS1: {repr(bounding_boxes[box_index])}")
-                
                 pitchYaw = cameraMapping.value.pitchYawFromXY(Point(point[0], point[1]))
                 undistorted_pitchYaw = self.ir_linear_undistort.undistort(pitchYaw)
                 xy = CameraType.ZED.value.xyFromPitchYaw(undistorted_pitchYaw)
-                # self._ros_logger.info(f"bounding_boxes: {repr(bounding_boxes)}\npoints: {repr(points)}\n  XY.x: {repr(xy.x)}, XY.y: {repr(xy.y)}")
 
-                self._ros_logger.info(f"Original {pitchYaw} --- Undistorted {undistorted_pitchYaw}")
-                self._ros_logger.info(f"Original X: {point[0]:.2f} Y: {point[1]:.2f} --- Post X: {xy.x:.2f} Y: {xy.y:.2f}")
-                self._ros_logger.info(f"ZED: {CameraType.ZED.value}")
+                # self._ros_logger.info(f"Original {pitchYaw} --- Undistorted {undistorted_pitchYaw}")
+                # self._ros_logger.info(f"Original X: {point[0]:.2f} Y: {point[1]:.2f} --- Post X: {xy.x:.2f} Y: {xy.y:.2f}")
                 
                 try:
                     bounding_boxes[box_index][point_index][0] = max(0, int(xy.x)) # Ensure values are not negative
@@ -260,9 +256,6 @@ class DetectVisionTargets:
                 except Exception as e:
                     self._ros_logger.info(f"Failed to scale bounding boxes with exception: {e}")
 
-                # self._ros_logger.info(f"~~REMAPPEDTO2: {repr(bounding_boxes[box_index])}")
-                # print(f"           TO: {points}")
-                # print(f"     PitchYaw: {pitchYaw}")
 
             obj = sl.CustomBoxObjectData()
             obj.unique_object_id = unique_object_id

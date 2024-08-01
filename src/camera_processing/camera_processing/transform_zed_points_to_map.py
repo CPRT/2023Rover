@@ -28,15 +28,15 @@ class TransformZedPointsToMap(Node):
         self.expected_input_frame = str(self.get_parameter('expected_input_frame').value)
         self.desired_frame = str(self.get_parameter('desired_frame').value)
 
-        self.subscribe_zed_aruco_points = self.create_subscription(ArucoMarkers, '/zed_aruco_points', self.zed_aruco_callback, 10)
-        self.subscribe_blue_led_points = self.create_subscription(PointArray, '/blue_led_points', self.blue_led_callback, 10)
-        self.subscribe_red_led_points = self.create_subscription(PointArray, '/red_led_points', self.red_led_callback, 10)
-        self.subscribe_ir_led_points = self.create_subscription(PointArray, '/ir_led_points', self.ir_led_callback, 10)
+        self.subscribe_zed_aruco_points = self.create_subscription(ArucoMarkers, '/zed/zed_aruco_points', self.zed_aruco_callback, 10)
+        self.subscribe_blue_led_points = self.create_subscription(PointArray, '/zed/blue_led_points', self.blue_led_callback, 10)
+        self.subscribe_red_led_points = self.create_subscription(PointArray, '/zed/red_led_points', self.red_led_callback, 10)
+        self.subscribe_ir_led_points = self.create_subscription(PointArray, '/zed/ir_led_points', self.ir_led_callback, 10)
 
-        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points_map', 10)
-        self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points_map', 10)
-        self.publish_red_led_points = self.create_publisher(PointArray, '/red_led_points_map', 10)
-        self.publish_ir_led_points = self.create_publisher(PointArray, '/ir_led_points_map', 10)
+        self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed/zed_aruco_points_map', 10)
+        self.publish_blue_led_points = self.create_publisher(PointArray, '/zed/blue_led_points_map', 10)
+        self.publish_red_led_points = self.create_publisher(PointArray, '/zed/red_led_points_map', 10)
+        self.publish_ir_led_points = self.create_publisher(PointArray, '/zed/ir_led_points_map', 10)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)

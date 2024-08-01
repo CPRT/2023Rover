@@ -13,7 +13,7 @@ class TuneHSVImageExplore(Node):
             namespace="",
             parameters=[
                 # ('window_name', 'HSV'),
-                ('image_topic', '/zed_raw_image'),
+                ('image_topic', '/zed/zed_raw_image'),
                 ('is_image_compressed', True),
                 ('depth_history', 10),
 

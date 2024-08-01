@@ -106,16 +106,16 @@ def imuDataToROSMsg(imu_data: sl.IMUData, frame_id: str, timestamp) -> Imu:
         else:
             r = 2
 
-        imuMessage.orientation_covariance[i * 3 + 0] = imu_data.get_pose_covariance.r()[r][0] * DEG2RAD * DEG2RAD
-        imuMessage.orientation_covariance[i * 3 + 1] = imu_data.get_pose_covariance.r()[r][1] * DEG2RAD * DEG2RAD
-        imuMessage.orientation_covariance[i * 3 + 2] = imu_data.get_pose_covariance.r()[r][2] * DEG2RAD * DEG2RAD
+        imuMessage.orientation_covariance[i * 3 + 0] = imu_data.get_pose_covariance().r[r][0] * DEG2RAD * DEG2RAD
+        imuMessage.orientation_covariance[i * 3 + 1] = imu_data.get_pose_covariance().r[r][1] * DEG2RAD * DEG2RAD
+        imuMessage.orientation_covariance[i * 3 + 2] = imu_data.get_pose_covariance().r[r][2] * DEG2RAD * DEG2RAD
       
-        imuMessage.angular_velocity_covariance[i * 3 + 0] = imu_data.get_angular_velocity_covariance.r()[r][0] * DEG2RAD * DEG2RAD
-        imuMessage.angular_velocity_covariance[i * 3 + 1] = imu_data.get_angular_velocity_covariance.r()[r][1] * DEG2RAD * DEG2RAD
-        imuMessage.angular_velocity_covariance[i * 3 + 2] = imu_data.get_angular_velocity_covariance.r()[r][2] * DEG2RAD * DEG2RAD
+        imuMessage.angular_velocity_covariance[i * 3 + 0] = imu_data.get_angular_velocity_covariance().r[r][0] * DEG2RAD * DEG2RAD
+        imuMessage.angular_velocity_covariance[i * 3 + 1] = imu_data.get_angular_velocity_covariance().r[r][1] * DEG2RAD * DEG2RAD
+        imuMessage.angular_velocity_covariance[i * 3 + 2] = imu_data.get_angular_velocity_covariance().r[r][2] * DEG2RAD * DEG2RAD
 
-        imuMessage.linear_acceleration_covariance[i * 3 + 0] = imu_data.get_linear_acceleration_covariance.r()[r][0]
-        imuMessage.linear_acceleration_covariance[i * 3 + 1] = imu_data.get_linear_acceleration_covariance.r()[r][1]
-        imuMessage.linear_acceleration_covariance[i * 3 + 2] = imu_data.get_linear_acceleration_covariance.r()[r][2]
+        imuMessage.linear_acceleration_covariance[i * 3 + 0] = imu_data.get_linear_acceleration_covariance().r[r][0]
+        imuMessage.linear_acceleration_covariance[i * 3 + 1] = imu_data.get_linear_acceleration_covariance().r[r][1]
+        imuMessage.linear_acceleration_covariance[i * 3 + 2] = imu_data.get_linear_acceleration_covariance().r[r][2]
 
     return imuMessage
