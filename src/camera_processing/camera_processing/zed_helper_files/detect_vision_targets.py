@@ -222,14 +222,14 @@ class DetectVisionTargets:
     def detectIRLEDS(self, ir_img, cameraMapping: CameraType) -> List[sl.CustomBoxObjectData]:
         detections = []
 
-        try:
-            with open("/home/jetson/LinearUnDistortionTestParams.txt") as file:
-                new_distortion = LinearUndistortion.from_string(file.readline())
-            if isinstance(new_distortion, LinearUndistortion):
-                self.ir_linear_undistort = new_distortion
-                self._ros_logger.info(f"New Undistortion: {self.ir_linear_undistort}")
-        except:
-            pass
+        # try:
+        #     with open("/home/jetson/LinearUnDistortionTestParams.txt") as file:
+        #         new_distortion = LinearUndistortion.from_string(file.readline())
+        #     if isinstance(new_distortion, LinearUndistortion):
+        #         self.ir_linear_undistort = new_distortion
+        #         self._ros_logger.info(f"New Undistortion: {self.ir_linear_undistort}")
+        # except:
+        #     pass
 
         # IR LEDS
         bounding_boxes, tags, timings = self.ir_led_processing.process_image(ir_img)

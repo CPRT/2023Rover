@@ -1,7 +1,10 @@
 import pyzed.sl as sl
 import rclpy
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, Imu
 from enum import Enum
+from math import pi
+
+DEG2RAD = 2 * pi / 360
 
 class ImageEncoding(Enum):
     """
@@ -68,3 +71,51 @@ def slTime2Ros(t: sl.Timestamp) -> rclpy.time.Time:
     Convert a ZED timestamp to a ROS time.
     """
     return rclpy.time.Time(seconds=t.get_seconds(), nanoseconds=t.get_microseconds() * 1000)
+
+
+def imuDataToROSMsg(imu_data: sl.IMUData, frame_id: str, timestamp) -> Imu:
+    """
+    Convert ZED IMU data to a ROS message.
+    """
+    imuMessage = Imu()
+
+    imuMessage.header.stamp = timestamp
+    imuMessage.header.frame_id = frame_id
+
+    imuMessage.orientation.x = imu_data.get_pose().get_orientation().get()[0]
+    imuMessage.orientation.y = imu_data.get_pose().get_orientation().get()[1]
+    imuMessage.orientation.z = imu_data.get_pose().get_orientation().get()[2]
+    imuMessage.orientation.w = imu_data.get_pose().get_orientation().get()[3]
+
+    imuMessage.angular_velocity.x = imu_data.get_angular_velocity()[0] * DEG2RAD
+    imuMessage.angular_velocity.y = imu_data.get_angular_velocity()[1] * DEG2RAD
+    imuMessage.angular_velocity.z = imu_data.get_angular_velocity()[2] * DEG2RAD
+
+    imuMessage.linear_acceleration.x = imu_data.get_linear_acceleration()[0]
+    imuMessage.linear_acceleration.y = imu_data.get_linear_acceleration()[1]
+    imuMessage.linear_acceleration.z = imu_data.get_linear_acceleration()[2]
+
+    # Covariances copy
+    for i in range(0, 3):
+        r = 0
+
+        if i == 0:
+            r = 0
+        elif i == 1:
+            r = 1
+        else:
+            r = 2
+
+        imuMessage.orientation_covariance[i * 3 + 0] = imu_data.get_pose_covariance().r[r][0] * DEG2RAD * DEG2RAD
+        imuMessage.orientation_covariance[i * 3 + 1] = imu_data.get_pose_covariance().r[r][1] * DEG2RAD * DEG2RAD
+        imuMessage.orientation_covariance[i * 3 + 2] = imu_data.get_pose_covariance().r[r][2] * DEG2RAD * DEG2RAD
+      
+        imuMessage.angular_velocity_covariance[i * 3 + 0] = imu_data.get_angular_velocity_covariance().r[r][0] * DEG2RAD * DEG2RAD
+        imuMessage.angular_velocity_covariance[i * 3 + 1] = imu_data.get_angular_velocity_covariance().r[r][1] * DEG2RAD * DEG2RAD
+        imuMessage.angular_velocity_covariance[i * 3 + 2] = imu_data.get_angular_velocity_covariance().r[r][2] * DEG2RAD * DEG2RAD
+
+        imuMessage.linear_acceleration_covariance[i * 3 + 0] = imu_data.get_linear_acceleration_covariance().r[r][0]
+        imuMessage.linear_acceleration_covariance[i * 3 + 1] = imu_data.get_linear_acceleration_covariance().r[r][1]
+        imuMessage.linear_acceleration_covariance[i * 3 + 2] = imu_data.get_linear_acceleration_covariance().r[r][2]
+
+    return imuMessage

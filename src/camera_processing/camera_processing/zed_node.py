@@ -23,11 +23,11 @@ from cv_bridge import CvBridge
 
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
-from sensor_msgs.msg import CompressedImage, Image, PointCloud2, PointField
+from sensor_msgs.msg import CompressedImage, Image, PointCloud2, PointField, Imu
 from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import Int32
 
-from .zed_helper import imageToROSMsg, slTime2Ros
+from .zed_helper import imageToROSMsg, slTime2Ros, imuDataToROSMsg
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
@@ -75,12 +75,17 @@ class ZedNode(Node):
         self.zed_pose = sl.Pose()
         self.depth_mat = sl.Mat()
         self.point_cloud = sl.Mat()
+        self.sensors_data = sl.SensorsData()
+        self.imu_data = sl.IMUData()
+        self.magnetometer_data = sl.MagnetometerData()
 
         self.depth_mat_lock = Lock()
         self.has_new_depth_image = False
 
         self.publisher_depth_image = self.create_publisher(Image, '/zed_depth_image', 10)
         self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed_point_cloud', 10)
+
+        self.publisher_imu_data = self.create_publisher(Imu, '/zed_imu_data', 10)
 
         self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed_aruco_points', 10)
         self.publish_blue_led_points = self.create_publisher(PointArray, '/blue_led_points', 10)
@@ -101,11 +106,15 @@ class ZedNode(Node):
         self.depth_callback_group = MutuallyExclusiveCallbackGroup()
         self.timer_depth = self.create_timer(0.1, self.publish_depth_image, callback_group=self.depth_callback_group)
 
+        self.sensors_callback_group = MutuallyExclusiveCallbackGroup()
+        self.timer_sensors = self.create_timer(0.01, self.publish_sensors_data, callback_group=self.sensors_callback_group) # IMU can run at 400 HZ or 0.0025 seconds
+
         self.timestamp = self.get_clock().now()
         self.header_timestamp = self.get_clock().now().to_msg()
 
     def setup_params(self) -> bool:
         self.frame_id = "zed_link"
+        self.imu_frame_id = "zed_imu"
 
         self.declare_parameters(
             namespace="",
@@ -389,7 +398,7 @@ class ZedNode(Node):
         resized_zed_img = cv2.resize(zed_img, None, fx=self.resize_for_processing, fy=self.resize_for_processing, interpolation=cv2.INTER_LINEAR)
 
         # Store Depth Image
-        if not self.depth_mat_lock.locked() and False:
+        if not self.depth_mat_lock.locked():
             self.depth_mat_lock.acquire(blocking=True)
             try:
                 if not self.openni_depth_mode:
@@ -544,6 +553,17 @@ class ZedNode(Node):
             finally:
                 self.depth_mat_lock.release()
         
+    def publish_sensors_data(self):
+        res = self.zed.get_sensors_data(self.sensors_data, sl.TIME_REFERENCE.CURRENT)
+
+        if res != sl.ERROR_CODE.SUCCESS:
+            return
+        
+        self.imu_data = self.sensors_data.get_imu_data()
+        self.magnetometer_data = self.sensors_data.get_magnetometer_data()
+
+        imu_msg: Imu = imuDataToROSMsg(self.imu_data, self.imu_frame_id, self.get_clock().now().to_msg())
+        self.publisher_imu_data.publish(imu_msg)
 
     def publish_point_cloud(self):
         self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZBGRA, sl.MEM.CPU)
