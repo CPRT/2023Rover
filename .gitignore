@@ -2,6 +2,9 @@
 install/
 log/
 build/
+*.vscode
 
 #Files
 *metadata.json
+
+*.pyc
