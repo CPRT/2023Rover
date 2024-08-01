@@ -36,16 +36,17 @@ ZED_CAM_NAME = "ZED"
 IR_CAM_NAME = "IRCam"
 
 class CameraType(Enum):
-    ZED = CameraUtil(ZED_CAM_NAME, 2208, 1242, 110, 70)
+    ZED = CameraUtil(ZED_CAM_NAME, 1920.0, 1080.0, 110.0, 70.0)
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
     IRCAM_ELP = CameraUtil(IR_CAM_NAME, 1280, 720, 62.91*2, 37.91*2, "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")
+    IRCAM_PS3EYE = CameraUtil(IR_CAM_NAME, 640.0, 480.0, 58.0, 45.0, "usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0")
 
-    def update_scaling(self, image_scaling: float):
-        """
-        Resize the camera resolution based on a image_scaling factor
-        """
-        self.value.xRes = float(self.value.xRes * image_scaling)
-        self.value.yRes = float(self.value.yRes * image_scaling)
+    # def update_scaling(self, image_scaling: float):
+    #     """
+    #     Resize the camera resolution based on a image_scaling factor
+    #     """
+    #     self.value.xRes = float(self.value.xRes * image_scaling)
+    #     self.value.yRes = float(self.value.yRes * image_scaling)
 
 class DetectVisionTargets:
     def __init__(self, ros_logger, blue_led: ColourProcessing, red_led: ColourProcessing, ir_led: ColourProcessing, ir_undistort: LinearUndistortion):
@@ -222,10 +223,11 @@ class DetectVisionTargets:
         detections = []
 
         try:
-            with open("~/LinearUnDistortionTestParams.txt") as file:
+            with open("/home/jetson/LinearUnDistortionTestParams.txt") as file:
                 new_distortion = LinearUndistortion.from_string(file.readline())
             if isinstance(new_distortion, LinearUndistortion):
                 self.ir_linear_undistort = new_distortion
+                self._ros_logger.info(f"New Undistortion: {self.ir_linear_undistort}")
         except:
             pass
 
@@ -237,6 +239,7 @@ class DetectVisionTargets:
             unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"IRLED-{box_index}", tags[box_index])
 
             if unique_object_id == "":
+                self._ros_logger.info("Skipped ir target because the unique_object_id is empty")
                 continue
 
             for point_index, point in enumerate(bounding_boxes[box_index]):
@@ -247,8 +250,9 @@ class DetectVisionTargets:
                 xy = CameraType.ZED.value.xyFromPitchYaw(undistorted_pitchYaw)
                 # self._ros_logger.info(f"bounding_boxes: {repr(bounding_boxes)}\npoints: {repr(points)}\n  XY.x: {repr(xy.x)}, XY.y: {repr(xy.y)}")
 
-                self._ros_logger.info(f"Original {pitchYaw} --- Undistorted {pitchYaw}")
-
+                self._ros_logger.info(f"Original {pitchYaw} --- Undistorted {undistorted_pitchYaw}")
+                self._ros_logger.info(f"Original X: {point[0]:.2f} Y: {point[1]:.2f} --- Post X: {xy.x:.2f} Y: {xy.y:.2f}")
+                self._ros_logger.info(f"ZED: {CameraType.ZED.value}")
                 
                 try:
                     bounding_boxes[box_index][point_index][0] = max(0, int(xy.x)) # Ensure values are not negative
@@ -331,7 +335,7 @@ class DetectVisionTargets:
 
         return True
     
-    def seperate_objects_by_zed_state(objects: List[sl.ObjectData], logger) -> Tuple[List[sl.ObjectData], List[sl.ObjectData], List[sl.ObjectData]]
+    def seperate_objects_by_zed_state(objects: List[sl.ObjectData], logger) -> Tuple[List[sl.ObjectData], List[sl.ObjectData], List[sl.ObjectData]]:
         searching: List[sl.ObjectData] = []
         moving: List[sl.ObjectData] = []
         idle: List[sl.ObjectData] = []
@@ -343,7 +347,7 @@ class DetectVisionTargets:
             elif obj.action_state == sl.OBJECT_ACTION_STATE.MOVING:
                 moving.append(obj)
             elif obj.action_state == sl.OBJECT_ACTION_STATE.IDLE:
-                idle.aappend(obj)
+                idle.append(obj)
             else:
                 logger.info(f"Removed OBJECT due to unknown tracking/action state. Tracking: {obj.tracking_state}" +
                             f"Action: {obj.action_state}")

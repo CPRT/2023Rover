@@ -146,12 +146,14 @@ class ColourProcessing:
         img_resize_start = time.time()
         scale_img = bool(not self._pre_scaled and self._image_scaling != 1.0)
         if scale_img:
-            processed_image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+            image = cv2.resize(image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+            processed_image = deepcopy(image)
         else:
             processed_image = deepcopy(image)
         img_resize_end = time.time()
 
         # Apply the static mask
+        print(f"self._has_static_m,ask: {self._has_static_mask}")
         if self._has_static_mask:
             try:
                 if scale_img:

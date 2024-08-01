@@ -52,7 +52,7 @@ class ZedNode(Node):
 
         if self.should_detect_ir_led:
             try:
-                self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_ELP)
+                self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_PS3EYE)
             except Exception as e:
                 self.get_logger().error("Failed to create VideoCapture for IR cam. Disabling IR camera. Error: " + str(e))
                 self.should_detect_ir_led = False
@@ -214,9 +214,9 @@ class ZedNode(Node):
         red_led_colour_processing = ColourProcessing.from_string(self.red_led_str)
         ir_led_colour_processing = ColourProcessing.from_string(self.ir_led_str)
         
-        blue_led_colour_processing.set_static_mask(self.mask_full_filepath)
-        red_led_colour_processing.set_static_mask(self.mask_full_filepath)
-        ir_led_colour_processing.set_static_mask(self.mask_full_filepath)
+        blue_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
+        red_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
+        # ir_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
 
         if not blue_led_colour_processing or isinstance(blue_led_colour_processing, str):
             self.get_logger().error(f"Failed to create blue_led_colour_processing: {blue_led_colour_processing}") 
@@ -317,7 +317,7 @@ class ZedNode(Node):
         camera_info = self.zed.get_camera_information()
         camera_res = camera_info.camera_configuration.resolution
         self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
-
+        self.get_logger().info(f"ZED Resolution is {camera_res.width}x{camera_res.height}")
         self._roi_mask = sl.Mat()
         self._roi_mask.read(self.mask_full_filepath)
         # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
@@ -328,7 +328,7 @@ class ZedNode(Node):
             self.get_logger().error(f"Invalid mask datatype. Expected one of {allowed_mask_datatypes}. Got {self._roi_mask.get_data_type()}")
         else:
             self.zed.set_region_of_interest(self._roi_mask)
-            self.get_logger().info(f"Set region of interest mask from {mask_filename}")
+            self.get_logger().info(f"Set region of interest mask from {self.mask_full_filepath}")
             
 
         self.get_logger().info(f"Finished initializing ZED Camera in {self.delta_time()} seconds")
@@ -389,7 +389,7 @@ class ZedNode(Node):
         resized_zed_img = cv2.resize(zed_img, None, fx=self.resize_for_processing, fy=self.resize_for_processing, interpolation=cv2.INTER_LINEAR)
 
         # Store Depth Image
-        if not self.depth_mat_lock.locked():
+        if not self.depth_mat_lock.locked() and False:
             self.depth_mat_lock.acquire(blocking=True)
             try:
                 if not self.openni_depth_mode:
@@ -431,7 +431,7 @@ class ZedNode(Node):
                 self.get_logger().error("Got error reading IR Cam: " + str(e))
 
             # IR Cam Aruco Markers
-            detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
+            # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
 
             # IR Cam LEDs
             detections += self.detectVisionTargets.detectIRLEDS(ir_image, self.ir_cam.cam_type)
@@ -443,9 +443,13 @@ class ZedNode(Node):
         # ZED get position in it's world frame to publish
         tracking_state = self.zed.get_position(self.zed_pose, sl.REFERENCE_FRAME.WORLD)
 
+        self.get_logger().info(f"Detections: {detections}")
+
         # Ingest detections and get objects (TODO: Verify all objects in list are correct type to prevent crashing)
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
+
+        self.get_logger().info(f"Objects: {self.objects.object_list}")
 
         if self.enable_gl_viewer and self.viewer.is_available():
             self.viewer.update_view(self.image_left_tmp, self.objects)
@@ -508,10 +512,10 @@ class ZedNode(Node):
         parse_list(idle)
 
         # Parse moving targets, skipping any targets that already had a different non moving target found
-        check_aruco = len(zed_aruco_markers_msg) == 0
-        check_blue = len(blue_led_point_arr) == 0
-        check_red = len(red_led_point_arr) == 0
-        check_ir = len(ir_led_point_arr) == 0
+        check_aruco = len(zed_aruco_markers_msg.points) == 0
+        check_blue = len(blue_led_point_arr.points) == 0
+        check_red = len(red_led_point_arr.points) == 0
+        check_ir = len(ir_led_point_arr.points) == 0
         parse_list(moving)
 
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)

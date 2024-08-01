@@ -18,7 +18,7 @@ class Point:
         self.y = y
 
     def __str__(self):
-        return f"Point({self.x}, {self.y}"
+        return f"Point({self.x}, {self.y})"
 
 class CameraUtil:
     def __init__(self, name: str, xRes, yRes, xFov, yFov, v4l_byid_name: str = None):
@@ -29,6 +29,9 @@ class CameraUtil:
         self.yFov = yFov
         self.v4l_byid_name = v4l_byid_name
             
+    def __str__(self):
+        return f"CameraUtil('{self.name}', {self.xRes}, {self.yRes}, {self.xFov}, {self.yFov})"
+    
     def pitchYawFromXY(self, point: Point) -> PitchYaw:
         aX = (point.x - self.xRes / 2.0) / (self.xRes / 2.0)
         aY = (point.y - self.yRes / 2.0) / (self.yRes / 2.0)
@@ -44,7 +47,7 @@ class CameraUtil:
         
         x = (aX * self.xRes / 2.0) + (self.xRes / 2.0)
         y = (aY * self.yRes / 2.0) + (self.yRes / 2.0)
-        
+
         return Point(x, y)
     
 class LinearUndistortion:
@@ -56,9 +59,16 @@ class LinearUndistortion:
         self._yaw_offset = yaw_offset
         self._yaw_slope = yaw_slope
 
+    def __repr__(self):
+        return f"LinearUndistortion(pitch_offset={self._pitch_offset}, pitch_slope={self._pitch_slope}, yaw_offset={self._yaw_offset}, yaw_slope={self._yaw_slope})"
+    
     def undistort(self, pitchYaw: PitchYaw) -> PitchYaw:
-        p = (pitchYaw.pitch - self._pitch_offset) * self._pitch_slope
-        y = (pitchYaw.yaw - self._yaw_offset) * self._yaw_offset
+        p = (pitchYaw.pitch - self._pitch_offset) * self._pitch_slope + pitchYaw.pitch
+        y = (pitchYaw.yaw - self._yaw_offset) * self._yaw_slope + pitchYaw.yaw
+
+        # p = pitchYaw.pitch * self._pitch_slope - self._pitch_offset
+        # y = pitchYaw.yaw * self._yaw_slope - self._yaw_offset
+
 
         return PitchYaw(p=p, y=y)
     

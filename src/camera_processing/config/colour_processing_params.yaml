@@ -29,10 +29,10 @@
 
     ir_led: "ColourProcessing(
         image_scaling=0.4,
-        display_scaling=0.7,
+        display_scaling=2.0,
         pre_scaled=False,
         process_steps=tuple([
-            HSVRangeMaskStep('Step 1 - HSV - White', HSVRange(HSV(0, 0, 185), HSV(110, 18, 255)), return_mask=True),
+            HSVRangeMaskStep('Step 1 - HSV - White', HSVRange(HSV(0, 0, 185), HSV(145, 120, 255)), return_mask=True),
             ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=-1, dilation=4, erosion_before_dilate=True, return_mask=True),
             FindContours('Step 3 - Find Contours'),
             FilterInnerContours('Step 4 - Reject Inner Contours', reject_inner_contours=True),

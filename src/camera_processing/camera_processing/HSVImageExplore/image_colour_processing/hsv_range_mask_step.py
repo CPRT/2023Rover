@@ -69,6 +69,10 @@ class HSVRangeMaskStep(MaskStep):
             if self._return_mask:
                 mask_img = np.zeros(original_img.shape, original_img.dtype)
                 mask_img[:, :] = (255, 255, 255)
+
+                print(f"Shape of mask_img: {original_img.shape}")
+                print(f"Shape of new_process_images: {new_process_image.shape}")
+
                 display_process_img = cv2.bitwise_and(mask_img, mask_img, mask=new_process_image)
             else:
                 display_process_img = new_process_image
