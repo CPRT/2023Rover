@@ -6,29 +6,14 @@ def generate_launch_description():
   [
         launch_ros.actions.Node(
             package='drive',
-            executable='joystick_drive',
-            name='joystick_drive_station',
-            parameters=[
-                {'PID_max_speed': 1.0}, #m/s
-                {'PID_max_turn': 1.0}, #rad/s
-                {'voltage_max_speed': 8.0}, # x/12volts
-                {'voltage_max_turn': 8.0}, # x/12volts
-                {'PID': 1}, # PID 1 Voltage 0
-            ]
-            ),
-        launch_ros.actions.Node(
-            package='joy',
-            executable='joy_node',
-            name='joystick'),
-        launch_ros.actions.Node(
-            package='drive',
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/front'},
+                {'dev': '/dev/ttyACM0'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
+                #{'~ticks_per_meter': 4342.2},
                 {'ticks_per_meter': 3354},
                 {'ticks_per_rotation': 4096},
                 {'base_width': 0.81},
@@ -42,10 +27,11 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/mid'},
+                {'dev': '/dev/ttyACM1'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
+                #{'~ticks_per_meter': 4342.2},
                 {'ticks_per_meter': 3354},
                 {'ticks_per_rotation': 4096},
                 {'base_width': 0.81},
@@ -59,10 +45,11 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/back'},
+                {'dev': '/dev/ttyACM2'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
+                #{'~ticks_per_meter': 4342.2},
                 {'ticks_per_meter': 3354},
                 {'ticks_per_rotation': 4096},
                 {'base_width': 0.81},
