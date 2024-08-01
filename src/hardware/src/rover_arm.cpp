@@ -73,8 +73,32 @@ hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
     }
   }
   
-  subscription_ = this->create_subscription<std::string>(
-  "random_topic", 10, std::bind(&RoverArmHardwareInterface::subscription_callback, this, std::placeholders::_1));
+  /*subscription_ = this->create_subscription<std::string>(
+  "random_topic", 10, std::bind(&RoverArmHardwareInterface::subscription_callback, this, std::placeholders::_1));*/
+  node = rclcpp::Node::make_shared("get_angle_client");
+  rclcpp::Client<interfaces::srv::ArmPos>::SharedPtr client =
+    node->create_client<interfaces::srv::ArmPos>("arm_pos");
+
+  auto request = std::make_shared<interfaces::srv::ArmPos::Request>();
+  request->stop = false;
+
+  while (!client->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+      return hardware_interface::CallbackReturn::SUCCESS;
+    }
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+  }
+
+  auto result = client->async_send_request(request);
+  // Wait for the result.
+  if (rclcpp::spin_until_future_complete(node, result) ==
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Base: %f", result.get()->base);
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_two_ints");
+  }
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -181,11 +205,6 @@ hardware_interface::return_type RoverArmHardwareInterface::write(
 }
 
 }  // namespace ros2_control_demo_example_1
-
-void RoverArmHardwareInterface::subscription_callback(const std::string str)
-{
-  RCLCPP_INFO(rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Wow!");
-}
 
 #include "pluginlib/class_list_macros.hpp"
 
