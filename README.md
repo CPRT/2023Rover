@@ -26,10 +26,13 @@ terminal 2:
 ros2 run moveit_controller moveit_controller
 
 terminal 3:
-ros2 run controller_publisher controller_publisher
+ros2 run keyboard_publisher keyboard_publisher
 Start entering w, a, s, or d and press enter
 z and x to go up and down
 r and t to twist wrist
 f and g to rotate wrist up and down
 c and v to rotate wrist side to side
 q to stop
+n to reset to original position
+b + 6 numbers to set angles in degrees from orange arm in rviz
+(Example command: b35 67 12 -42 5 1)
