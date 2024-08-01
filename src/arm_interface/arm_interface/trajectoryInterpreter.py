@@ -97,7 +97,7 @@ class trajectoryInterpreter(Node):
         out.m3 = self.elbowAngle
         self.m4 = self.wristTiltAngle
         self.m5 = self.wristTurnAngle
-        self.tempAnglepub.publish(out)
+        self.anglePub.publish(out)
 
     def cmd_traj_callback(self, msg: JointTrajectoryPoint):
         self.expectedTraj = msg;

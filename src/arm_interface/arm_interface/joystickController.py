@@ -105,7 +105,7 @@ class joystickController(Node):
             self.wristTilt.value = 0.0
         self.elbow.value = msg.axes[3] #LEFT VERTICAL
         diff1, diff2 = joystick_to_motor_control(msg.axes[0], msg.axes[1])
-        self.get_logger().info(f'diff1: {self.diff1.value}, diff2: {self.diff2.value}')
+        # self.get_logger().info(f'diff1: {self.diff1.value}, diff2: {self.diff2.value}')
         self.diff1.value = float(diff1)
         self.diff2.value = float(diff2)
         if(msg.buttons[9]):
