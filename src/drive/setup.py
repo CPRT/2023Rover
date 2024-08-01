@@ -26,6 +26,7 @@ setup(
             'drive_station = drive.drive_station:main',
             'joystick_drive = drive.joystick_drive:main',
             "roboclaw_node = drive.roboclaw_node:main",
+            "joystick_breakout = drive.joystick_breakout:main",
         ],
     },
 )
