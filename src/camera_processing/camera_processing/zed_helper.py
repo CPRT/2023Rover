@@ -143,3 +143,5 @@ def magneticDataToROSMsg(mag_data: sl.MagnetometerData, frame_id: str, timestamp
     mag_msg.magnetic_field_covariance[6] = 0.0
     mag_msg.magnetic_field_covariance[7] = 0.0
     mag_msg.magnetic_field_covariance[8] = 0.047e-6
+
+    return mag_msg

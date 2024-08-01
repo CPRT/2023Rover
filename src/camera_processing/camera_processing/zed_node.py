@@ -115,8 +115,8 @@ class ZedNode(Node):
         self.header_timestamp = self.get_clock().now().to_msg()
 
     def setup_params(self) -> bool:
-        self.frame_id = "zed_left_frame"
-        self.imu_frame_id = "zed_imu"
+        self.frame_id = "zed_left_frame_link"
+        self.imu_frame_id = "zed_imu_link"
 
         self.declare_parameters(
             namespace="",
@@ -335,20 +335,20 @@ class ZedNode(Node):
             self.get_logger().info(f"Set SVO position to {self.playback_start_index}")
 
         camera_info = self.zed.get_camera_information()
-        camera_res = camera_info.camera_configuration().resolution()
-        self.depth_mat_res = sl.Resolution(int(camera_res.width() * self.depth_image_scaling), int(camera_res.height() * self.depth_image_scaling))
-        self.get_logger().info(f"ZED Resolution is {camera_res.width()}x{camera_res.height()}")
+        camera_res = camera_info.camera_configuration.resolution
+        self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
+        self.get_logger().info(f"ZED Resolution is {camera_res.width}x{camera_res.height}")
         self._roi_mask = sl.Mat()
         self._roi_mask.read(self.mask_full_filepath)
         # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
 
         self.get_logger().info(f"ZED imu to left camera transformation - " + 
-                               f"xyz (m): {camera_info.sensors_configuration().camera_imu_transform().get_translation().get()}" + 
-                               f"rpy (rad): {camera_info.sensors_configuration().camera_imu_transform().get_euler_angles(radian=True)}")
+                               f"xyz (m): {camera_info.sensors_configuration.camera_imu_transform.get_translation().get()}" + 
+                               f"rpy (rad): {camera_info.sensors_configuration.camera_imu_transform.get_euler_angles(radian=True)}")
         
         self.get_logger().info(f"ZED magnetometer to imu transformation - " + 
-                               f"xyz (m): {camera_info.sensors_configuration().imu_magnetometer_transform().get_translation().get()}" + 
-                               f"rpy (rad): {camera_info.sensors_configuration().imu_magnetometer_transform().get_euler_angles(radian=True)}")
+                               f"xyz (m): {camera_info.sensors_configuration.imu_magnetometer_transform.get_translation().get()}" + 
+                               f"rpy (rad): {camera_info.sensors_configuration.imu_magnetometer_transform.get_euler_angles(radian=True)}")
 
         allowed_mask_datatypes = (sl.MAT_TYPE.U8_C1, sl.MAT_TYPE.U8_C3, sl.MAT_TYPE.U8_C4)
         if self._roi_mask.get_data_type() not in allowed_mask_datatypes:
@@ -586,9 +586,9 @@ class ZedNode(Node):
         magnet_msg: MagneticField = magneticDataToROSMsg(self.magnetometer_data, self.imu_frame_id, self.get_clock().now().to_msg())
         self.publisher_magnetometer_data.publish(magnet_msg)
 
-        is_heading_accurate = self.magnetometer_data.magnetic_heading_accuracy() > 0.2
-        is_heading_good = self.magnetometer_data.magnetic_heading_state() == sl.HEADING_STATE.GOOD
-        is_heading_ok = self.magnetometer_data.magnetic_heading_state() == sl.HEADING_STATE.OK
+        is_heading_accurate = self.magnetometer_data.magnetic_heading_accuracy > 0.2
+        is_heading_good = self.magnetometer_data.magnetic_heading_state == sl.HEADING_STATE.GOOD
+        is_heading_ok = self.magnetometer_data.magnetic_heading_state == sl.HEADING_STATE.OK
         if is_heading_accurate and (is_heading_good or is_heading_ok):
             magnetic_north_heading = Float32()
             magnetic_north_heading.data = self.magnetometer_data.magnetic_heading()
