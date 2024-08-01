@@ -48,13 +48,13 @@ def launch_setup(context):
     if loaded_profile_arg not in ("day", "night", "testing"):
         loaded_profile_arg = "night"
 
-    return {"loaded_profile_arg": loaded_profile_arg}
+    return loaded_profile_arg
 
 
 
 def generate_launch_description():
-    live_args = OpaqueFunction(function=launch_setup)
-    profile = live_args.get("loaded_profile_arg")
+    profile = OpaqueFunction(function=launch_setup)
+    # profile = live_args
 
     ld = LaunchDescription(launch_args)
 
