@@ -28,7 +28,7 @@ def joystick_to_motor_control(vertical, horizontal):
     
     return -left_motor, -right_motor
 
-class joystickController(Node):
+class joystickArmController(Node):
     def __init__(self):
         super().__init__("joystickControl")
         self.base = MotorControl()
@@ -55,7 +55,7 @@ class joystickController(Node):
             MotorControl, "/wristTurn/set", 1)
         
         self.joystick = self.create_subscription(
-            Joy, "/joy", self.joy_callback, 5)
+            Joy, "/joystick/arm", self.joy_callback, 5)
         
         freq = 10
         self.rate = self.create_rate(freq)
@@ -117,7 +117,7 @@ class joystickController(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = joystickController()
+    node = joystickArmController()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

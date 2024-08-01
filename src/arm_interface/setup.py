@@ -24,7 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'trajectory_interpreter = arm_interface.trajectoryInterpreter:main',
-            'joystick_controller = arm_interface.joystickController:main',
+            'joystick_arm_controller = arm_interface.joystickArmController:main',
+            'joystick_science_controller = arm_interface.joystickArmController:main',
         ],
     },
 )
