@@ -76,11 +76,7 @@ hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
   /*subscription_ = this->create_subscription<std::string>(
   "random_topic", 10, std::bind(&RoverArmHardwareInterface::subscription_callback, this, std::placeholders::_1));*/
   node = rclcpp::Node::make_shared("get_angle_client");
-  rclcpp::Client<interfaces::srv::ArmPos>::SharedPtr client =
-    node->create_client<interfaces::srv::ArmPos>("arm_pos");
-
-  auto request = std::make_shared<interfaces::srv::ArmPos::Request>();
-  request->stop = false;
+  client = node->create_client<interfaces::srv::ArmPos>("arm_pos");
 
   while (!client->wait_for_service(1s)) {
     if (!rclcpp::ok()) {
@@ -88,16 +84,6 @@ hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
       return hardware_interface::CallbackReturn::SUCCESS;
     }
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
-  }
-
-  auto result = client->async_send_request(request);
-  // Wait for the result.
-  if (rclcpp::spin_until_future_complete(node, result) ==
-    rclcpp::FutureReturnCode::SUCCESS)
-  {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Base: %f", result.get()->base);
-  } else {
-    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_two_ints");
   }
 
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -176,17 +162,41 @@ hardware_interface::return_type RoverArmHardwareInterface::read(
 {
   // BEGIN: This part here is for exemplary purposes - Please do not copy to your production code
   //RCLCPP_INFO(rclcpp::get_logger("RoverArmHardwareInterface"), "Reading...");
+  
+  auto request = std::make_shared<interfaces::srv::ArmPos::Request>();
+  request->stop = false;
+  auto result = client->async_send_request(request);
+  //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading");
+  // Wait for the result.
+  if (rclcpp::spin_until_future_complete(node, result) ==
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Base: %f", result.get()->base);
+    auto resultCopy = result.get();
+    hw_position_states_[0] = resultCopy->base;
+		hw_position_states_[1] = resultCopy->diff1;
+		hw_position_states_[2] = resultCopy->diff2;
+		hw_position_states_[3] = resultCopy->elbow;
+		hw_position_states_[4] = resultCopy->wristtilt;
+		hw_position_states_[5] = resultCopy->wristturn;
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_two_ints");
+  }
 
-  for (uint i = 1; i < hw_position_states_.size(); i++)
+  for (uint i = 1; i < hw_velocity_states_.size(); i++)
   {
     // Simulate RRBot's movement
-    hw_position_states_[i] = 0;
     hw_velocity_states_[i] = 0;
     /*RCLCPP_INFO(
       rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Got state %.5f for joint %d!",
       hw_position_states_[i], i);*/
   }
-  hw_position_states_[0] = 0;
+  /*hw_position_states_[0] = result.get()->base;
+  hw_position_states_[1] = result.get()->diff1;
+  hw_position_states_[2] = result.get()->diff2;
+  hw_position_states_[3] = result.get()->elbow;
+  hw_position_states_[4] = result.get()->wristtilt;
+  hw_position_states_[5] = result.get()->wristturn;//*/
   //RCLCPP_INFO(rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Joints successfully read!");
   // END: This part here is for exemplary purposes - Please do not copy to your production code
 
