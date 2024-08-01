@@ -56,7 +56,7 @@ class joystickDrive(Node):
         self.setEstop = self.create_publisher(
             Bool, "/drive/estop", 1)
         self.cmd_move_subscriber = self.create_subscription(
-            Joy,"/joy", self.cmd_joy_callback, 10) 
+            Joy,"/joystick/drive", self.cmd_joy_callback, 10) 
         self.setEstop.publish(self.estop) #init as not estoped
 
         freq = 10
