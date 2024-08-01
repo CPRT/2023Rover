@@ -1,6 +1,6 @@
 import pyzed.sl as sl
 import rclpy
-from sensor_msgs.msg import Image, Imu
+from sensor_msgs.msg import Image, Imu, MagneticField
 from enum import Enum
 from math import pi
 
@@ -119,3 +119,27 @@ def imuDataToROSMsg(imu_data: sl.IMUData, frame_id: str, timestamp) -> Imu:
         imuMessage.linear_acceleration_covariance[i * 3 + 2] = imu_data.get_linear_acceleration_covariance().r[r][2]
 
     return imuMessage
+
+
+def magneticDataToROSMsg(mag_data: sl.MagnetometerData, frame_id: str, timestamp) -> MagneticField:
+    """
+    Convert ZED Magnetometer data to a MagneticField ROS message.
+    """
+    mag_msg = MagneticField()
+
+    mag_msg.header.stamp = timestamp
+    mag_msg.header.frame_id = frame_id
+
+    mag_msg.magnetic_field.x = mag_data.get_magnetic_field_calibrated()[0] * 1e-6 # convert micro tesla to tesla
+    mag_msg.magnetic_field.y = mag_data.get_magnetic_field_calibrated()[1] * 1e-6
+    mag_msg.magnetic_field.z = mag_data.get_magnetic_field_calibrated()[2] * 1e-6
+
+    mag_msg.magnetic_field_covariance[0] = 0.039e-6
+    mag_msg.magnetic_field_covariance[1] = 0.0
+    mag_msg.magnetic_field_covariance[2] = 0.0
+    mag_msg.magnetic_field_covariance[3] = 0.0
+    mag_msg.magnetic_field_covariance[4] = 0.037e-6
+    mag_msg.magnetic_field_covariance[5] = 0.0
+    mag_msg.magnetic_field_covariance[6] = 0.0
+    mag_msg.magnetic_field_covariance[7] = 0.0
+    mag_msg.magnetic_field_covariance[8] = 0.047e-6

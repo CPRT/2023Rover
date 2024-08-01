@@ -31,9 +31,9 @@ zed:
     fps: 30
     depth_maximum_distance: 15 # meters
   
-    exposure: 50
-    gain: 95
-    gamma: 7
-    white_balance: 4600
+    exposure: -1
+    gain: -1
+    gamma: -1
+    white_balance: -1
 
     enable_object_tracking: True

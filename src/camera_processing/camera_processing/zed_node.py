@@ -23,11 +23,11 @@ from cv_bridge import CvBridge
 
 from geometry_msgs.msg import Point
 from interfaces.msg import PointArray, ArucoMarkers
-from sensor_msgs.msg import CompressedImage, Image, PointCloud2, PointField, Imu
+from sensor_msgs.msg import CompressedImage, Image, PointCloud2, PointField, Imu, MagneticField
 from visualization_msgs.msg import MarkerArray, Marker
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Float32
 
-from .zed_helper import imageToROSMsg, slTime2Ros, imuDataToROSMsg
+from .zed_helper import imageToROSMsg, slTime2Ros, imuDataToROSMsg, magneticDataToROSMsg
 
 from .zed_viewers.cv_viewer import tracking_viewer as cv_viewer
 from .zed_viewers.ogl_viewer import viewer as gl
@@ -82,10 +82,12 @@ class ZedNode(Node):
         self.depth_mat_lock = Lock()
         self.has_new_depth_image = False
 
-        self.publisher_depth_image = self.create_publisher(Image, '/zed/zed_depth_image', 10)
-        self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed/zed_point_cloud', 10)
+        self.publisher_depth_image = self.create_publisher(Image, '/zed/depth_image', 10)
+        # self.publisher_point_cloud = self.create_publisher(PointCloud2, '/zed/point_cloud', 10) # CONSUMES TOO MANY RESOURCES/TOO SLOW
 
-        self.publisher_imu_data = self.create_publisher(Imu, '/zed/zed_imu_data', 10)
+        self.publisher_imu_data = self.create_publisher(Imu, '/zed/imu_data', 10)
+        self.publisher_magnetometer_data = self.create_publisher(MagneticField, '/zed/magnetic_field', 10)
+        self.publisher_magnetic_north_heading = self.create_publisher(Float32, '/zed/magnetic_north_pole_heading', 10)
 
         self.publish_zed_aruco_points = self.create_publisher(ArucoMarkers, '/zed/zed_aruco_points', 10)
         self.publish_blue_led_points = self.create_publisher(PointArray, '/zed/blue_led_points', 10)
@@ -113,7 +115,7 @@ class ZedNode(Node):
         self.header_timestamp = self.get_clock().now().to_msg()
 
     def setup_params(self) -> bool:
-        self.frame_id = "zed_link"
+        self.frame_id = "zed_left_frame"
         self.imu_frame_id = "zed_imu"
 
         self.declare_parameters(
@@ -293,12 +295,21 @@ class ZedNode(Node):
                 self.get_logger().error("Failed to zed.open(init_params) Got ZED error code: " + repr(status))
                 return False
         
-        # self.get_logger().info(f"white_balance: {int(self.get_parameter('white_balance').value)}")
-        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, int(self.get_parameter('exposure').value))
-        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, int(self.get_parameter('white_balance').value))
-        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, 0 if int(self.get_parameter('white_balance').value) == -1 else 1)
-        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, int(self.get_parameter('gain').value))
-        # self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, int(self.get_parameter('gamma').value))
+        exposure = int(self.get_parameter('exposure').value)
+        white_balance = int(self.get_parameter('white_balance').value)
+        white_balence_auto = 0 if int(self.get_parameter('white_balance').value) == -1 else 1
+        gain = int(self.get_parameter('gain').value)
+        gamma = int(self.get_parameter('gamma').value)
+
+        if exposure != -1:
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, exposure)
+        if white_balance != -1:
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, white_balance)
+        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, white_balence_auto)
+        if gain != -1:
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, gain)
+        if gamma != -1:
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, gamma)
 
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
@@ -324,13 +335,20 @@ class ZedNode(Node):
             self.get_logger().info(f"Set SVO position to {self.playback_start_index}")
 
         camera_info = self.zed.get_camera_information()
-        camera_res = camera_info.camera_configuration.resolution
-        self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
-        self.get_logger().info(f"ZED Resolution is {camera_res.width}x{camera_res.height}")
+        camera_res = camera_info.camera_configuration().resolution()
+        self.depth_mat_res = sl.Resolution(int(camera_res.width() * self.depth_image_scaling), int(camera_res.height() * self.depth_image_scaling))
+        self.get_logger().info(f"ZED Resolution is {camera_res.width()}x{camera_res.height()}")
         self._roi_mask = sl.Mat()
         self._roi_mask.read(self.mask_full_filepath)
         # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
 
+        self.get_logger().info(f"ZED imu to left camera transformation - " + 
+                               f"xyz (m): {camera_info.sensors_configuration().camera_imu_transform().get_translation().get()}" + 
+                               f"rpy (rad): {camera_info.sensors_configuration().camera_imu_transform().get_euler_angles(radian=True)}")
+        
+        self.get_logger().info(f"ZED magnetometer to imu transformation - " + 
+                               f"xyz (m): {camera_info.sensors_configuration().imu_magnetometer_transform().get_translation().get()}" + 
+                               f"rpy (rad): {camera_info.sensors_configuration().imu_magnetometer_transform().get_euler_angles(radian=True)}")
 
         allowed_mask_datatypes = (sl.MAT_TYPE.U8_C1, sl.MAT_TYPE.U8_C3, sl.MAT_TYPE.U8_C4)
         if self._roi_mask.get_data_type() not in allowed_mask_datatypes:
@@ -564,6 +582,17 @@ class ZedNode(Node):
 
         imu_msg: Imu = imuDataToROSMsg(self.imu_data, self.imu_frame_id, self.get_clock().now().to_msg())
         self.publisher_imu_data.publish(imu_msg)
+
+        magnet_msg: MagneticField = magneticDataToROSMsg(self.magnetometer_data, self.imu_frame_id, self.get_clock().now().to_msg())
+        self.publisher_magnetometer_data.publish(magnet_msg)
+
+        is_heading_accurate = self.magnetometer_data.magnetic_heading_accuracy() > 0.2
+        is_heading_good = self.magnetometer_data.magnetic_heading_state() == sl.HEADING_STATE.GOOD
+        is_heading_ok = self.magnetometer_data.magnetic_heading_state() == sl.HEADING_STATE.OK
+        if is_heading_accurate and (is_heading_good or is_heading_ok):
+            magnetic_north_heading = Float32()
+            magnetic_north_heading.data = self.magnetometer_data.magnetic_heading()
+            self.publisher_magnetic_north_heading(magnetic_north_heading)
 
     def publish_point_cloud(self):
         self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZBGRA, sl.MEM.CPU)
