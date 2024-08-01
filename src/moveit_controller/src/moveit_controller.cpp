@@ -211,7 +211,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 	else if (armMsg.query_goal_state)
 	{
 	  std::vector<double> angles(6);
-	  for (int i = 0; i < angles.size(); i++)
+	  for (size_t i = 0; i < angles.size(); i++)
 	  {
 	    angles[i] = armMsg.goal_angles[i];
 	    RCLCPP_INFO(this->get_logger(), std::to_string(armMsg.goal_angles[i]).c_str());
