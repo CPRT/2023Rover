@@ -125,7 +125,8 @@ class ZedNode(Node):
                 ('openni_depth_mode', False),
                 ('depth_image_scaling', 0.25),
                 ('mask_filename', 'ZEDMask.png'),
-                
+                ('profile_name', 'night')
+
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
                 ('red_led_detections', True),
@@ -170,6 +171,9 @@ class ZedNode(Node):
 
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
+
+        self.get_logger().info("Loaded parameters from profile named " + str(self.get_parameter('profile_name').value))
+
 
         self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
         self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
