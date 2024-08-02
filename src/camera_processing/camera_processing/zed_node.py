@@ -307,13 +307,17 @@ class ZedNode(Node):
 
         if exposure != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, exposure)
+            self.get_logger().info(f"Set exposure to {exposure}")
         if white_balance != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, white_balance)
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, white_balence_auto)
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, white_balence_auto)
+            self.get_logger().info(f"Set white balance to {white_balance} and auto white balance to {white_balence_auto}")
         if gain != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, gain)
+            self.get_logger().info(f"Set gain to {gain}")
         if gamma != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, gamma)
+            self.get_logger().info(f"Set gamma to {gamma}")
 
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
