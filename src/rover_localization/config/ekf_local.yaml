@@ -101,18 +101,18 @@ local_ekf:
     # odom3_pose_rejection_threshold: 5.0
     # odom3_twist_rejection_threshold: 1.0
 
-    imu0: ouster/imu
+    imu0: zed/imu_data
     imu0_config: [
         # position
         false, false, false,
         # orientation
-        false, false, false,
+        true, true, false,
         # lineal vel
         false, false, false,
         # angular vel
         false, false, false,
         # lineal acc
-        true, true, false,
+        false, false, false,
       ]
     # imu0_nodelay: false
     imu0_differential: false
@@ -122,6 +122,28 @@ local_ekf:
     # imu0_twist_rejection_threshold: 0.8
     # imu0_linear_acceleration_rejection_threshold: 0.8
     imu0_remove_gravitational_acceleration: false
+
+    imu1: ouster/imu
+    imu1_config: [
+        # position
+        false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        true, false, false,
+      ]
+    # imu1_nodelay: false
+    imu1_differential: false
+    imu1_relative: true
+    # imu1_queue_size: 5
+    # imu1_pose_rejection_threshold: 0.8
+    # imu1_twist_rejection_threshold: 0.8
+    # imu1_linear_acceleration_rejection_threshold: 0.8
+    imu1_remove_gravitational_acceleration: false
 
     # use_control: false
     # stamped_control: false
