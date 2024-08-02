@@ -1,0 +1,15 @@
+[Unit]
+Description=PipeFFmpegTov4l2loopback-LaptopCam
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/home/prs/Downloads/RandomTesting/git/2023Rover/camera_setup/ffmpeg_piping_scripts/.ffmpeg_venv/bin/python -u /home/prs/Downloads/RandomTesting/git/2023Rover/camera_setup/ffmpeg_piping_scripts/pipe_ffmpeg_to_v4l2loopback.py \
+        --camera "e1_laptop"
+Restart=no
+RestartSec=3
+User=prs
+Group=prs
+
+[Install]
+WantedBy=multi-user.target
