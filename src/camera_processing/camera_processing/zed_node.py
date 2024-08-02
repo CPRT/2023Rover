@@ -591,8 +591,8 @@ class ZedNode(Node):
         is_heading_ok = self.magnetometer_data.magnetic_heading_state == sl.HEADING_STATE.OK
         if is_heading_accurate and (is_heading_good or is_heading_ok):
             magnetic_north_heading = Float32()
-            magnetic_north_heading.data = self.magnetometer_data.magnetic_heading()
-            self.publisher_magnetic_north_heading(magnetic_north_heading)
+            magnetic_north_heading.data = self.magnetometer_data.magnetic_heading
+            self.publisher_magnetic_north_heading.publish(magnetic_north_heading)
 
     def publish_point_cloud(self):
         self.zed.retrieve_measure(self.point_cloud, sl.MEASURE.XYZBGRA, sl.MEM.CPU)
