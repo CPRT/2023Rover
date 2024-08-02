@@ -48,7 +48,7 @@ def launch_setup(context):
     if loaded_profile_arg not in ("day", "night", "testing"):
         loaded_profile_arg = "shitface"
 
-    return loaded_profile_arg
+    return loaded_profile_arg 
 
 
 
