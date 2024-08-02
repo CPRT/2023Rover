@@ -1,7 +1,7 @@
 import rclpy, cv2
 from rclpy.node import Node 
 
-import tf2_geomtry_msgs
+import tf2_geometry_msgs
 
 from tf2_ros import TransformException, LookupException, ConnectivityException, ExtrapolationException
 from tf2_ros.buffer import Buffer
@@ -65,7 +65,7 @@ class TransformZedPointsToMap(Node):
             point_stamped = PointStamped()
             point_stamped.point = point
             point_stamped.header = header
-            mapped_point = tf2_geomtry_msgs.do_transform_point(point, self.transform)
+            mapped_point = tf2_geometry_msgs.do_transform_point(point, self.transform)
             mapped_points.append(mapped_point.point)
 
         return mapped_points
