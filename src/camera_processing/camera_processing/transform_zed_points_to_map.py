@@ -20,8 +20,8 @@ class TransformZedPointsToMap(Node):
         self.declare_parameters(
             namespace="",
             parameters=[
-                ('expected_input_frame', 'zed_left_frame'),
-                ('desired_frame', 'map'),
+                ('expected_input_frame', 'zed_left_frame_link'),
+                ('desired_frame', 'base_link'),
             ]
         )
 
