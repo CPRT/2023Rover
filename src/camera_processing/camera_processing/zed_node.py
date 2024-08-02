@@ -125,7 +125,7 @@ class ZedNode(Node):
                 ('openni_depth_mode', False),
                 ('depth_image_scaling', 0.25),
                 ('mask_filename', 'ZEDMask.png'),
-                ('profile_name', 'night')
+                ('profile_name', 'night'),
 
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
