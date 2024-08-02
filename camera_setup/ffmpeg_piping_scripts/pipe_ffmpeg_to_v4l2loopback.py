@@ -18,7 +18,7 @@ def get_input_output_indexes(camera_profile: str) -> Tuple[int, int]:
 
 def e1_laptop() -> Tuple[int, int]:
     output_index = 10
-    camera_index = find_video_index_by_id("usb-CN0F43K88LG001BQD06SA00_Integrated_Webcam_HD_200901010001-video-index0")
+    camera_index = find_video_index_by_id("usb-CN0HK46K8LG00114H364A03_Integrated_Webcam_HD_200901010001-video-index0")
     return (camera_index, output_index)
 
 
