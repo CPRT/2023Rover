@@ -48,13 +48,16 @@ def launch_setup(context):
     if loaded_profile_arg not in ("day", "night", "testing"):
         loaded_profile_arg = "shitface"
 
-    return loaded_profile_arg
+    return loaded_profile_arg 
 
 
 
 def generate_launch_description():
     profile = OpaqueFunction(function=launch_setup)
     # profile = live_args
+
+    with open("temp", "w") as f:
+        f.write(f"Profile {profile}")
 
     ld = LaunchDescription(launch_args)
 
