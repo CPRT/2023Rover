@@ -46,7 +46,7 @@ def launch_setup(context):
     loaded_profile_arg = loaded_profile_arg.lower()
 
     if loaded_profile_arg not in ("day", "night", "testing"):
-        loaded_profile_arg = "night"
+        loaded_profile_arg = "shitface"
 
     return loaded_profile_arg
 
