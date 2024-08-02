@@ -51,7 +51,7 @@ echo "  SERVICE_PATHS: ${SERVICE_PATHS}"
 
 # Modify the location of the python venv interpeter and the python script in the services
 echo "~~ Update the location of the python venv interpeter and script in the ExecStart in the services"
-sed -i "s#REPLACE_ME_AUTOMATICALLY#ExecStart=$PYTHON_INTERP -u $PYTHON_SCRIPT#" $SERVICE_PATHS
+sed -i "s#REPLACE_ME_AUTOMATICALLY#$PYTHON_INTERP -u $PYTHON_SCRIPT#" $SERVICE_PATHS
 echo
 
 echo "~~ Link services to files in the repo"

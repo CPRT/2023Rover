@@ -1,4 +1,2 @@
-active_services
-
-ffmpeg_piping_scripts/.ffmpeg_piping_scripts/*
-!ffmpeg_piping_scripts/.ffmpeg_piping_scripts/requirements.txt
+active_services/*
+ffmpeg_piping_scripts/.ffmpeg_venv/*

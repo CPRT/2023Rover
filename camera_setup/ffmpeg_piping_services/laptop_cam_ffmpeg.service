@@ -4,7 +4,8 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=REPLACE_ME_AUTOMATICALLY --camera "e1_laptop"
+ExecStart=REPLACE_ME_AUTOMATICALLY \
+        --camera "e1_laptop"
 Restart=no
 RestartSec=3
 

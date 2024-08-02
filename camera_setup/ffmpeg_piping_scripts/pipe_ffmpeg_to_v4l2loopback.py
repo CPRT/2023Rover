@@ -3,7 +3,7 @@ from ffmpeg.progress import Progress
 import os, sys, argparse, re
 from typing import Tuple
 
-CAMERA_PROFILE_NAMES = ['e1_laptop', ]
+CAMERA_PROFILE_NAMES = ['ZED', 'IR_ELP', 'PS3_EYE', 'ExpensiveAssLowLightCamera']
 
 """
 Steps to add a new camera
@@ -13,14 +13,34 @@ Steps to add a new camera
 """
 
 def get_input_output_indexes(camera_profile: str) -> Tuple[int, int]:
-    if camera_profile == 'e1_laptop':
-        return e1_laptop()
+    if camera_profile == 'ZED':
+        return ZED()
+    elif camera_profile == 'ExpensiveAssLowLightCamera':
+        return ExpensiveAssLowLightCamera()    
+    elif camera_profile == 'IR_ELP':
+        return IR_ELP()
+    elif camera_profile == 'PS3_EYE':
+        return PS3_EYE()
 
-def e1_laptop() -> Tuple[int, int]:
+def ZED() -> Tuple[int, int]:
     output_index = 10
-    camera_index = find_video_index_by_id("usb-CN0HK46K8LG00114H364A03_Integrated_Webcam_HD_200901010001-video-index0")
+    camera_index = find_video_index_by_id("usb-Technologies__Inc._ZED_2i_OV0001-video-index0")
     return (camera_index, output_index)
 
+def ExpensiveAssLowLightCamera() -> Tuple[int, int]:
+    output_index = 11
+    camera_index = find_video_index_by_id("usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0")
+    return (camera_index, output_index)
+
+def IR_ELP() -> Tuple[int, int]:
+    output_index = 14
+    camera_index = find_video_index_by_id("usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")
+    return (camera_index, output_index)
+
+def PS3_EYE() -> Tuple[int, int]:
+    output_index = 15
+    camera_index = find_video_index_by_id("usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0")
+    return (camera_index, output_index)
 
 
 def find_video_index_by_id(v4l_byid_name: str) -> int:
@@ -82,6 +102,15 @@ def main():
     cam_index, output_index = get_input_output_indexes(selected_profile)
     printS(f"Camera Device: /dev/video{cam_index}, Output Device: /dev/video{output_index}")
 
+    try:
+        if not os.path.isfile(f"/dev/video{cam_index}"):
+            exit_with_error(os.EX_SOFTWARE, f"Camera device file does not exist: /dev/video{cam_index}")
+
+        if not os.path.isfile(f"/dev/video{output_index}"):
+            exit_with_error(os.EX_SOFTWARE, f"Output device file does not exist: /dev/video{output_index}")
+
+    except Exception as e:
+        exit_with_error(os.EX_SOFTWARE, f"Failed to check if camera and output device files exist with exception: {e}")
 
     try:
         # Same as command: ffmpeg -f v4l2 -i /dev/video0 -f v4l2 /dev/video10
