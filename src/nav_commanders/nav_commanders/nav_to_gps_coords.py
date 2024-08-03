@@ -19,18 +19,21 @@ class GpsCommander(Node):
     Class to use nav2 gps waypoint follower to follow a set of waypoints logged in a yaml file
     """
 
-    def __init__(self, wps_file_path):
+    def __init__(self):
         super().__init__('minimal_client_async')
         self.navigator = BasicNavigator("GpsCommander")
 
         self.nav_fix_topic = "/fromLL"
-        self.geopose_service_name = "nav_to_gps_geopose"
+        self.geopose_service_name = "commander/nav_to_gps_geopose"
 
         self.localizer = self.create_client(FromLL,  self.nav_fix_topic)
-        self.geopose_service = self.create_service(GeoPose, self.geopose_service_name, self.geopose_server)
+        self.geopose_service = self.create_service(NavToGPSGeopose, self.geopose_service_name, self.geopose_server)
 
+        count = 0
         while not self.localizer.wait_for_service(timeout_sec=2.0):
-            self.get_logger().info(f'Service on {self.nav_fix_topic} is not available, waiting again...')
+            count += 1
+            if count % 10 == 1:
+                self.get_logger().info(f'Service on {self.nav_fix_topic} is not available, waiting again...')
 
         self.get_logger().info('Waiting for Nav2 to be active')
         self.navigator.waitUntilNav2Active(localizer='controller_server')
@@ -65,17 +68,11 @@ class GpsCommander(Node):
 def main():
     rclpy.init()
 
-    # allow to pass the waypoints file as an argument
-    default_yaml_file_path = os.path.join(get_package_share_directory(
-        "node"), "config", "demo_waypoints.yaml")
-    if len(sys.argv) > 1:
-        yaml_file_path = sys.argv[1]
-    else:
-        yaml_file_path = default_yaml_file_path
+    gps_commander = GpsCommander()
 
-    gps_wpf = GpsCommander(yaml_file_path)
-    gps_wpf.start_wpf()
-
+    rclpy.spin(gps_commander)
+    gps_commander.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
