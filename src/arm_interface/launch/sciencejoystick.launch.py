@@ -19,7 +19,7 @@ def generate_launch_description():
                 package="ros_phoenix",
                 plugin="ros_phoenix::TalonSRX",
                 name="scienceBase",
-                parameters=[{"id": 1},
+                parameters=[{"id": 7},
                             {"P":5.0},
                             {"I":0.0},
                             {"D":0.0},
@@ -31,7 +31,7 @@ def generate_launch_description():
                 package="ros_phoenix",
                 plugin="ros_phoenix::TalonSRX",
                 name="digger",
-                parameters=[{"id": 2},
+                parameters=[{"id": 8},
                             {"P":100.0},
                             {"I":0.0},
                             {"D":0.0}],
@@ -50,6 +50,10 @@ def generate_launch_description():
             package='arm_interface',
             executable='joystick_science_controller',
             name='joystick_science_controller_node'),
+        launch_ros.actions.Node(
+            package='drive',
+            executable='joystick_breakout',
+            name='joystick_breakout_node'),
             
             
             ])

@@ -98,6 +98,10 @@ def generate_launch_description():
             package='arm_interface',
             executable='trajectory_interpreter',
             name='trajectory_interpreter_node'),
+        launch_ros.actions.Node(
+            package='drive',
+            executable='joystick_breakout',
+            name='joystick_breakout_node'),
             
             
             ])

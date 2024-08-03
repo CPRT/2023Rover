@@ -28,8 +28,8 @@ add_library(
 )
 target_compile_features(ros2_control_rover_arm PUBLIC c_std_99 cxx_std_17)
 target_include_directories(ros2_control_rover_arm PUBLIC
-$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
-$<INSTALL_INTERFACE:include>
+$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/src>
+$<INSTALL_INTERFACE:src>
 )
 ament_target_dependencies(
   ros2_control_rover_arm PUBLIC

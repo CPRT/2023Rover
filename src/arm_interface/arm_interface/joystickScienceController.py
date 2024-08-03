@@ -32,8 +32,8 @@ class joystickScienceController(Node):
 
 
     def controlPublisher(self):
-        if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
-            return
+        # if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
+        #     return
         self.baseCommand.publish(self.scienceBase)
         self.diggerCommand.publish(self.digger)
 
@@ -41,7 +41,7 @@ class joystickScienceController(Node):
         self.lastTimestamp = msg.header.stamp.sec
         self.scienceBase.mode = 0
         self.digger.mode = 0
-
+        self.get_logger().info(f'base: {msg.axes[3]}, digger: { msg.axes[1]}')
         self.digger.value = msg.axes[1]
         self.scienceBase.value = msg.axes[3]
 
