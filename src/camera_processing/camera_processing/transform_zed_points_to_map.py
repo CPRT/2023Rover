@@ -21,7 +21,7 @@ class TransformZedPointsToMap(Node):
             namespace="",
             parameters=[
                 ('expected_input_frame', 'zed_left_frame_link'),
-                ('desired_frame', 'base_link'),
+                ('desired_frame', 'map'),
             ]
         )
 
@@ -85,7 +85,7 @@ class TransformZedPointsToMap(Node):
             new_msg = ArucoMarkers()
             new_msg.marker_ids = msg.marker_ids
         elif isinstance(msg, PointArray):
-            new_msg = PointArray
+            new_msg = PointArray()
         else:
             self.get_logger().error(f"Recieved a message that is not either ArucoMarkers or PointArray")
             return None
@@ -113,6 +113,7 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
+        
         # elif not isinstance(new_msg, PointArray):
         #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
         else:
