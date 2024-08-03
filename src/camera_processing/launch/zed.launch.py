@@ -109,5 +109,5 @@ def generate_launch_description():
 
     # Add launch actions
     ld.add_action(zed_node)
-    ld.add_action(transform_zed_points_node)
+    # ld.add_action(transform_zed_points_node)
     return ld

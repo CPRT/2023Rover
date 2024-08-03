@@ -65,7 +65,7 @@ class TransformZedPointsToMap(Node):
             point_stamped = PointStamped()
             point_stamped.point = point
             point_stamped.header = header
-            mapped_point = tf2_geometry_msgs.do_transform_point(point, self.transform)
+            mapped_point = tf2_geometry_msgs.do_transform_point(point_stamped, self.transform)
             mapped_points.append(mapped_point.point)
 
         return mapped_points
