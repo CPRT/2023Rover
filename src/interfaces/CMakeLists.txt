@@ -14,6 +14,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 find_package(geometry_msgs REQUIRED)
+  find_package(geographic_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SixFloats.msg"
@@ -21,7 +22,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PIDmsg.msg"
   "msg/ArucoMarkers.msg"
   "msg/PointArray.msg"
-  DEPENDENCIES geometry_msgs # Add packages that above messages depend on
+  "srv/NavToGPSGeopose.srv"
+  DEPENDENCIES 
+  geometry_msgs 
+  geographic_msgs # Add packages that above messages depend on
  )
 
 ament_export_dependencies(rosidl_default_runtime)
