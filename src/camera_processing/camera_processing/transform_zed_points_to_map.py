@@ -104,8 +104,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, ArucoMarkers):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for zed_aruco_callback")
+        # elif not isinstance(new_msg, ArucoMarkers):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for zed_aruco_callback")
         else:
             self.publish_zed_aruco_points.publish(new_msg)
 
@@ -113,8 +113,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
         else:
             self.publish_blue_led_points.publish(new_msg)
 
@@ -122,8 +122,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for red_led_callback")
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for red_led_callback")
         else:
             self.publish_red_led_points.publish(new_msg)
 
@@ -131,8 +131,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for ir_led_callback")
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for ir_led_callback")
         else:
             self.publish_ir_led_points.publish(new_msg)
 
