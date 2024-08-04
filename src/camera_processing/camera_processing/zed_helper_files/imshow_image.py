@@ -20,9 +20,9 @@ def _find_video_index(v4l_byid_name: str):
 def main():
     # v4l_byid_name = "usb-CN0HK46K8LG00114H364A03_Integrated_Webcam_HD_200901010001-video-index0" # Erik's Laptop webcam
     # v4l_byid_name = "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0" # IR Camera 
-    v4l_byid_name = "usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0" # ps3 eye camera
-   # v4l_byid_name = "usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0" # See3CAM_CU27
-
+    # v4l_byid_name = "usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0" # ps3 eye camera
+    v4l_byid_name = "usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0" # See3CAM_CU27
+  
     cap = cv2.VideoCapture(_find_video_index(v4l_byid_name))
     if cap is None or not cap.isOpened():
         raise ValueError("Could not open the camera as " + str(v4l_byid_name))
