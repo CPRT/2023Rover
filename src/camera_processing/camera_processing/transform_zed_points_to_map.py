@@ -1,7 +1,7 @@
 import rclpy, cv2
 from rclpy.node import Node 
 
-import tf2_geomtry_msgs
+import tf2_geometry_msgs
 
 from tf2_ros import TransformException, LookupException, ConnectivityException, ExtrapolationException
 from tf2_ros.buffer import Buffer
@@ -20,7 +20,7 @@ class TransformZedPointsToMap(Node):
         self.declare_parameters(
             namespace="",
             parameters=[
-                ('expected_input_frame', 'zed_left_frame'),
+                ('expected_input_frame', 'zed_left_frame_link'),
                 ('desired_frame', 'map'),
             ]
         )
@@ -65,7 +65,7 @@ class TransformZedPointsToMap(Node):
             point_stamped = PointStamped()
             point_stamped.point = point
             point_stamped.header = header
-            mapped_point = tf2_geomtry_msgs.do_transform_point(point, self.transform)
+            mapped_point = tf2_geometry_msgs.do_transform_point(point_stamped, self.transform)
             mapped_points.append(mapped_point.point)
 
         return mapped_points
@@ -85,7 +85,7 @@ class TransformZedPointsToMap(Node):
             new_msg = ArucoMarkers()
             new_msg.marker_ids = msg.marker_ids
         elif isinstance(msg, PointArray):
-            new_msg = PointArray
+            new_msg = PointArray()
         else:
             self.get_logger().error(f"Recieved a message that is not either ArucoMarkers or PointArray")
             return None
@@ -104,8 +104,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, ArucoMarkers):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for zed_aruco_callback")
+        # elif not isinstance(new_msg, ArucoMarkers):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for zed_aruco_callback")
         else:
             self.publish_zed_aruco_points.publish(new_msg)
 
@@ -113,8 +113,9 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
+        
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for blue_led_callback")
         else:
             self.publish_blue_led_points.publish(new_msg)
 
@@ -122,8 +123,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for red_led_callback")
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for red_led_callback")
         else:
             self.publish_red_led_points.publish(new_msg)
 
@@ -131,8 +132,8 @@ class TransformZedPointsToMap(Node):
         new_msg = self.handle_any_callback(msg)
         if new_msg is None:
             return
-        elif not isinstance(new_msg, PointArray):
-            self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for ir_led_callback")
+        # elif not isinstance(new_msg, PointArray):
+        #     self.get_logger().error(f"Function handle_any_callback in transform_zed_points_to_map.py returned incorrect type for ir_led_callback")
         else:
             self.publish_ir_led_points.publish(new_msg)
 

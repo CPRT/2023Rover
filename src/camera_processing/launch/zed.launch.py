@@ -41,36 +41,17 @@ launch_args = [
     )
 ]
 
-def launch_setup(context):
+def create_zed_node(context):
     loaded_profile_arg = LaunchConfiguration('profile').perform(context)
     loaded_profile_arg = loaded_profile_arg.lower()
 
-    if loaded_profile_arg not in ("day", "night", "testing"):
-        loaded_profile_arg = "night"
-
-    return loaded_profile_arg
-
-
-
-def generate_launch_description():
-    profile = OpaqueFunction(function=launch_setup)
-    # profile = live_args
-
-    ld = LaunchDescription(launch_args)
-
-    playback_filename = LaunchConfiguration('playback_filename')
-    playback_start_index = LaunchConfiguration('playback_start_index')
-    record_filename = LaunchConfiguration('record_filename')
-    publish_gl_viewer_data = LaunchConfiguration('publish_gl_viewer_data')
-    publish_6x6_aruco_as_leds = LaunchConfiguration('publish_6x6_aruco_as_leds')
-
-    if profile == "day":
+    if loaded_profile_arg == "day":
         params = os.path.join(
             get_package_share_directory('camera_processing'),
             'config',
             'day_params.yaml'
         )
-    elif profile == "testing":
+    elif loaded_profile_arg == "testing":
         params = os.path.join(
             get_package_share_directory('camera_processing'),
             'config',
@@ -83,13 +64,18 @@ def generate_launch_description():
             'night_params.yaml' 
         )
 
+    playback_filename = LaunchConfiguration('playback_filename')
+    playback_start_index = LaunchConfiguration('playback_start_index')
+    record_filename = LaunchConfiguration('record_filename')
+    publish_gl_viewer_data = LaunchConfiguration('publish_gl_viewer_data')
+    publish_6x6_aruco_as_leds = LaunchConfiguration('publish_6x6_aruco_as_leds')
+
     colour_processing_params = os.path.join(
         get_package_share_directory('camera_processing'),
         'config',
         'colour_processing_params.yaml'
     )
 
-    # Nodes
     zed_node = Node(
         package="camera_processing",
         executable="zed_node",
@@ -105,6 +91,15 @@ def generate_launch_description():
         ]
     )
 
+    return [zed_node] 
+
+
+
+def generate_launch_description():
+    zed_node = OpaqueFunction(function=create_zed_node)
+
+    ld = LaunchDescription(launch_args)
+
     # Nodes 
     transform_zed_points_node = Node(
         package="camera_processing",
@@ -114,5 +109,5 @@ def generate_launch_description():
 
     # Add launch actions
     ld.add_action(zed_node)
-    ld.add_action(transform_zed_points_node)
+    # ld.add_action(transform_zed_points_node)
     return ld
