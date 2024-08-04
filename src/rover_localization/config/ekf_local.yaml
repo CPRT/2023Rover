@@ -24,13 +24,13 @@ local_ekf:
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, false,
-        # orientation
-        false, false, true,
-        # lineal vel 
-        true, true, true,
-        # angular vel
         false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel 
+        true, true, false,
+        # angular vel
+        false, false, true,
         # lineal acc
         false, false, false,
       ]

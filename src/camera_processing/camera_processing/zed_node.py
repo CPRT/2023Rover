@@ -125,7 +125,8 @@ class ZedNode(Node):
                 ('openni_depth_mode', False),
                 ('depth_image_scaling', 0.25),
                 ('mask_filename', 'ZEDMask.png'),
-                
+                ('profile_name', 'night'),
+
                 ('zed_arucos_detections', True),
                 ('blue_led_detections', True),
                 ('red_led_detections', True),
@@ -170,6 +171,9 @@ class ZedNode(Node):
 
         if self.get_parameter('resolution').value not in ZedNode.STRING_TO_RESOLUTION:
             raise ValueError(f"ROS2 parameter resolution in ZED Node is not one of {ZedNode.STRING_TO_RESOLUTION.keys()}")
+
+        self.get_logger().info("Loaded parameters from profile named " + str(self.get_parameter('profile_name').value))
+
 
         self.openni_depth_mode = bool(self.get_parameter('openni_depth_mode').value)
         self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
@@ -225,9 +229,10 @@ class ZedNode(Node):
         red_led_colour_processing = ColourProcessing.from_string(self.red_led_str)
         ir_led_colour_processing = ColourProcessing.from_string(self.ir_led_str)
         
-        blue_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
-        red_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
-        # ir_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
+        if len(self.mask_full_filepath) != 0:
+            blue_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
+            red_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
+            # ir_led_colour_processing.set_static_mask(self.mask_full_filepath, True)
 
         if not blue_led_colour_processing or isinstance(blue_led_colour_processing, str):
             self.get_logger().error(f"Failed to create blue_led_colour_processing: {blue_led_colour_processing}") 
@@ -272,7 +277,7 @@ class ZedNode(Node):
         # Create a InitParameters object and set configuration parameters
         init_params = sl.InitParameters(svo_real_time_mode=False)
         init_params.coordinate_units = sl.UNIT.METER
-        init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP
+        init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Z_UP_X_FWD
         init_params.depth_mode = sl.DEPTH_MODE.PERFORMANCE  # Can use PERFORMANCE MODE but it misses some details (sl.DEPTH_MODE.ULTRA) (sl.DEPTH_MODE.PERFORMANCE)
         init_params.depth_maximum_distance = int(self.get_parameter('depth_maximum_distance').value)
         init_params.camera_resolution = ZedNode.STRING_TO_RESOLUTION[str(self.get_parameter('resolution').value)]   # HD720   HD1080   HD1200    HD2K
@@ -303,13 +308,17 @@ class ZedNode(Node):
 
         if exposure != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.EXPOSURE, exposure)
+            self.get_logger().info(f"Set exposure to {exposure}")
         if white_balance != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE, white_balance)
-        self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, white_balence_auto)
+            self.zed.set_camera_settings(sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO, white_balence_auto)
+            self.get_logger().info(f"Set white balance to {white_balance} and auto white balance to {white_balence_auto}")
         if gain != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAIN, gain)
+            self.get_logger().info(f"Set gain to {gain}")
         if gamma != -1:
             self.zed.set_camera_settings(sl.VIDEO_SETTINGS.GAMMA, gamma)
+            self.get_logger().info(f"Set gamma to {gamma}")
 
         positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.zed.enable_positional_tracking(positional_tracking_parameters)
@@ -470,13 +479,13 @@ class ZedNode(Node):
         # ZED get position in it's world frame to publish
         tracking_state = self.zed.get_position(self.zed_pose, sl.REFERENCE_FRAME.WORLD)
 
-        self.get_logger().info(f"Detections: {detections}")
+        # self.get_logger().info(f"Detections: {detections}")
 
         # Ingest detections and get objects (TODO: Verify all objects in list are correct type to prevent crashing)
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
 
-        self.get_logger().info(f"Objects: {self.objects.object_list}")
+        # self.get_logger().info(f"Objects: {self.objects.object_list}")
 
         if self.enable_gl_viewer and self.viewer.is_available():
             self.viewer.update_view(self.image_left_tmp, self.objects)
