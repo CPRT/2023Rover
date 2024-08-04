@@ -1,0 +1,2 @@
+int value
+int gpio

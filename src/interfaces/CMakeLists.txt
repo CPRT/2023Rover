@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PIDmsg.msg"
   "msg/ArucoMarkers.msg"
   "msg/PointArray.msg"
+  "msg/GPIOmsg.msg" #ik its goofy the actual gpio package is GPIO
   DEPENDENCIES geometry_msgs # Add packages that above messages depend on
  )
 
