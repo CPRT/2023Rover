@@ -20,5 +20,9 @@ def generate_launch_description():
             package='joy',
             executable='joy_node',
             name='joystick'),
+        launch_ros.actions.Node(
+            package='drive',
+            executable='joystick_breakout',
+            name='joystick_breakout_node'),
   ]
   )

@@ -2,10 +2,10 @@
 install/
 log/
 build/
+*.vscode
 
 #Files
 *metadata.json
 
-.vscode
-
 *__pycache__/
+*.pyc

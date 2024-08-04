@@ -17,6 +17,10 @@ def generate_launch_description():
             ]
             ),
         launch_ros.actions.Node(
+            package='drive',
+            executable='joystick_breakout',
+            name='joystick_breakout_node'),
+        launch_ros.actions.Node(
             package='joy',
             executable='joy_node',
             name='joystick'),
@@ -25,7 +29,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/ttyACM0'},
+                {'dev': '/dev/roboclaws/front'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
@@ -42,7 +46,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/ttyACM1'},
+                {'dev': '/dev/roboclaws/mid'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
@@ -59,7 +63,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/ttyACM2'},
+                {'dev': '/dev/roboclaws/back'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
