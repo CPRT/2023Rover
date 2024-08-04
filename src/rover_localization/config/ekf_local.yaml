@@ -44,7 +44,7 @@ local_ekf:
     odom1: /dev/roboclaws/front/odom_roboclaw
     odom1_config: [
         # position
-        false, false, false,
+        false, false, true,
         # orientation
         false, false, false,
         # lineal vel
@@ -106,7 +106,7 @@ local_ekf:
         # position
         false, false, false,
         # orientation
-        true, true, false,
+        true, true, true,
         # lineal vel
         false, false, false,
         # angular vel
@@ -121,7 +121,7 @@ local_ekf:
     # imu0_pose_rejection_threshold: 0.8
     # imu0_twist_rejection_threshold: 0.8
     # imu0_linear_acceleration_rejection_threshold: 0.8
-    imu0_remove_gravitational_acceleration: false
+    imu0_remove_gravitational_acceleration: true
 
     imu1: ouster/imu
     imu1_config: [
@@ -143,7 +143,7 @@ local_ekf:
     # imu1_pose_rejection_threshold: 0.8
     # imu1_twist_rejection_threshold: 0.8
     # imu1_linear_acceleration_rejection_threshold: 0.8
-    imu1_remove_gravitational_acceleration: false
+    imu1_remove_gravitational_acceleration: true
 
     # use_control: false
     # stamped_control: false
