@@ -8,3 +8,4 @@ build/
 *metadata.json
 
 *.pyc
+__pycache__

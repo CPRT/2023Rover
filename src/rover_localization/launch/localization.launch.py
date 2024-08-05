@@ -21,6 +21,7 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument
+from launch_ros.actions import Node
 from pathlib import Path
 from launch.conditions import IfCondition
 
@@ -104,6 +105,11 @@ def generate_launch_description():
         ),
         launch_arguments={"use_sim_time": use_sim_time}.items()
     )
+    imu_filter_cmd = Node(
+            package="rover_localization",
+            executable="imu_filter",
+            output="log",
+            arguments=["--ros-args", "--log-level", "Warn"])
 
     ekf_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -130,5 +136,5 @@ def generate_launch_description():
     ld.add_action(icp_odometry_cmd)
     ld.add_action(slam_cmd)
     ld.add_action(ekf_cmd)
-
+    ld.add_action(imu_filter_cmd)
     return ld
