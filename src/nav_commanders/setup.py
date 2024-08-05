@@ -24,8 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'example_nav_to_pose = nav_commanders.nav_to_pose:main',
-            'gps_commander = nav_commanders.nav_to_gps_coords:main'
-            'follow_aruco_marker = nav_commanders.follow_vision_target:main'
+            'gps_commander = nav_commanders.nav_to_gps_coords:main',
+            'follow_aruco_marker = nav_commanders.follow_vision_target:main',
             'follow_circ_trails = nav_commanders.follow_circ_trails:main'
         ],
     },
