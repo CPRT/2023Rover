@@ -48,7 +48,7 @@ class FollowVisionTarget(BasicNavigator):
         # navigator.clearAllCostmaps()
 
     def cleanup(self):
-        # Potentially don't want to shutdown nav2 here
+        pass
         # self.basic_nav.lifecycleShutdown()
 
     # def vision_target_callback(self, msg):
