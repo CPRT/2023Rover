@@ -98,16 +98,25 @@ class CIRCTrailsCommander(Node):
             if not self.last_blue_used:
                 self.last_blue_used = True
                 led_points = self.last_blue_led
+            else:
+                return
 
         elif self.trails_in_order[self.trail_index]._trail == TrailType.RED_TRAIL:
             if not self.last_red_used:
                 self.last_red_used = True
                 led_points = self.last_red_led
+            else:
+                return
 
         elif self.trails_in_order[self.trail_index]._trail == TrailType.IR_TRAIL:
             if not self.last_ir_used:
                 self.last_ir_used = True
                 led_points = self.last_ir_led
+            else:
+                return
+
+        else:
+            return
 
         trail_success = self.trails_in_order[self.trail_index].run_led_trail(led_points, self.last_rover_pose, self.get_clock().now())
         if trail_success:
