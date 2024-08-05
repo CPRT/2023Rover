@@ -14,9 +14,12 @@ from nav2_msgs.action import FollowWaypoints
 from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPose
 from interfaces.srv import NavToGPSGeopose
+from interfaces.msg import ArucoMarkers, PointArray
 from time import sleep
 
-class GpsCommander(Node):
+from .single_trail import SingleCIRCTrail, TrailType, TrailState, TrailGoal, ReturnGoalAndStateAndPose
+
+class CIRCTrailsCommander(Node):
     """
     Class to do stuff yay. Please forget you read this.
     """
@@ -25,6 +28,27 @@ class GpsCommander(Node):
         super().__init__('CIRCTrailsCommander')
         self.navigator = BasicNavigator("CIRCTrailsNavigator_Navigator")
 
+        self.sub_rover_pose = self.create_subscription(PoseStamped, '/rover_pose', self.rover_pose_callback, 10)
+        self.last_rover_pose = PoseStamped()
+
+        self.sub_aruco_markers = self.create_subscription(ArucoMarkers, '/zed/zed_aruco_points_map', self.aruco_marker_callback, 10)
+        self.last_aruco_markers = ArucoMarkers()
+        self.last_arucos_used = True
+
+        self.sub_blue_led = self.create_subscription(PointArray, '/zed/blue_led_points_map', self.blue_led_callback, 10)
+        self.last_blue_led = PointArray()
+        self.last_blue_used = True
+
+        self.sub_red_led = self.create_subscription(PointArray, '/zed/red_led_points_map', self.red_led_callback, 10)
+        self.last_red_led = PointArray()
+        self.last_red_used = True
+
+        self.sub_ir_led = self.create_subscription(PointArray, '/zed/ir_led_points_map', self.ir_led_callback, 10)
+        self.last_ir_led = PointArray()
+        self.last_ir_used = True
+
+        self.blue_trail = SingleCIRCTrail(TrailType.BLUE, False)
+
         self.get_logger().info('Waiting for Nav2 to be active')
         self.navigator.waitUntilNav2Active()
         self.get_logger().info('Nav2 is active')
@@ -32,67 +56,56 @@ class GpsCommander(Node):
         self.timer_period = 0.1
         self.timer = self.create_timer(self.timer_period, self.main_timer_callback)
 
+
+    def rover_pose_callback(self, msg: PoseStamped):
+        self.last_rover_pose = msg
+
+    def aruco_marker_callback(self, msg: ArucoMarkers):
+        self.last_aruco_markers = msg
+
+    def blue_led_callback(self, msg: PointArray):
+        self.last_blue_led = msg
+
+    def red_led_callback(self, msg: PointArray):
+        self.last_red_led = msg
+
+    def ir_led_callback(self, msg: PointArray):
+        self.last_ir_led = msg
+
     def main_timer_callback(self):
         """
         """
+        if not self.last_blue_used:
+            self.last_blue_used = True
+            self.blue_trail.run_led_trail(self.last_blue_led, self.last_rover_pose, self.self.get_clock().now())
 
 
+# def main(args=None):
+#     rclpy.init(args=args)
 
-    def geopose_server(self, msg: NavToGPSGeopose, response: NavToGPSGeopose) -> NavToGPSGeopose:
-        self.get_logger().info("Recieved a new gps goal")
+#     node = GpsCommander()
+#     executor = MultiThreadedExecutor()
+#     executor.add_node(node)
 
-        self.req = FromLL.Request()
-        self.req.ll_point.longitude = msg.goal.position.longitude
-        self.req.ll_point.latitude = msg.goal.position.latitude
-        self.req.ll_point.altitude = msg.goal.position.altitude
+#     try:
+#         executor.spin()
+#     except KeyboardInterrupt:
+#         pass
+#     finally:
+#         node.cleanup()
 
-        self.get_logger().info(f"Long={self.req.ll_point.longitude:.8f}, Lat={self.req.ll_point.latitude:.8f}, Alt={self.req.ll_point.altitude:.8f}")
-        self.get_logger().info(f"Request is: {repr(self.req)}")
+#     node.destroy_node()
+#     rclpy.shutdown()
 
-        self.get_logger().info(f"Calling nav_sat service to transform geopose to map")
-        self.future = self.localizer.call_async(self.req)
-        rclpy.spin_until_future_complete(self, self.future)
-        self.get_logger().info(f"Got pose in map frame")
 
-        self.target_pose = PoseStamped()
-        self.target_pose.header.frame_id = 'map'
-        self.target_pose.header.stamp = self.get_clock().now().to_msg()
-        self.target_pose.pose.position = self.future.result().map_point
+def main():
+    rclpy.init()
 
-        self.get_logger().info(f"Target Pose in the map frame: x={self.future.result().map_point.x:.8f}, y={self.future.result().map_point.y:.8f}, z={self.future.result().map_point.z:.8f}")
+    node = CIRCTrailsCommander()
 
-        self.target_pose.pose.orientation = msg.goal.orientation
-
-        response.success = self.navigator.goToPose(self.target_pose)
-
-        return response
-
-def main(args=None):
-    rclpy.init(args=args)
-
-    node = GpsCommander()
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
-
-    try:
-        executor.spin()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.cleanup()
-
+    rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-
-
-# def main():
-#     rclpy.init()
-
-#     gps_commander = GpsCommander()
-
-#     rclpy.spin(gps_commander)
-#     gps_commander.destroy_node()
-#     rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
