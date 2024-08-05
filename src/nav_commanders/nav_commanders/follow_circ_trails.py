@@ -47,10 +47,12 @@ class CIRCTrailsCommander(Node):
         self.last_ir_led = PointArray()
         self.last_ir_used = True
 
-        self.blue_trail = SingleCIRCTrail(TrailType.BLUE, False)
+        self.pub_goal = self.create_publisher(PoseStamped, '/circ_trails_goal', 10)
+
+        self.blue_trail = SingleCIRCTrail(TrailType.BLUE_TRAIL, False)
 
         self.get_logger().info('Waiting for Nav2 to be active')
-        self.navigator.waitUntilNav2Active()
+        # self.navigator.waitUntilNav2Active()
         self.get_logger().info('Nav2 is active')
 
         self.timer_period = 0.1
@@ -62,22 +64,29 @@ class CIRCTrailsCommander(Node):
 
     def aruco_marker_callback(self, msg: ArucoMarkers):
         self.last_aruco_markers = msg
+        self.last_arucos_used = False
 
     def blue_led_callback(self, msg: PointArray):
         self.last_blue_led = msg
+        self.last_blue_used = False
 
     def red_led_callback(self, msg: PointArray):
         self.last_red_led = msg
+        self.last_red_used = False
 
     def ir_led_callback(self, msg: PointArray):
         self.last_ir_led = msg
+        self.last_ir_used = False
 
     def main_timer_callback(self):
         """
         """
         if not self.last_blue_used:
             self.last_blue_used = True
-            self.blue_trail.run_led_trail(self.last_blue_led, self.last_rover_pose, self.self.get_clock().now())
+            goal: ReturnGoalAndStateAndPose = self.blue_trail.run_led_trail(self.last_blue_led, self.last_rover_pose, self.get_clock().now())
+            self.pub_goal.publish(goal.goal_pose)
+
+            self.get_logger().info(f"Goal: {goal.goal_pose}, goal_state: {goal.trail_goal_info.value}, trail_state: {goal.trail_state_info.value}")
 
 
 # def main(args=None):

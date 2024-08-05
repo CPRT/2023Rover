@@ -518,15 +518,15 @@ class ZedNode(Node):
 
             elif DetectVisionTargets.is_blue_led(obj.unique_object_id):
                 blue_led_point_arr.points.append(point)
-                blue_led_point_arr.is_moving.append(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING)
+                blue_led_point_arr.is_moving.append(bool(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING))
 
             elif DetectVisionTargets.is_red_led(obj.unique_object_id):
                 red_led_point_arr.points.append(point)
-                red_led_point_arr.is_moving.append(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING)
+                red_led_point_arr.is_moving.append(bool(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING))
 
             elif DetectVisionTargets.is_ir_led(obj.unique_object_id):
                 ir_led_point_arr.points.append(point)
-                ir_led_point_arr.is_moving.append(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING)
+                ir_led_point_arr.is_moving.append(bool(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING))
 
             else:
                 self.get_logger().warn("Lost object after zed detections called " + obj.unique_object_id)
