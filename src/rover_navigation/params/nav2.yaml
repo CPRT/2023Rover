@@ -168,7 +168,7 @@ local_costmap:
           decay_acceleration: 5.0     # default 0, 1/s^2. 
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
           max_obstacle_height: 1.0    # default 2.0, meters
-          min_obstacle_height: -0.45   # default 0.0, meters
+          min_obstacle_height: -0.40   # default 0.0, meters
           obstacle_range: 3.0
         cliffDetection:
           data_type: PointCloud2

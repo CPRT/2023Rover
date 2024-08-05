@@ -17,14 +17,14 @@ class imu_filter(Node):
 
     def imu_callback(self, msg):
         now = self.get_clock().now().nanoseconds()
-        message_time_nano = self.last_encoder_msg.header.sec * 10e9 + last_encoder_msg.header.nanosec
+        message_time_nano = self.last_encoder_msg.header.sec * 10e9 + self.last_encoder_msg.header.nanosec
         if (now - message_time_nano > 1 * 10e9):
             return
-        if (self.last_encoder_msg.twist.twist.linear.x == 0 and 
+        if (self.last_encoder_msg.twist.twist.linear.x == 0 and
             self.last_encoder_msg.twist.twist.angular.z == 0):
             return
         self.imu_pub.publish(msg)
-        
+
 
 
         
@@ -38,4 +38,4 @@ def main(args=None):
 
   
 if __name__ == '__main__':
-  main()
+    main()

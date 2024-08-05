@@ -24,9 +24,9 @@ class joystickBreakout(Node):
             Joy,"/joy", self.cmd_joy_callback, 10) 
 
     def cmd_joy_callback(self, msg: Joy):
-        if(msg.buttons[6] == 1):
+        if(msg.buttons[8] == 1):
             self.pubState = 0
-        elif(msg.buttons[7] == 1):
+        elif(msg.buttons[9] == 1):
             self.pubState = 1
         if(self.pubState == 0):
             self.setDrive.publish(msg)
