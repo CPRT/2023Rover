@@ -2,6 +2,7 @@ from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
+from interfaces import ArucoMarkers
 
 """
 Follow a vision target published by to a topic in the map frame
@@ -12,7 +13,12 @@ class FollowVisionTarget(BasicNavigator):
         super().__init__()
         self.init_basic_navigator()
 
-        self.dynamic_nav_pose_subscriber = self.create_subscription(PoseStamped, 'dynamic_nav_pose', self.vision_target_callback, 10)
+        # Follow aruco tag
+        self.specific_tag_index = 6
+        self.aruco_tag_topic = "/zed/zed_aruco_points_map"
+        self.aruco_tag_subscriber = self.create_subscription(ArucoMarkers, self.aruco_tag_topic, self.aruco_tag_callback, 10)
+
+        # self.dynamic_nav_pose_subscriber = self.create_subscription(PoseStamped, 'dynamic_nav_pose', self.vision_target_callback, 10)
         self.process_timer = self.create_timer(0.1, self.process)
 
         self.task_complete = False
@@ -43,10 +49,19 @@ class FollowVisionTarget(BasicNavigator):
 
     def cleanup(self):
         # Potentially don't want to shutdown nav2 here
-        self.basic_nav.lifecycleShutdown()
+        # self.basic_nav.lifecycleShutdown()
 
-    def vision_target_callback(self, msg):
-        self.goToPose(msg)  
+    # def vision_target_callback(self, msg):
+    #     self.goToPose(msg)  
+
+    def aruco_tag_callback(self, msg):
+        for index, point in msg.points:
+            if marker_ids[index] == self.specific_tag_index:
+                pose = PoseStamped()
+                pose.header = msg.header
+                pose.position = point
+                self.goToPose(pose)
+                return
 
     def process(self):
         feedback = self.basic_nav.getFeedback()
