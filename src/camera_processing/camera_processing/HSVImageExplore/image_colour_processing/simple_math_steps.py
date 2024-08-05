@@ -347,3 +347,177 @@ class SaveMask(MathStep):
         """
         cv2.destroyWindow(self._window_name)
         cv2.imwrite(self._save_filename, self.save_mask)
+
+
+
+class TagByContourArea(MathStep):
+    NUM_TAGS = "Number of Tags"
+
+    def __init__(self, window_name: str, num_tags: int):
+        """
+        Number tags are largest to smallest and tag with the number
+        """
+        super().__init__(window_name)
+
+        self._num_tags = num_tags
+
+    def __repr__(self) -> str:
+        return f"TagByContourArea({repr(self._repr_name)}, num_tags={self._num_tags})"
+    
+    def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
+        """
+        Process contours to remove bad contours or tag various contours
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            mask (ndarray): The mask produced from the MaskSteps
+            contours (list): The original image with no processing
+            hierarchy (list): The processed image returned from the previous step
+            tags (List[Set[str]]): The tags for each contour
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        areas_by_index = {}
+        contours_tagged = []
+        contours_tags = []
+
+        for i, contour in enumerate(contours):
+            areas_by_index[cv2.contourArea(contour)] = i
+
+        tags_count = 0
+        for area, index in sorted(areas_by_index.items()):
+            if MathStep.CoreTag.REJECT in tags[index]:
+                continue
+
+            tags_count += 1 
+            if tags_count >= self._num_tags:
+                break            
+
+            tags[index].add(f"{MathStep.CoreTag.SORTED_BY_SIZE}{tags_count}*")
+            contours_tagged.append(contours[index])
+            contours_tags.append(f"{MathStep.CoreTag.SORTED_BY_SIZE}{tags_count}*")
+    
+
+        if self._is_display_active:
+            self._num_tags = cv2.getTrackbarPos(TagByContourArea.NUM_TAGS, self._window_name)
+
+            mask_img = np.zeros(original_image.shape, original_image.dtype)
+            mask_img[:, :] = (255, 255, 255)
+            mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+
+            for i, contour in enumerate(contours_tagged):
+
+                if MathStep.CoreTag.REJECT in tags[i]:
+                    continue
+
+                elif MathStep.CoreTag.SORTED_BY_SIZE in tags[i]:
+                    cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.GREEN, 2)
+                    x, y, w, h = cv2.boundingRect(contour)
+                    cv2.putText(mask_with_contours, contours_tags[i], (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours])
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        return contours, hierarchy, tags
+  
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+        cv2.createTrackbar(TagByContourArea.NUM_TAGS, self._window_name, self._num_tags, 20, cv2_helper.do_nothing)
+
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+
+
+class TagWithYaw(MathStep):
+    def __init__(self, window_name: str, camera_hori_fov: float):
+        """
+        Tag with the yaw of the contour
+        """
+        super().__init__(window_name)
+        self._camera_hori_fov = camera_hori_fov
+
+    def __repr__(self) -> str:
+        return f"TagWithYaw({repr(self._repr_name)}, camera_hori_fov={self._camera_hori_fov})"
+    
+    def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: List[Set[str]]) -> Tuple[list, list, List[Set[str]]]:
+        """
+        Process contours to remove bad contours or tag various contours
+
+        Parameters:
+            original_img (ndarray): The original image with no processing
+            mask (ndarray): The mask produced from the MaskSteps
+            contours (list): The original image with no processing
+            hierarchy (list): The processed image returned from the previous step
+            tags (List[Set[str]]): The tags for each contour
+
+        Returns:
+            ndarray: The newly processed image
+        """
+        coutour_yaws_str = []
+        self.hori_res = original_image.shape[1]
+
+        for i, contour in enumerate(contours):
+            if MathStep.CoreTag.REJECT in tags[i]:
+                coutour_yaws_str.append("")
+                continue
+
+            moments = cv2.moments(contour)
+            cX = int(moments["m10"] / moments["m00"])
+            yaw = self.yaw_from_hori_pixels(cX)
+
+            coutour_yaws_str.append(f"{MathStep.CoreTag.YAW_TO_CONTOUR}{yaw:.2f}")
+
+        if self._is_display_active:
+            mask_img = np.zeros(original_image.shape, original_image.dtype)
+            mask_img[:, :] = (255, 255, 255)
+            mask_with_contours = cv2.bitwise_and(mask_img, mask_img, mask=mask) # Add back in a colour channel to display it with original_img (must be the same shape for np.hstack)
+
+            for i, contour in enumerate(contours):
+
+                if MathStep.CoreTag.REJECT in tags[i]:
+                    continue
+
+                elif MathStep.CoreTag.YAW_TO_CONTOUR in tags[i]:
+                    cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.GREEN, 2)
+                    x, y, w, h = cv2.boundingRect(contour)
+                    cv2.putText(mask_with_contours, coutour_yaws_str[i], (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)
+
+            images_stacked_horizontally = np.hstack([original_image, mask_with_contours])
+            self.imshow_scaled(self._window_name, images_stacked_horizontally)
+
+        return contours, hierarchy, tags
+  
+    def yaw_from_hori_pixels(self, horizontal_pixels: int) -> float:
+        aX = (horizontal_pixels - self.hori_res / 2.0) / (self.hori_res / 2.0)
+        
+        yaw = aX * self._camera_hori_fov / 2.0
+        
+        return yaw
+
+    def _create_display(self) -> str:
+        """
+        Create the cv2 window for this step
+
+        Returns:
+            str: The name of the new cv2 window
+        """
+        cv2.namedWindow(self._window_name)
+
+    def _destory_display(self):
+        """
+        Destroy the cv2 windows for this step.
+        """
+        cv2.destroyWindow(self._window_name)
+
+
+

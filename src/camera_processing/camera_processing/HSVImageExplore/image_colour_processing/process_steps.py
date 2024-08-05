@@ -138,6 +138,8 @@ class MathStep(ProcessStep):
         REJECT = "reject"
         FAR = "far"
         CLOSE = "close"
+        SORTED_BY_SIZE = "sorted_by_size"
+        YAW_TO_CONTOUR = "yaw_to_contour"
 
     def process(self, original_image: ndarray, mask: ndarray, contours: list, hierarchy: list, tags: list) -> Tuple[list, list, List[Set[str]]]:
         """

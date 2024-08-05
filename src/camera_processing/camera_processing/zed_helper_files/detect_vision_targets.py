@@ -93,7 +93,7 @@ class DetectVisionTargets:
         return box
 
     def create_aruco_unique_label(camera_mapping: CameraType, marker_id: int) -> str:
-        return f"{camera_mapping.value.name}-ArucoID{marker_id}"
+        return f"{camera_mapping.value.name}-ArucoID{marker_id}*"
 
     def is_zed_marker(unique_label: str) -> bool:
         return f"{ZED_CAM_NAME}-ArucoID" in unique_label
@@ -110,9 +110,31 @@ class DetectVisionTargets:
     def is_ir_led(unique_label: str) -> bool:
         return "IRLED" in unique_label
 
+    def is_contour_size_index(index: int, unique_label: str) -> bool:
+        return f"sorted_by_size{index}*" in unique_label
+    
+    def get_contour_yaw_by_size_index(index: int, detections) -> float:
+        for det in detections:
+            if DetectVisionTargets.is_contour_size_index(index, det.unique_object_id):
+                return DetectVisionTargets.get_yaw_from_label(det.unique_object_id)
+            
+        return -360
+
+    def get_yaw_from_label(unique_label: str) -> bool:
+        try:
+            return float(unique_label[unique_label.index("yaw_to_contour")+len("yaw_to_contour"):unique_label.index("*")])
+        except Exception as e:
+            return -360
+
+    def get_contour_size_index(unique_label: str) -> int:
+        try:
+            return float(unique_label[unique_label.index("sorted_by_size")+len("sorted_by_size"):unique_label.index("*")])
+        except Exception as e:
+            return -1
+
     def get_marker_id_from_label(unique_label: str) -> int:
         try:
-            return int(unique_label[unique_label.index("-ArucoID")+len("-ArucoID"):])
+            return int(unique_label[unique_label.index("-ArucoID")+len("-ArucoID"):unique_label.index("*")])
         except Exception as e:
             return -1
 
