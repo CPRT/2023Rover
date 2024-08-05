@@ -13,11 +13,12 @@ from .gps_utils import latLonYaw2Geopose
 from nav2_msgs.action import FollowWaypoints
 from geometry_msgs.msg import PoseStamped
 from geographic_msgs.msg import GeoPose
+from std_msgs.msg import Bool
 from interfaces.srv import NavToGPSGeopose
 from interfaces.msg import ArucoMarkers, PointArray
 from time import sleep
 
-from .single_trail import SingleCIRCTrail, TrailType, TrailState, TrailGoal, ReturnGoalAndStateAndPose
+from .single_trail import SingleCIRCTrail, TrailType, TrailState, TrailGoal, ReturnGoalAndStateAndPose, RecoverySteps
 
 class CIRCTrailsCommander(Node):
     """
@@ -49,7 +50,14 @@ class CIRCTrailsCommander(Node):
 
         self.pub_goal = self.create_publisher(PoseStamped, '/circ_trails_goal', 10)
 
+        self.pub_lights_on = self.create_publisher(Bool, '/lights_on', 10)
+
         self.blue_trail = SingleCIRCTrail(TrailType.BLUE_TRAIL, False)
+        self.red_trail = SingleCIRCTrail(TrailType.RED_TRAIL, False)
+        self.ir_trail = SingleCIRCTrail(TrailType.IR_TRAIL, True)
+
+        self.trails_in_order = [self.blue_trail, self.red_trail, self.ir_trail]
+        self.trail_index = 0
 
         self.get_logger().info('Waiting for Nav2 to be active')
         # self.navigator.waitUntilNav2Active()
@@ -58,6 +66,10 @@ class CIRCTrailsCommander(Node):
         self.timer_period = 0.1
         self.timer = self.create_timer(self.timer_period, self.main_timer_callback)
 
+    def control_lights(self, is_lights_on: bool):
+        msg = Bool()
+        msg.data = is_lights_on
+        self.pub_lights_on.publish(msg)
 
     def rover_pose_callback(self, msg: PoseStamped):
         self.last_rover_pose = msg
@@ -79,14 +91,62 @@ class CIRCTrailsCommander(Node):
         self.last_ir_used = False
 
     def main_timer_callback(self):
-        """
-        """
-        if not self.last_blue_used:
-            self.last_blue_used = True
-            goal: ReturnGoalAndStateAndPose = self.blue_trail.run_led_trail(self.last_blue_led, self.last_rover_pose, self.get_clock().now())
-            self.pub_goal.publish(goal.goal_pose)
+        if self.trail_index >= len(self.trails_in_order):
+            return
 
-            self.get_logger().info(f"Goal: {goal.goal_pose}, goal_state: {goal.trail_goal_info.value}, trail_state: {goal.trail_state_info.value}")
+        if self.trails_in_order[self.trail_index]._trail == TrailType.BLUE_TRAIL:
+            if not self.last_blue_used:
+                self.last_blue_used = True
+                led_points = self.last_blue_led
+
+        elif self.trails_in_order[self.trail_index]._trail == TrailType.RED_TRAIL:
+            if not self.last_red_used:
+                self.last_red_used = True
+                led_points = self.last_red_led
+
+        elif self.trails_in_order[self.trail_index]._trail == TrailType.IR_TRAIL:
+            if not self.last_ir_used:
+                self.last_ir_used = True
+                led_points = self.last_ir_led
+
+        trail_success = self.trails_in_order[self.trail_index].run_led_trail(led_points, self.last_rover_pose, self.get_clock().now())
+        if trail_success:
+            self.trail_index += 1
+            if self.trail_index >= len(self.trails_in_order):
+                self.get_logger().info("Finished all trails!")
+
+
+    def run_trail(self, trail: SingleCIRCTrail, led_points: PointArray) -> bool:
+        """
+        """
+        data = trail.run_led_trail(led_points, self.last_rover_pose, self.get_clock().now())
+        self.control_lights(data.is_lights_on)
+        if data.recovery_step == RecoverySteps.FAILED_RECOVERY:
+            raise Exception("Failed to recover from lack of trail data")
+            
+        # Run recovery
+        if data.goal_state_info == TrailGoal.RECOVERY_GOAL or data.goal_state_info == TrailGoal.NO_GOAL:
+            data = trail.run_recovery(self.last_rover_pose, self.get_clock().now())
+
+        self.get_logger().info(f"goal_state: {data.trail_goal_info.value}, trail_state: {data.trail_state_info.value}, recovery_step: {data.recovery_step.value} , lights_on: {data.is_lights_on}")
+        self.pub_goal.publish(data.goal_pose.pose)
+
+        # Scan for aruco markers
+        if data.trail_state_info == TrailState.REQUEST_ARUCO_SCAN:
+            found_aruco = trail.run_aruco_finder(self.last_aruco_markers, self.get_clock().now())
+            if found_aruco != -1:
+                self.get_logger().info(f"Found aruco marker {found_aruco}, going to next trail type")
+                return True
+            
+        # Stand still if trying to bake a target
+        if data.trail_state_info == TrailState.BAKE_TARGET:
+            self.get_logger().info("Baking target, standing still")
+            # Create a goal pose that is is the rover's current pose?
+            return False
+        
+        # Set the desired goal pose
+        self.navigator.goToPose(data.goal_pose)
+        return False
 
 
 # def main(args=None):
