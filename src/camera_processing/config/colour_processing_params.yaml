@@ -13,6 +13,8 @@
             FindContours('Step 3 - Find Contours'),
             FilterInnerContours('Step 4 - Reject Inner Contours', reject_inner_contours=True),
             FilterByContourArea('Step 5 - Reject By Area', reject_below=66, far_close_divider=204, reject_above=16810),
+            TagByContourArea('Step 6 - Tag by contour area', num_tags=3),
+            TagWithYaw('Step 7 - Tag with yaw', camera_hori_fov=110.0),
         ]))"
 
     red_led: "ColourProcessing(

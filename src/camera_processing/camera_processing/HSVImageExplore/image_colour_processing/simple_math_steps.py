@@ -386,7 +386,7 @@ class TagByContourArea(MathStep):
             areas_by_index[cv2.contourArea(contour)] = i
 
         tags_count = 0
-        for area, index in sorted(areas_by_index.items()):
+        for area, index in sorted(areas_by_index.items(), reverse=True):
             if MathStep.CoreTag.REJECT in tags[index]:
                 continue
 
@@ -394,9 +394,9 @@ class TagByContourArea(MathStep):
             if tags_count >= self._num_tags:
                 break            
 
-            tags[index].add(f"{MathStep.CoreTag.SORTED_BY_SIZE}{tags_count}*")
+            tags[index].add(f"{MathStep.CoreTag.SORTED_BY_SIZE.value}{tags_count}*")
             contours_tagged.append(contours[index])
-            contours_tags.append(f"{MathStep.CoreTag.SORTED_BY_SIZE}{tags_count}*")
+            contours_tags.append(f"{MathStep.CoreTag.SORTED_BY_SIZE.value}{tags_count}*")
     
 
         if self._is_display_active:
@@ -475,7 +475,8 @@ class TagWithYaw(MathStep):
             cX = int(moments["m10"] / moments["m00"])
             yaw = self.yaw_from_hori_pixels(cX)
 
-            coutour_yaws_str.append(f"{MathStep.CoreTag.YAW_TO_CONTOUR}{yaw:.2f}")
+            tags[i].add(f"{MathStep.CoreTag.YAW_TO_CONTOUR.value}{yaw:.2f}*")
+            coutour_yaws_str.append(f"{MathStep.CoreTag.YAW_TO_CONTOUR.value}{yaw:.2f}*")
 
         if self._is_display_active:
             mask_img = np.zeros(original_image.shape, original_image.dtype)
@@ -487,7 +488,7 @@ class TagWithYaw(MathStep):
                 if MathStep.CoreTag.REJECT in tags[i]:
                     continue
 
-                elif MathStep.CoreTag.YAW_TO_CONTOUR in tags[i]:
+                elif MathStep.CoreTag.YAW_TO_CONTOUR.value in tags[i]:
                     cv2.drawContours(mask_with_contours, contours, i, MathStep.Colour.GREEN, 2)
                     x, y, w, h = cv2.boundingRect(contour)
                     cv2.putText(mask_with_contours, coutour_yaws_str[i], (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, MathStep.Colour.GREEN, 2)

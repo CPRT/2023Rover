@@ -122,19 +122,28 @@ class DetectVisionTargets:
 
     def get_yaw_from_label(unique_label: str) -> bool:
         try:
-            return float(unique_label[unique_label.index("yaw_to_contour")+len("yaw_to_contour"):unique_label.index("*")])
+            start_index = unique_label.index("yaw_to_contour")+len("yaw_to_contour")
+            substring = unique_label[start_index:]
+            end_index = substring.index("*") + len(unique_label) - len(substring)
+            return float(unique_label[start_index:end_index])
         except Exception as e:
             return -360
 
     def get_contour_size_index(unique_label: str) -> int:
         try:
-            return float(unique_label[unique_label.index("sorted_by_size")+len("sorted_by_size"):unique_label.index("*")])
+            start_index = unique_label.index("sorted_by_size")+len("sorted_by_size")
+            substring = unique_label[start_index:]
+            end_index = substring.index("*") + len(unique_label) - len(substring)
+            return int(unique_label[start_index:end_index])
         except Exception as e:
             return -1
 
     def get_marker_id_from_label(unique_label: str) -> int:
         try:
-            return int(unique_label[unique_label.index("-ArucoID")+len("-ArucoID"):unique_label.index("*")])
+            start_index = unique_label.index("ArucoID")+len("ArucoID")
+            substring = unique_label[start_index:]
+            end_index = substring.index("*") + len(unique_label) - len(substring)
+            return int(unique_label[start_index:end_index])
         except Exception as e:
             return -1
 
@@ -150,6 +159,14 @@ class DetectVisionTargets:
             tag_str += f"-{MathStep.CoreTag.CLOSE.value}"
         else:
             return "" # Error
+
+        for tag in tags:
+            if not isinstance(tag, str):
+                continue
+            if MathStep.CoreTag.SORTED_BY_SIZE.value in tag:
+                tag_str += "-" + str(tag)
+            if MathStep.CoreTag.YAW_TO_CONTOUR.value in tag:
+                tag_str += "-" + str(tag)
         
         return base + tag_str
 
@@ -205,10 +222,11 @@ class DetectVisionTargets:
         # Blue LEDS
         bounding_boxes, tags, timings = self.blue_led_processing.process_image(zed_img)
         self._ros_logger.info("Blue LED " + timings)
+        self._ros_logger.info("Blue TAGS: " + str(tags))
 
         for i in range(0, len(bounding_boxes)):
             unique_object_id: str = DetectVisionTargets.unique_object_id_from_tags(f"BlueLED-{i}", tags[i])
-
+            self._ros_logger.info("Blue unique obj id: " + unique_object_id)
             if unique_object_id != "":
                 obj = sl.CustomBoxObjectData()
                 obj.unique_object_id = unique_object_id
@@ -397,4 +415,6 @@ class DetectVisionTargets:
         text = f"{str(object_data.id)}-{str(object_data.unique_object_id)}-{DetectVisionTargets.calculate_distance(object_data.position)}"
         if object_data.action_state == sl.OBJECT_ACTION_STATE.MOVING: text += "-moving"
         if object_data.action_state == sl.OBJECT_ACTION_STATE.IDLE: text += "-idle"
+        text = text.replace(MathStep.CoreTag.SORTED_BY_SIZE.value, "Sized")
+        text = text.replace(MathStep.CoreTag.YAW_TO_CONTOUR.value, "yaw")
         cv2.putText(img, text, (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)

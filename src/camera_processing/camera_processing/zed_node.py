@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 import cv2
 import os
 import numpy as np
+from math import isnan
 import pyzed.sl as sl
 from threading import Lock, Thread
 from copy import deepcopy
@@ -124,7 +125,7 @@ class ZedNode(Node):
                 # From zed_params.yaml. Below values are defaults, see zed_params.yaml for actual values
                 ('openni_depth_mode', False),
                 ('depth_image_scaling', 0.25),
-                ('mask_filename', 'ZEDMask.png'),
+                ('mask_filename', ''),
                 ('profile_name', 'night'),
 
                 ('zed_arucos_detections', True),
@@ -179,6 +180,8 @@ class ZedNode(Node):
         self.depth_image_scaling = float(self.get_parameter('depth_image_scaling').value)
         self.mask_filename = str(self.get_parameter('mask_filename').value)
         self.mask_full_filepath = os.path.join(get_package_share_directory('camera_processing'), 'zed_mask', self.mask_filename)
+        if len(self.mask_filename) == 0:
+            self.mask_full_filepath = ""
 
         self.should_detect_arucos = bool(self.get_parameter('zed_arucos_detections').value)
         self.should_detect_blue_led = bool(self.get_parameter('blue_led_detections').value)
@@ -348,7 +351,8 @@ class ZedNode(Node):
         self.depth_mat_res = sl.Resolution(int(camera_res.width * self.depth_image_scaling), int(camera_res.height * self.depth_image_scaling))
         self.get_logger().info(f"ZED Resolution is {camera_res.width}x{camera_res.height}")
         self._roi_mask = sl.Mat()
-        self._roi_mask.read(self.mask_full_filepath)
+        if len(self.mask_full_filepath) != 0:
+            self._roi_mask.read(self.mask_full_filepath)
         # TODO: Fix error Invalid mask datatype. Expected one of (<MAT_TYPE.U8_C1: 4>, <MAT_TYPE.U8_C3: 6>, <MAT_TYPE.U8_C4: 7>). Got MAT_TYPE.F32_C1
 
         self.get_logger().info(f"ZED imu to left camera transformation - " + 
@@ -417,6 +421,9 @@ class ZedNode(Node):
         self.record_timestamp()
 
         detections: List[sl.CustomBoxObjectData] = []
+        blueled_detections: List[sl.CustomBoxObjectData] = []
+        redled_detections: List[sl.CustomBoxObjectData] = []
+        irled_detections: List[sl.CustomBoxObjectData] = []
 
         # ZED Image
         self.zed.retrieve_image(self.image_left_tmp, sl.VIEW.LEFT)
@@ -451,11 +458,13 @@ class ZedNode(Node):
 
         # ZED Blue LEDS
         if self.should_detect_blue_led:
-            detections += self.detectVisionTargets.detectZEDBlueLEDs(resized_zed_img)
+            blueled_detections = self.detectVisionTargets.detectZEDBlueLEDs(resized_zed_img)
+            detections += blueled_detections
 
         # ZED Red LEDS
         if self.should_detect_red_led:
-            detections += self.detectVisionTargets.detectZEDRedLEDs(resized_zed_img)
+            redled_detections = self.detectVisionTargets.detectZEDRedLEDs(resized_zed_img)
+            detections += redled_detections
 
         # IR Cam Image 
         if self.should_detect_ir_led:
@@ -470,7 +479,8 @@ class ZedNode(Node):
             # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)
 
             # IR Cam LEDs
-            detections += self.detectVisionTargets.detectIRLEDS(ir_image, self.ir_cam.cam_type)
+            irled_detections = self.detectVisionTargets.detectIRLEDS(ir_image, self.ir_cam.cam_type)
+            detections += irled_detections
 
         # ZED detect 6x6 Arucos as fake LEDs
         if self.should_detect_6x6_aruco:
@@ -479,13 +489,13 @@ class ZedNode(Node):
         # ZED get position in it's world frame to publish
         tracking_state = self.zed.get_position(self.zed_pose, sl.REFERENCE_FRAME.WORLD)
 
-        # self.get_logger().info(f"Detections: {detections}")
+        self.get_logger().info(f"Detections: {detections}")
 
         # Ingest detections and get objects (TODO: Verify all objects in list are correct type to prevent crashing)
         self.zed.ingest_custom_box_objects(detections)
         self.zed.retrieve_objects(self.objects, self.obj_runtime_param)
 
-        # self.get_logger().info(f"Objects: {self.objects.object_list}")
+        self.get_logger().info(f"Objects: {self.objects.object_list}")
 
         if self.enable_gl_viewer and self.viewer.is_available():
             self.viewer.update_view(self.image_left_tmp, self.objects)
@@ -501,13 +511,19 @@ class ZedNode(Node):
         ir_led_object_id = ""
 
         for obj in self.objects.object_list:
+            if obj.tracking_state == sl.OBJECT_TRACKING_STATE.TERMINATE or obj.tracking_state == sl.OBJECT_TRACKING_STATE.SEARCHING:
+                continue
+
             point: Point = self.zed_object_to_point(obj)
+
+            if isnan(point.x) or isnan(point.y) or isnan(point.z):
+                continue
 
             if DetectVisionTargets.is_zed_marker(obj.unique_object_id):
                 zed_aruco_markers_msg.points.append(point)
                 zed_aruco_markers_msg.marker_ids.append(DetectVisionTargets.get_marker_id_from_label(obj.unique_object_id))
 
-                self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
+                # self.get_logger().info(f"Found Aruco: {zed_aruco_markers_msg}")
 
             elif DetectVisionTargets.is_blue_led(obj.unique_object_id):
                 blue_led_point_arr.points.append(point)
@@ -523,52 +539,54 @@ class ZedNode(Node):
                 ir_led_point_arr.points.append(point)
                 ir_led_point_arr.is_moving.append(obj.action_state == sl.OBJECT_ACTION_STATE.MOVING)
                 ir_led_object_id = obj.unique_object_id
- 
-            elif obj.action_state != sl.OBJECT_ACTION_STATE.TERMINATE and obj.action_state != sl.OBJECT_ACTION_STATE.SEARCHING:
+
+            else:
                 self.get_logger().warn("Lost object after zed detections called " + obj.unique_object_id)
+                obj.unique_object_id += "-LOST"
                 continue
 
             if self.should_publish_cv_processed_image:
                 DetectVisionTargets.draw_object_detection(zed_img, obj)
 
         if len(blue_led_point_arr.points) == 0:
-            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, detections)
+            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, blueled_detections)
             if yaw != -360:
                 blue_led_point_arr.has_yaw_to_general_contours = True
-                blue_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                blue_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
         elif len(blue_led_point_arr.points) == 1 and len(blue_led_object_id) != 0:
             index = DetectVisionTargets.get_contour_size_index(blue_led_object_id)
+            self.get_logger().info("Blue led index: " + repr(index))
             if index != -1:
-                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, detections)
+                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, blueled_detections)
                 if yaw != -360:
                     blue_led_point_arr.has_yaw_to_general_contours = True
-                    blue_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                    blue_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
         
         if len(red_led_point_arr.points) == 0:
-            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, detections)
+            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, redled_detections)
             if yaw != -360:
                 red_led_point_arr.has_yaw_to_general_contours = True
-                red_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                red_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
         elif len(red_led_point_arr.points) == 1 and len(red_led_object_id) != 0:
             index = DetectVisionTargets.get_contour_size_index(red_led_object_id)
             if index != -1:
-                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, detections)
+                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, redled_detections)
                 if yaw != -360:
                     red_led_point_arr.has_yaw_to_general_contours = True
-                    red_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                    red_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
 
         if len(ir_led_point_arr.points) == 0:
-            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, detections)
+            yaw = DetectVisionTargets.get_contour_yaw_by_size_index(1, irled_detections)
             if yaw != -360:
                 ir_led_point_arr.has_yaw_to_general_contours = True
-                ir_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                ir_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
         elif len(ir_led_point_arr.points) == 1 and len(ir_led_object_id) != 0:
             index = DetectVisionTargets.get_contour_size_index(ir_led_object_id)
             if index != -1:
-                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, detections)
+                yaw = DetectVisionTargets.get_contour_yaw_by_size_index(index+1, irled_detections)
                 if yaw != -360:
                     ir_led_point_arr.has_yaw_to_general_contours = True
-                    ir_led_point_arr.yaw_from_camera_to_general_contours = yaw
+                    ir_led_point_arr.yaw_from_camera_to_general_contours = float(yaw)
 
         self.publish_zed_aruco_points.publish(zed_aruco_markers_msg)
         self.publish_blue_led_points.publish(blue_led_point_arr)
@@ -655,15 +673,15 @@ class ZedNode(Node):
         point_arr = PointArray()
         point_arr.header.frame_id = self.frame_id
         point_arr.header.stamp = self.header_timestamp
-        point_arr.yaw_from_camera_to_general_contours = 0
+        point_arr.yaw_from_camera_to_general_contours = 0.0
         point_arr.has_yaw_to_general_contours = False
         return point_arr
 
-    def zed_object_to_point(self, object: sl.ObjectData) -> Point:
+    def zed_object_to_point(self, obj: sl.ObjectData) -> Point:
         point = Point()
-        point.x = object.position[0]
-        point.y = object.position[1]
-        point.z = object.position[2]
+        point.x = obj.position[0]
+        point.y = obj.position[1]
+        point.z = obj.position[2]
         return point
 
     def record_timestamp(self):
