@@ -34,7 +34,7 @@ zed:
   
     exposure: -1
     gain: -1
-    gamma: -1
+    gamma: 5
     white_balance: -1
 
     enable_object_tracking: True

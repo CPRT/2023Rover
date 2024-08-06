@@ -87,8 +87,10 @@ class TransformZedPointsToMap(Node):
         if isinstance(msg, ArucoMarkers):
             new_msg = ArucoMarkers()
             new_msg.marker_ids = msg.marker_ids
+            new_msg.is_moving = msg.is_moving
         elif isinstance(msg, PointArray):
             new_msg = PointArray()
+            new_msg.is_moving = msg.is_moving
         else:
             self.get_logger().error(f"Recieved a message that is not either ArucoMarkers or PointArray")
             return None
