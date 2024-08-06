@@ -2,7 +2,7 @@ from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
-from interfaces import ArucoMarkers
+from interfaces.msg import ArucoMarkers
 
 """
 Follow a vision target published by to a topic in the map frame
@@ -14,7 +14,7 @@ class FollowVisionTarget(BasicNavigator):
         self.init_basic_navigator()
 
         # Follow aruco tag
-        self.specific_tag_index = 6
+        self.specific_tag_index = 15
         self.aruco_tag_topic = "/zed/zed_aruco_points_map"
         self.aruco_tag_subscriber = self.create_subscription(ArucoMarkers, self.aruco_tag_topic, self.aruco_tag_callback, 10)
 
@@ -31,15 +31,15 @@ class FollowVisionTarget(BasicNavigator):
         initial_pose = PoseStamped()
         initial_pose.header.frame_id = 'map'
         initial_pose.header.stamp = self.basic_nav.get_clock().now().to_msg()
-        initial_pose.pose.position.x = 0
-        initial_pose.pose.position.y = 0
-        initial_pose.pose.orientation.w = 1
+        initial_pose.pose.position.x = 0.0
+        initial_pose.pose.position.y = 0.0
+        initial_pose.pose.orientation.w = 1.0
         self.basic_nav.setInitialPose(initial_pose)
 
         # Activate navigation, if not autostarted. This should be called after setInitialPose()
         # or this will initialize at the origin of the map and update the costmap with bogus readings.
         # If autostart, you should `waitUntilNav2Active()` instead.
-        # navigator.lifecycleStartup()
+        # self.basic_nav.lifecycleStartup()
 
         # Wait for navigation to fully activate, since autostarting nav2
         self.basic_nav.waitUntilNav2Active()
