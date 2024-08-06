@@ -22,7 +22,8 @@ class TrailState(Enum):
 class TrailGoal(Enum):
     TWO_TARGET_GOAL_FAR = "TwoTargetGoalFar"
     TWO_TARGET_GOAL_CLOSE = "TwoTargetGoalClose"
-    ONE_TARGET_GOAL = "OneTargetGoal"
+    ONE_TARGET_GOAL_FAR = "OneTargetGoalFar"
+    ONE_TARGET_GOAL_CLOSE = "OneTargetGoalClose"
     RECOVERY_GOAL = "RecoveryGoal"
     NO_GOAL = "NoGoal"
 
@@ -81,13 +82,13 @@ class LogicTreeConstants:
     RECOVERY_ARUCO_CHECK_TIMEOUT = 10.0 # seconds
 
     RECOVERY_GOAL_DISTANCE_COMPLETE_SMALL = 1.5 # meters
-    RECOVERY_GOAL_DISTANCE_COMPLETE_LARGE = 3 # meters
+    RECOVERY_GOAL_DISTANCE_COMPLETE_LARGE = 2.5 # meters
 
     RECOVERY_FIRST_ARUCO_DISTANCE = 0.3 # meters
     RECOVERY_SECOND_ARUCO_DISTANCE = 2.0 # meters
 
     RECOVERY_NO_DISTANCE = 0
-    RECOVERY_DRIVE_THRU_DISTANCE = 2.0 # meters
+    RECOVERY_DRIVE_THRU_DISTANCE = 3.0 # meters
 
     RECOVERY_STRAIGHT_ANGLE = 0.0 # radians
     RECOVERY_RIGHT_ANGLE = math.radians(40) # radians
@@ -174,7 +175,7 @@ class SingleCIRCTrail:
                 return self.one_target_far(point_array, rover_pose, curr_time)
 
         # If the previous goal is valid and was from 1 target, keep following it
-        if has_prev_goal and self._active_goal.trail_goal_info == TrailGoal.ONE_TARGET_GOAL:
+        if has_prev_goal and self._active_goal.trail_goal_info in (TrailGoal.ONE_TARGET_GOAL_FAR, TrailGoal.ONE_TARGET_GOAL_CLOSE):
             self.clear_recovery()
             return self._active_goal
         
@@ -261,9 +262,9 @@ class SingleCIRCTrail:
         data.goal_pose.header.stamp = curr_time.to_msg()
 
         if len(self._baked_targets) > 0:
-            desired_yaw = TrailHelperFunctions.calc_angle_between_points(point_array.points[0], self._baked_targets[-1])
+            desired_yaw = TrailHelperFunctions.calc_angle_between_points(self._baked_targets[-1], point_array.points[0])
         else:
-            desired_yaw = TrailHelperFunctions.calc_angle_between_points(point_array.points[0], rover_pose.pose.position)
+            desired_yaw = TrailHelperFunctions.calc_angle_between_points(rover_pose.pose.position, point_array.points[0], )
 
         data.goal_pose.pose.position = point_array.points[0]
         data.goal_pose.pose.orientation = TrailHelperFunctions.quaternion_from_yaw(desired_yaw)
@@ -275,7 +276,7 @@ class SingleCIRCTrail:
         TrailHelperFunctions.add_offset_to_pose(data.goal_pose, offset_point)
 
         data.trail_state_info = TrailState.FOLLOWING_LEDS
-        data.trail_goal_info = TrailGoal.ONE_TARGET_GOAL
+        data.trail_goal_info = TrailGoal.ONE_TARGET_GOAL_FAR
 
         data.lights_on = self._is_ir
 
@@ -302,9 +303,9 @@ class SingleCIRCTrail:
         data.trail_state_info = self.bake_point(point_array.points[0], point_array.is_moving[0])
 
         if len(self._baked_targets) > 0:
-            desired_yaw = TrailHelperFunctions.calc_angle_between_points(point_array.points[0], self._baked_targets[-1])
+            desired_yaw = TrailHelperFunctions.calc_angle_between_points(self._baked_targets[-1], point_array.points[0])
         else:
-            desired_yaw = TrailHelperFunctions.calc_angle_between_points(point_array.points[0], rover_pose.pose.position)
+            desired_yaw = TrailHelperFunctions.calc_angle_between_points(rover_pose.pose.position, point_array.points[0], )
 
         data.goal_pose.pose.position = point_array.points[0]
         data.goal_pose.pose.orientation = TrailHelperFunctions.quaternion_from_yaw(desired_yaw)
@@ -315,7 +316,7 @@ class SingleCIRCTrail:
         TrailHelperFunctions.rotate_point_by_angle(offset_point, desired_yaw + math.pi)
         TrailHelperFunctions.add_offset_to_pose(data.goal_pose, offset_point)
 
-        data.trail_goal_info = TrailGoal.ONE_TARGET_GOAL
+        data.trail_goal_info = TrailGoal.ONE_TARGET_GOAL_CLOSE
 
         data.lights_on = self._is_ir
 
