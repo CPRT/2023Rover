@@ -11,9 +11,9 @@ class gpioManager(Node):
     def __init__(self):
         super().__init__("gpioNode")
         self.lastTimestamp = 0
-        mode = GPIO.getmode()
+        # mode = GPIO.getmode()
         self.gpiooutput = False
-        GPIO.setmode(mode)
+        GPIO.setmode(GPIO.BOARD)
         output_pins = {
             'JETSON_XAVIER': 18,
             'JETSON_NANO': 33,
@@ -48,8 +48,8 @@ class gpioManager(Node):
         #     p.stop()
         #     GPIO.cleanup()
 
-        channels = [32]
-        GPIO.setup(channels, GPIO.OUT, initial=GPIO.LOW)
+        self.channels = [13]
+        GPIO.setup(self.channels, GPIO.OUT)
         # GPIO.output(channels, GPIO.HIGH)
         freq = 1
         self.rate = self.create_rate(freq)
@@ -58,17 +58,17 @@ class gpioManager(Node):
 
     def ledTimer(self):
         if(self.gpiooutput):
-            GPIO.output(32, GPIO.HIGH)
+            GPIO.output(self.channels, GPIO.HIGH)
             self.gpiooutput = False
         else:
-            GPIO.output(32, GPIO.LOW)
+            GPIO.output(self.channels, GPIO.LOW)
             self.gpiooutput = True
 
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = joystickDrive()
+    node = gpioManager()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
