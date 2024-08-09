@@ -3,9 +3,9 @@ import rclpy.logging
 from rclpy.node import Node
 import rclpy.time
 
+from std_msgs.msg import Bool
 import Jetson.GPIO as GPIO
 import interfaces.msg as GPIOmsg
-import std_msgs.msg as Bool
 
 class gpioManager(Node):
     def __init__(self):
@@ -27,8 +27,7 @@ class gpioManager(Node):
         output_pin = output_pins.get(GPIO.model, None)
         if output_pin is None:
             raise Exception('PWM not supported on this board')
-        self.cmd_move_subscriber = self.create_subscription(
-             Bool,"/lights_on", self.lightCallback, 10) 
+        self.light_subscriber = self.create_subscription(Bool, "/lights", self.lightCallback, 10)
         # GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
         # p = GPIO.PWM(output_pin, 50)
         # val = 25
@@ -65,9 +64,10 @@ class gpioManager(Node):
             GPIO.output(self.lightRelay, GPIO.LOW)
             self.gpiooutput = True
     def lightCallback(self, msg: Bool):
-        if(msg.data == True):
+        self.get_logger().info("outputting gpio " + str(msg.data))
+        if(msg.data is True):
             GPIO.output(self.lightRelay, GPIO.HIGH)
-        elif(msg.data == False):
+        elif(msg.data is False):
             GPIO.output(self.lightRelay, GPIO.LOW)
 
 
