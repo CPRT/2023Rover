@@ -53,7 +53,7 @@ class ZedNode(Node):
 
         if self.should_detect_ir_led:
             try:
-                self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_PS3EYE)
+                self.ir_cam: VideoCapture = VideoCapture(CameraType.IRCAM_IRCUT)
             except Exception as e:
                 self.get_logger().error("Failed to create VideoCapture for IR cam. Disabling IR camera. Error: " + str(e))
                 self.should_detect_ir_led = False
@@ -96,6 +96,7 @@ class ZedNode(Node):
         self.publish_ir_led_points = self.create_publisher(PointArray, '/zed/ir_led_points', 10)
 
         self.publish_raw_image = self.create_publisher(CompressedImage, '/zed/zed_raw_image', 10)
+        self.publish_raw_ir_image = self.create_publisher(CompressedImage, '/zed/ir_raw_image', 10)
         self.publish_cv_image = self.create_publisher(CompressedImage, '/zed/cv_zed_image', 10)
 
         self.publish_rviz_markers = self.create_publisher(MarkerArray, '/zed/zed_rviz_detections', 10)
@@ -140,6 +141,7 @@ class ZedNode(Node):
                 ('ir_undistort_yaw_slope', 1.0),
 
                 ('publish_raw_image', False),
+                ('publish_raw_ir_image', False),
                 ('publish_cv_processed_image', False),
                 ('enable_gl_viewer', False),
                 ('svo_realtime_mode', False), # Doesn't work on Jetson Nano
@@ -195,6 +197,7 @@ class ZedNode(Node):
         self.ir_undistort_yaw_slope = float(self.get_parameter('ir_undistort_yaw_slope').value)
 
         self.should_publish_raw_image = bool(self.get_parameter('publish_raw_image').value)
+        self.should_publish_raw_ir_image = bool(self.get_parameter('publish_raw_ir_image').value)
         self.should_publish_cv_processed_image = bool(self.get_parameter('publish_cv_processed_image').value)
         self.enable_gl_viewer = bool(self.get_parameter('enable_gl_viewer').value)
         self.should_publish_gl_viewer_data = bool(self.get_parameter('publish_gl_viewer_data').value)
@@ -253,7 +256,9 @@ class ZedNode(Node):
             pitch_offset=self.ir_undistort_pitch_offset, 
             pitch_slope=self.ir_undistort_pitch_slope,
             yaw_offset=self.ir_undistort_yaw_offset,
-            yaw_slope=self.ir_undistort_yaw_slope
+            yaw_slope=self.ir_undistort_yaw_slope,
+            static_pitch_offset=4,
+            static_yaw_offset=4
         )
 
         self.detectVisionTargets = DetectVisionTargets(
@@ -469,6 +474,9 @@ class ZedNode(Node):
                 
             except Exception as e:
                 self.get_logger().error("Got error reading IR Cam: " + str(e))
+
+            if self.should_publish_raw_ir_image:
+                self.publish_raw_ir_image.publish(self.cv_bridge.cv2_to_compressed_imgmsg(ir_image))
 
             # IR Cam Aruco Markers
             # detections += self.detectVisionTargets.detectArucoMarkers(ir_image, self.ir_cam.cam_type)

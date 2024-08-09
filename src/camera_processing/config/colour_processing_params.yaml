@@ -32,9 +32,9 @@
         display_scaling=2.0,
         pre_scaled=False,
         process_steps=tuple([
-            HSVRangeMaskStep('Step 1 - HSV - White', HSVRange(HSV(0, 0, 185), HSV(145, 120, 255)), return_mask=True),
+            HSVRangeMaskStep('Step 1 - HSV - White', HSVRange(HSV(0, 0, 207), HSV(28, 33, 255)), return_mask=True),
             ErodeDilateStep('Step 2 - Erode small bits then Dilate to regroup', erosion=-1, dilation=4, erosion_before_dilate=True, return_mask=True),
             FindContours('Step 3 - Find Contours'),
             FilterInnerContours('Step 4 - Reject Inner Contours', reject_inner_contours=True),
-            FilterByContourArea('Step 5 - Reject By Area', reject_below=32, far_close_divider=199, reject_above=3584),
+            FilterByContourArea('Step 5 - Reject By Area', reject_below=37, far_close_divider=278, reject_above=3584),
         ]))"

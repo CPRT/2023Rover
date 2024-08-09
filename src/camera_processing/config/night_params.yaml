@@ -12,14 +12,15 @@ zed:
     red_led_detections: True
     ir_led_detections: True
 
-    ir_undistort_pitch_offset: 0.0
-    ir_undistort_pitch_slope: 0.28
-    ir_undistort_yaw_offset: -29.0
-    ir_undistort_yaw_slope: 0.25
+    ir_undistort_pitch_offset: -14.0
+    ir_undistort_pitch_slope: 0.05
+    ir_undistort_yaw_offset: 0.0
+    ir_undistort_yaw_slope: 0.0
 
     detect_6x6_aruco_as_leds: False
 
     publish_raw_image: True
+    publish_raw_ir_image: False
     publish_cv_processed_image: True
 
     enable_gl_viewer: False
