@@ -1,0 +1,26 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/chris/2023Rover/install/ros_phoenix/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/chris/2023Rover/src/ouster-ros/ouster-ros/include/**",
+        "/home/chris/2023Rover/src/ros2_rover/rover_gazebo/include/**",
+        "/home/chris/2023Rover/src/ros2_rover/rover_motor_controller_cpp/include/**",
+        "/home/chris/2023Rover/src/ros_phoenix_humble/include/**",
+        "/home/chris/2023Rover/src/spatio_temporal_voxel_layer/spatio_temporal_voxel_layer/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
