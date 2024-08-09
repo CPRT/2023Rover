@@ -13,15 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import os
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
+from ament_index_python.packages import get_package_share_directory
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 
 
 def generate_launch_description():
+    config_dir = os.path.join(get_package_share_directory(
+        "rover_localization"), "config")
+
+    params_file = os.path.join(config_dir, "rtabmap.yaml")
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     use_sim_time_cmd = DeclareLaunchArgument(
@@ -45,28 +51,13 @@ def generate_launch_description():
         "use_sim_time": use_sim_time,
         "qos_imu": 2,
 
-        "Optimizer/Strategy": "1",                  # 0=TORO, 1=g2o, 2=GTSAM
-        "Optimizer/GravitySigma": "0.3",
-
-        "RGBD/OptimizeMaxError": "1.0",
-        "RGBD/OptimizeFromGraphEnd": "true",
-
-        "GFTT/MinDistance": "2.5",
-        "GFTT/QualityLevel": "0.1",
-
-        "Vis/CorGuessWinSize": "40",
-        "Vis/CorType": "0",
-        "Vis/MaxFeatures": "1000",
-        "Vis/MinDepth": "0.0",
-        "Vis/MaxDepth": "2.5",
-
         "Grid/DepthDecimation": "2",
-        "Grid/RangeMin": "1.0",
-        "Grid/RangeMax": "2.5",
+        "Grid/RangeMin": "1.5",
+        "Grid/RangeMax": "10.0",
         "Grid/MinClusterSize": "20",
         "Grid/MaxGroundAngle": "35",
         "Grid/NormalK": "20",
-        "Grid/CellSize": "0.2",
+        "Grid/CellSize": "0.05",
         "Grid/FlatObstacleDetected": "false",
         #"Grid/Sensor": "True",
 
@@ -75,11 +66,10 @@ def generate_launch_description():
 
         "Reg/Strategy": "1"
     }]
-
     remappings = [
         ("scan_cloud", "ouster/points"),
         ("rgb/camera_info", "camera/camera_info"),
-        ("depth/image", "camera/depth/image_raw"),
+        ("depth/image", "zed/depth_image"),
         ("imu", "ouster/imu"),
         ("odom", "odometry/filtered/local"),
         ("goal", "goal_pose"),
@@ -104,6 +94,6 @@ def generate_launch_description():
             package="rtabmap_viz",
             executable="rtabmap_viz",
             output="screen",
-            parameters=parameters,
+            parameters=[params_file],
             remappings=remappings),
     ])

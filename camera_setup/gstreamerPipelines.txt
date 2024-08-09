@@ -1,0 +1,12 @@
+Night Vision Camera:
+gst-launch-1.0 v4l2src device=/dev/v4l/by-id/usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0 ! queue ! nvvidconv ! nvv4l2h264enc peak-bitrate=10000000 insert-sps-pps=true control-rate=0 ! mpegtsmux alignment=7 ! srtsink uri=srt://:9000 latency=200
+No IR filter camera:
+gst-launch-1.0 v4l2src device=/dev/v4l/by-id/usb-HD_Camera_Manufacturer_USB_2.0_Camera-video-index0 ! nvvidconv ! nvv4l2h264enc ! video/x-h264,height=480,width=680,framerate=30/1 ! mpegtsmux ! srtsink uri=srt://:9000 latency=100 max-bitrate=10000000
+
+Zed Camera
+gst-launch-1.0 v4l2src device=/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0 ! videocrop right=672 ! nvvidconv ! nvv4l2h264enc ! mpegtsmux ! srtsink uri=srt://:9000 latency=100 max-bitrate=10000000
+
+
+
+All together
+gst-launch-1.0 v4l2src device=/dev/v4l/by-id/usb-Technologies__Inc._ZED_2i_OV0001-video-index0 ! videocrop right=672 ! nvvidconv ! nvv4l2h264enc ! mux. v4l2src device=/dev/v4l/by-id/usb-HD_Camera_Manufacturer_USB_2.0_Camera-video-index0 ! nvvidconv ! nvv4l2h264enc ! video/x-h264,height=480,width=680,framerate=30/1 ! mux. v4l2src device=/dev/v4l/by-id/usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0 ! queue ! nvvidconv ! nvv4l2h264enc ! mux. mpegtsmux name=mux ! srtsink uri=srt://:9000 latency=100 max-bitrate=10000000

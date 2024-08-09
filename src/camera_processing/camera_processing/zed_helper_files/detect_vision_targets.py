@@ -40,6 +40,7 @@ class CameraType(Enum):
     ERIK_ELP = CameraUtil(IR_CAM_NAME, elp_width, elp_height, elp_hfov, elp_vfov)
     IRCAM_ELP = CameraUtil(IR_CAM_NAME, 1280, 720, 62.91*2, 37.91*2, "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")
     IRCAM_PS3EYE = CameraUtil(IR_CAM_NAME, 640.0, 480.0, 58.0, 45.0, "usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0")
+    IRCAM_IRCUT = CameraUtil(IR_CAM_NAME, 640.0, 480.0, 50*4/3, 50, "usb-USB_Camera_Manufacture_H264_USB_Camera_2020052801-video-index0")
 
     # def update_scaling(self, image_scaling: float):
     #     """

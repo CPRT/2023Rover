@@ -24,13 +24,13 @@ global_ekf:
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, false,
+        false, false, false,
         # orientation
-        false, false, true,
+        false, false, false,
         # lineal vel 
         true, true, false,
         # angular vel
-        false, false, false,
+        false, false, true,
         # lineal acc
         false, false, false,
       ]
@@ -42,11 +42,18 @@ global_ekf:
     # odom0_twist_rejection_threshold: 1.0
 
     odom1: gps/odom 
-    odom1_config: [true,  true,  false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false,
-                   false, false, false]
+    odom1_config: [
+        # position
+        true, true, true,
+        # orientation
+        false, false, false,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        false, false, false,
+      ]
     odom1_differential: false
     odom1_relative: false
 
@@ -110,18 +117,18 @@ global_ekf:
     # odom4_pose_rejection_threshold: 5.0
     # odom4_twist_rejection_threshold: 1.0
 
-    imu0: ouster/imu
+    imu0: zed/imu_data
     imu0_config: [
         # position
         false, false, false,
         # orientation
-        false, false, false,
+        true, true, true,
         # lineal vel
         false, false, false,
         # angular vel
         false, false, false,
         # lineal acc
-        true, true, false,
+        false, false, false,
       ]
     # imu0_nodelay: false
     imu0_differential: false
@@ -130,7 +137,7 @@ global_ekf:
     # imu0_pose_rejection_threshold: 0.8
     # imu0_twist_rejection_threshold: 0.8
     # imu0_linear_acceleration_rejection_threshold: 0.8
-    imu0_remove_gravitational_acceleration: false
+    imu0_remove_gravitational_acceleration: true
 
     # use_control: false
     # stamped_control: false

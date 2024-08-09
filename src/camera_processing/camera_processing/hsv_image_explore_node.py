@@ -28,12 +28,15 @@ class TuneHSVImageExplore(Node):
             ]
         )
 
+        self.image_toic = str(self.get_parameter('image_topic').value)
+
         if 'blue' in self.get_parameter('pipeline').value:
             colour_processing_str = str(self.get_parameter('blue_led').value)
         elif 'red' in self.get_parameter('pipeline').value:
             colour_processing_str = str(self.get_parameter('red_led').value)
         elif 'ir' in self.get_parameter('pipeline').value:
             colour_processing_str = str(self.get_parameter('ir_led').value)
+            self.image_topic = '/zed/ir_raw_image'
         
         self.colour_processing = ColourProcessing.from_string(colour_processing_str)
         if not isinstance(self.colour_processing, ColourProcessing):
@@ -47,7 +50,7 @@ class TuneHSVImageExplore(Node):
 
         self.image_subscriber = self.create_subscription(
             CompressedImage if self.is_image_compressed else Image,
-            str(self.get_parameter('image_topic').value),
+            self.image_topic,
             self.image_callback, 
             int(self.get_parameter('depth_history').value)
         )

@@ -24,13 +24,13 @@ local_ekf:
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, false,
-        # orientation
-        false, false, true,
-        # lineal vel 
-        true, true, true,
-        # angular vel
         false, false, false,
+        # orientation
+        false, false, false,
+        # lineal vel 
+        true, true, false,
+        # angular vel
+        false, false, true,
         # lineal acc
         false, false, false,
       ]
@@ -44,7 +44,7 @@ local_ekf:
     odom1: /dev/roboclaws/front/odom_roboclaw
     odom1_config: [
         # position
-        false, false, false,
+        false, false, true,
         # orientation
         false, false, false,
         # lineal vel
@@ -101,8 +101,30 @@ local_ekf:
     # odom3_pose_rejection_threshold: 5.0
     # odom3_twist_rejection_threshold: 1.0
 
-    imu0: ouster/imu
+    imu0: zed/imu_data
     imu0_config: [
+        # position
+        false, false, false,
+        # orientation
+        true, true, true,
+        # lineal vel
+        false, false, false,
+        # angular vel
+        false, false, false,
+        # lineal acc
+        false, false, false,
+      ]
+    # imu0_nodelay: false
+    imu0_differential: false
+    imu0_relative: true
+    # imu0_queue_size: 5
+    # imu0_pose_rejection_threshold: 0.8
+    # imu0_twist_rejection_threshold: 0.8
+    # imu0_linear_acceleration_rejection_threshold: 0.8
+    imu0_remove_gravitational_acceleration: true
+
+    imu1: imu/filtered
+    imu1_config: [
         # position
         false, false, false,
         # orientation
@@ -112,16 +134,16 @@ local_ekf:
         # angular vel
         false, false, false,
         # lineal acc
-        true, true, false,
+        true, false, false,
       ]
-    # imu0_nodelay: false
-    imu0_differential: false
-    imu0_relative: true
-    # imu0_queue_size: 5
-    # imu0_pose_rejection_threshold: 0.8
-    # imu0_twist_rejection_threshold: 0.8
-    # imu0_linear_acceleration_rejection_threshold: 0.8
-    imu0_remove_gravitational_acceleration: false
+    # imu1_nodelay: false
+    imu1_differential: false
+    imu1_relative: true
+    # imu1_queue_size: 5
+    # imu1_pose_rejection_threshold: 0.8
+    # imu1_twist_rejection_threshold: 0.8
+    # imu1_linear_acceleration_rejection_threshold: 0.8
+    imu1_remove_gravitational_acceleration: true
 
     # use_control: false
     # stamped_control: false

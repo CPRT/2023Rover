@@ -15,6 +15,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 #for msgs
 find_package(geometry_msgs REQUIRED)
+  find_package(geographic_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SixFloats.msg"
@@ -24,7 +25,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PointArray.msg"
   "msg/ArmCmd.msg"
   "srv/ArmPos.srv"
-  DEPENDENCIES builtin_interfaces geometry_msgs # Add packages that above messages depend on
+  "msg/GPIOmsg.msg" #ik its goofy the actual gpio package is GPIO
+  "srv/NavToGPSGeopose.srv"
+  DEPENDENCIES 
+  builtin_interfaces
+  geometry_msgs 
+  geographic_msgs # Add packages that above messages depend on
  )
 
 ament_export_dependencies(rosidl_default_runtime)
