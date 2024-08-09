@@ -1,0 +1,15 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/chris/2023Rover/install/arm_interface/lib/python3.10/site-packages",
+        "/home/chris/2023Rover/install/ros_phoenix/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/chris/2023Rover/install/arm_interface/lib/python3.10/site-packages",
+        "/home/chris/2023Rover/install/ros_phoenix/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "cmake.configureOnOpen": false
+}

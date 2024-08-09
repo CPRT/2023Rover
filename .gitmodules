@@ -1,6 +1,3 @@
-[submodule "src/ros_phoenix_humble"]
-	path = src/ros_phoenix_humble
-	url = https://github.com/ChrisRusu1/ros_phoenix_humble.git
 [submodule "src/ouster-ros"]
 	path = src/ouster-ros
 	url = git@github.com:ouster-lidar/ouster-ros.git
