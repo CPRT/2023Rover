@@ -5,7 +5,7 @@ import rclpy.time
 
 import Jetson.GPIO as GPIO
 import interfaces.msg as GPIOmsg
-
+import std_msgs.msg as Bool
 
 class gpioManager(Node):
     def __init__(self):
@@ -27,7 +27,8 @@ class gpioManager(Node):
         output_pin = output_pins.get(GPIO.model, None)
         if output_pin is None:
             raise Exception('PWM not supported on this board')
-        
+        self.cmd_move_subscriber = self.create_subscription(
+             Bool,"/lights_on", self.lightCallback, 10) 
         # GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
         # p = GPIO.PWM(output_pin, 50)
         # val = 25
@@ -48,9 +49,9 @@ class gpioManager(Node):
         #     p.stop()
         #     GPIO.cleanup()
 
-        self.channels = [13]
-        GPIO.setup(self.channels, GPIO.OUT)
-        # GPIO.output(channels, GPIO.HIGH)
+        self.lightRelay = [13]
+        GPIO.setup(self.lightRelay, GPIO.OUT)
+        # GPIO.output(lightRelay, GPIO.HIGH)
         freq = 1
         self.rate = self.create_rate(freq)
         period = 1 / freq
@@ -58,11 +59,18 @@ class gpioManager(Node):
 
     def ledTimer(self):
         if(self.gpiooutput):
-            GPIO.output(self.channels, GPIO.HIGH)
+            GPIO.output(self.lightRelay, GPIO.HIGH)
             self.gpiooutput = False
         else:
-            GPIO.output(self.channels, GPIO.LOW)
+            GPIO.output(self.lightRelay, GPIO.LOW)
             self.gpiooutput = True
+    def lightCallback(self, msg: Bool):
+        if(msg.data == True):
+            GPIO.output(self.lightRelay, GPIO.HIGH)
+        elif(msg.data == False):
+            GPIO.output(self.lightRelay, GPIO.LOW)
+
+
 
 
 
