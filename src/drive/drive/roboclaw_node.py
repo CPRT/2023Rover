@@ -156,6 +156,10 @@ class RoboclawNode(Node):
         self.BASE_WIDTH = (
             self.get_parameter("base_width").get_parameter_value().double_value
         )
+        self.declare_parameter("max_current", 20)
+        self.MAX_CURRENT = (
+            self.get_parameter("max_current").get_parameter_value().integer_value
+        )
         self.declare_parameter("pub_odom", True)
         self.PUB_ODOM = self.get_parameter("pub_odom").get_parameter_value().bool_value
         self.declare_parameter("pub_elec", True)
@@ -164,6 +168,9 @@ class RoboclawNode(Node):
         self.STOP_MOVEMENT = (
             self.get_parameter("stop_movement").get_parameter_value().bool_value
         )
+
+        roboclaw.SetM1MaxCurrent(self.address, self.MAX_CURRENT)
+        roboclaw.SetM2MaxCurrent(self.address, self.MAX_CURRENT)
 
         self.encodm = None
         self.electr = None
