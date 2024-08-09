@@ -4,7 +4,7 @@ from time import sleep
 
 def main():
     i = 1
-    camera = cv2.VideoCapture("/dev/video1")
+    camera = cv2.VideoCapture("/dev/video2")
     # camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     # camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     
@@ -13,7 +13,7 @@ def main():
             ret, img = camera.read()
             
             # cv2.imshow("Camera", img)
-            cv2.imwrite(os.path.join('ps3_ir_cam_images' , f'PS3_IR_CAM_{i}.jpg'), img)
+            cv2.imwrite(os.path.join('low_light_cam' , f'PS3_IR_CAM_{i}.jpg'), img)
             
             i+=1
             cv2.waitKey(0)

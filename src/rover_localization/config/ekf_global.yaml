@@ -24,13 +24,13 @@ global_ekf:
     odom0: icp/odom
     odom0_config: [
         # position
-        true, true, false,
+        false, false, false,
         # orientation
-        false, false, true,
+        false, false, false,
         # lineal vel 
         true, true, false,
         # angular vel
-        false, false, false,
+        false, false, true,
         # lineal acc
         false, false, false,
       ]
@@ -44,9 +44,9 @@ global_ekf:
     odom1: gps/odom 
     odom1_config: [
         # position
-        true, true, false,
-        # orientation
         true, true, true,
+        # orientation
+        false, false, false,
         # lineal vel
         false, false, false,
         # angular vel
@@ -122,7 +122,7 @@ global_ekf:
         # position
         false, false, false,
         # orientation
-        true, true, false,
+        true, true, true,
         # lineal vel
         false, false, false,
         # angular vel
@@ -137,7 +137,7 @@ global_ekf:
     # imu0_pose_rejection_threshold: 0.8
     # imu0_twist_rejection_threshold: 0.8
     # imu0_linear_acceleration_rejection_threshold: 0.8
-    imu0_remove_gravitational_acceleration: false
+    imu0_remove_gravitational_acceleration: true
 
     # use_control: false
     # stamped_control: false
