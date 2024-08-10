@@ -19,9 +19,9 @@ zed:
 
     detect_6x6_aruco_as_leds: False
 
-    publish_raw_image: True
+    publish_raw_image: False
     publish_raw_ir_image: False
-    publish_cv_processed_image: True
+    publish_cv_processed_image: False
 
     enable_gl_viewer: False
 
