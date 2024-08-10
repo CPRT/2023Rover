@@ -34,7 +34,7 @@ class CIRCTrailsCommander(Node):
         self.declare_parameters(
             namespace="",
             parameters=[ 
-                ('trail', 'error'),
+                ('trail', 'error1'),
             ]
         )
 
@@ -63,7 +63,7 @@ class CIRCTrailsCommander(Node):
         self.pub_lights_on = self.create_publisher(Bool, '/lights_on', 10)
 
         self.aruco_tag_found = -1
-        self.trail_name = str(self.get_parameter('trail_name').value)
+        self.trail_name = str(self.get_parameter('trail').value)
         if self.trail_name == '':
             self.get_logger().error("No trail name provided")
             raise Exception("No trail name provided")
@@ -75,8 +75,10 @@ class CIRCTrailsCommander(Node):
         elif self.trail_name == 'ir':
             self.trail = SingleCIRCTrail(TrailType.IR_TRAIL, True, self.get_logger())
         else:
-            self.get_logger().error("Invalid trail name provided. Must be blue, red or ir")
+            self.get_logger().error("Invalid trail name provided (" + self.trail_name + "). Must be blue, red or ir")
             raise Exception("Invalid trail name provided. Must be blue, red or ir")
+
+        self.get_logger().info(f'Created {self.trail_name} trail')
 
         self.get_logger().info('Waiting for Nav2 to be active')
         self.navigator.waitUntilNav2Active()
