@@ -27,7 +27,7 @@ def generate_launch_description():
                                              parameters=[params_file])
 
     navsat_remappings = [
-        ("imu", "zed/imu_data"),
+        ("imu", "gps/heading"),
         ("gps/fix", "gps/fix"),
         ("odometry/filtered", "odometry/filtered/global"),
         ("odometry/gps", "gps/odom"),

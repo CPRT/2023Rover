@@ -169,7 +169,7 @@ local_costmap:
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
           max_obstacle_height: 1.0    # default 2.0, meters
           min_obstacle_height: -0.40   # default 0.0, meters
-          obstacle_range: 3.0
+          obstacle_range: 2.5
         cliffDetection:
           data_type: PointCloud2
           topic: /ouster/points
@@ -182,9 +182,9 @@ local_costmap:
           horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
           decay_acceleration: 5.0     # default 0, 1/s^2. 
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
-          max_obstacle_height: -0.9  # default 2.0, meters -height of lidar - cliff drop
+          max_obstacle_height: -1.0  # default 2.0, meters -height of lidar - cliff drop
           min_obstacle_height: -99.0  # default 0.0, meters
-          obstacle_range: 2.5
+          obstacle_range: 2.0
       denoise_layer:
         plugin: "nav2_costmap_2d::DenoiseLayer"
         enabled: True
@@ -248,7 +248,7 @@ global_costmap:
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
           max_obstacle_height: 1.0    # default 2.0, meters
           min_obstacle_height: -0.45  # default 0.0, meters
-          obstacle_range: 4.0
+          obstacle_range: 3.0
         cliffDetection:
           marking: true
           clearing: true
@@ -263,9 +263,9 @@ global_costmap:
           horizontal_fov_angle: 6.29  # 3D lidar scanners like the VLP16 have 360 deg horizontal FOV.
           decay_acceleration: 5.0     # default 0, 1/s^2. 
           model_type: 1               # default 0, model type for frustum. 0=depth camera, 1=3d lidar like VLP16 or similar
-          max_obstacle_height: -0.9  # default 2.0, meters -height of lidar - cliff drop
+          max_obstacle_height: -1.0  # default 2.0, meters -height of lidar - cliff drop
           min_obstacle_height: -99.0  # default 0.0, meters
-          obstacle_range: 4.0
+          obstacle_range: 3.0
       denoise_layer:
         plugin: "nav2_costmap_2d::DenoiseLayer"
         enabled: True
