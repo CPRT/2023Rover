@@ -460,7 +460,7 @@ class SingleCIRCTrail:
 
         elif self._recovery_step == RecoverySteps.ARUCO_CIRCLE_BACK_STRAIGHT:
             self._recovery_step = RecoverySteps.ARUCO_CIRCLE_BACK_STRAIGHT_DRIVE_THRU
-            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_STRAIGHT_ANGLE, True)
+            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_STRAIGHT_ANGLE, False)
 
         elif self._recovery_step == RecoverySteps.ARUCO_CIRCLE_BACK_STRAIGHT_DRIVE_THRU:
             self._recovery_step = RecoverySteps.ARUCO_CIRCLE_BACK_RIGHT
@@ -468,7 +468,7 @@ class SingleCIRCTrail:
 
         elif self._recovery_step == RecoverySteps.ARUCO_CIRCLE_BACK_RIGHT:
             self._recovery_step = RecoverySteps.ARUCO_CIRCLE_BACK_RIGHT_DRIVE_THRU
-            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_RIGHT_ANGLE, True)
+            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_RIGHT_ANGLE, False)
 
         elif self._recovery_step == RecoverySteps.ARUCO_CIRCLE_BACK_RIGHT_DRIVE_THRU:
             self._recovery_step = RecoverySteps.ARUCO_CIRCLE_BACK_LEFT
@@ -476,8 +476,7 @@ class SingleCIRCTrail:
 
         elif self._recovery_step == RecoverySteps.ARUCO_CIRCLE_BACK_LEFT:
             self._recovery_step = RecoverySteps.ARUCO_CIRCLE_BACK_LEFT_DRIVE_THRU
-            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_LEFT_ANGLE, True)
-
+            self.recovery_create_goal(curr_time, LogicTreeConstants.RECOVERY_DRIVE_THRU_DISTANCE, LogicTreeConstants.RECOVERY_LEFT_ANGLE, False)
 
         else:
             self._recovery_step = RecoverySteps.FAILED_RECOVERY
