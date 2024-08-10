@@ -122,7 +122,6 @@ protected:
             config.slot0 = slot;
             config.voltageCompSaturation = this->get_parameter("max_voltage").as_double();
             config.pulseWidthPeriod_EdgesPerRot = this->get_parameter("edges_per_rot").as_int();
-
             this->configure_current_limit(config);
 
             ErrorCode error = this->controller_->ConfigAllSettings(config, 50); // Takes up to 50ms
@@ -150,12 +149,8 @@ protected:
             if (this->follow_id_ >= 0) {
                 this->controller_->Set(ControlMode::Follower, this->follow_id_);
             }
-            this->controller_->ConfigForwardLimitSwitchSource(ctre::phoenix::motorcontrol::LimitSwitchSource(1) , ctre::phoenix::motorcontrol::LimitSwitchNormal(2));
-            this->controller_->ConfigReverseLimitSwitchSource(ctre::phoenix::motorcontrol::LimitSwitchSource(1) , ctre::phoenix::motorcontrol::LimitSwitchNormal(2));
-            this->controller_->ConfigClearPositionOnLimitF(true);
-            this->controller_->ConfigClearPositionOnLimitR(true);
 
-            RCLCPP_INFO(this->get_logger(), "Successfully configured MotorDisabled Controller");
+            RCLCPP_INFO(this->get_logger(), "Successfully configured Motor Controller");
             this->configured_ = true;
         }
     }

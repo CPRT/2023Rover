@@ -17,19 +17,10 @@ class gpioManager(Node):
         self.light_subscriber = self.create_subscription(Bool, "/lights", self.lightCallback, 10)
 
         self.lightRelay = [13]
-        GPIO.setup(self.lightRelay, GPIO.OUT)
+        GPIO.setup(self.lightRelay, GPIO.OUT, initial=GPIO.HIGH)
         freq = 1
         self.rate = self.create_rate(freq)
         period = 1 / freq
-        self.timer = self.create_timer(period, self.ledTimer)
-
-    def ledTimer(self):
-        if(self.gpiooutput):
-            GPIO.output(self.lightRelay, GPIO.HIGH)
-            self.gpiooutput = False
-        else:
-            GPIO.output(self.lightRelay, GPIO.LOW)
-            self.gpiooutput = True
     def lightCallback(self, msg: Bool):
         self.get_logger().info("outputting gpio " + str(msg.data))
         if(msg.data is True):

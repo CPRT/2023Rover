@@ -106,7 +106,7 @@ local_ekf:
         # position
         false, false, false,
         # orientation
-        true, true, false,
+        true, true, true,
         # lineal vel
         false, false, false,
         # angular vel
@@ -150,7 +150,7 @@ local_ekf:
         # position
         false, false, false,
         # orientation
-        false, false, true,
+        false, false, false,
         # lineal vel
         false, false, false,
         # angular vel

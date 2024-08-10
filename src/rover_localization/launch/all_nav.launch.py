@@ -29,13 +29,6 @@ def generate_launch_description():
     pkg_rover_ouster = get_package_share_directory("ouster_ros")
     pkg_camera_processing = get_package_share_directory("camera_processing")
     
-    nav_launch_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_rover_navigation,
-                         "launch", "navigation.launch.py")
-        )
-    )
-
     localization_launch_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_rover_localization,
@@ -74,7 +67,7 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
-    ld.add_action(nav_launch_cmd)
+    #ld.add_action(nav_launch_cmd)
     ld.add_action(localization_launch_cmd)
     ld.add_action(ouster_launch_cmd)
     ld.add_action(description_launch_cmd)

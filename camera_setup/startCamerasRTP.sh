@@ -3,7 +3,7 @@ shopt -s extglob
 
 start="gst-launch-1.0"
 
-end="mpegtsmux name=mux alignment=7 ! srtsink uri=srt://:9000 latency=125 sync=false"
+end="mpegtsmux name=mux alignment=7 ! rtpmp2tpay ! udpsink host=192.168.0.90 port=9000 sync=false"
 
 encoder="nvvidconv ! nvv4l2h265enc bitrate=5000000 control-rate=0 maxperf-enable=true insert-sps-pps=true profile=1 qos=true ! mux."
 

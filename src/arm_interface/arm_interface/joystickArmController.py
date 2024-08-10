@@ -64,7 +64,7 @@ class joystickArmController(Node):
         self.estop = Bool()
         self.estopTimestamp = 0.0
         self.lastTimestamp = 0
-
+	self.gripperInc = 0.5
         self.gripper.start(self.gripperVal)
         self.gripper.ChangeDutyCycle(self.gripperVal)
 
@@ -141,10 +141,10 @@ class joystickArmController(Node):
             self.estopTimestamp = msg.header.stamp.sec
         if(msg.buttons[8] and msg.header.stamp.sec - self.estopTimestamp > 2):
             self.estop.data = False
-        if(msg.buttons[3]):
-            self.gripperVal = 5.555
-        elif(msg.buttons[2]):
-            self.gripperVal = 6.665
+        if(msg.buttons[3] and self.gripperVal < 50):
+            self.gripperVal = self.gripperVal - self.gripperInc
+        elif(msg.buttons[2] and self.gripperVal > 0):
+            self.gripperVal = self.gripperVal + self.gripperInc
 
 
 def main(args=None):
