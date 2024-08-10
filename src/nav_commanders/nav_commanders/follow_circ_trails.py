@@ -60,7 +60,7 @@ class CIRCTrailsCommander(Node):
         self.pub_goal = self.create_publisher(PoseStamped, '/circ_trails_goal', 10)
         self.pub_goal_yaw = self.create_publisher(Float32, '/circ_trails_goal_yaw', 10)
 
-        self.pub_lights_on = self.create_publisher(Bool, '/lights_on', 10)
+        self.pub_lights_on = self.create_publisher(Bool, '/lights', 10)
 
         self.aruco_tag_found = -1
         self.trail_name = str(self.get_parameter('trail').value)
