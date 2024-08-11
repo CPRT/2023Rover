@@ -9,8 +9,8 @@ def generate_launch_description():
             executable='joystick_drive',
             name='joystick_drive_station',
             parameters=[
-                {'PID_max_speed': 1.0}, #m/s
-                {'PID_max_turn': 1.0}, #rad/s
+                {'PID_max_speed': 2.0}, #m/s
+                {'PID_max_turn': 2.0}, #rad/s
                 {'voltage_max_speed': 8.0}, # x/12volts
                 {'voltage_max_turn': 8.0}, # x/12volts
                 {'PID': 1}, # PID 1 Voltage 0

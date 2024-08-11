@@ -33,6 +33,7 @@ class joystickBreakout(Node):
         elif(self.pubState == 1):
             self.setArm.publish(msg)
         else:
+            msg.axes = [-val for val in msg.axes]
             self.setDrive.publish(msg)
 
 
