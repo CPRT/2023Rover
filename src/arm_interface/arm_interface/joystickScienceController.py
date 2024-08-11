@@ -43,7 +43,7 @@ class joystickScienceController(Node):
         self.digger.mode = 0
         self.get_logger().info(f'base: {msg.axes[3]}, digger: { msg.axes[1]}')
         self.digger.value = msg.axes[1]
-        self.scienceBase.value = msg.axes[3]
+        self.scienceBase.value = msg.axes[3] / 2
 
 
 def main(args=None):

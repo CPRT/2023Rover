@@ -1,11 +1,11 @@
 [Unit]
-Description=PipeFFmpegTov4l2loopback-LaptopCam
+Description=PipeFFmpegTov4l2loopback-panornama_camera
 After=multi-user.target
 
 [Service]
 Type=simple
 ExecStart=REPLACE_ME_AUTOMATICALLY \
-        --camera "ExpensiveAssLowLightCamera"
+        --camera "PanoramaCamera"
 Restart=no
 RestartSec=3
 

@@ -11,7 +11,7 @@
 # - /dev/video13 -> ArmCamera
 # - /dev/video14 -> IR_ELP
 # - /dev/video15 -> PS3_EYE
-# - /dev/video16 -> PlaceHolder2
+# - /dev/video16 -> PanoramaCamera
 
 # Unload v4l2loopback
 sudo modprobe -r v4l2loopback

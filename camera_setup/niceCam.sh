@@ -9,9 +9,9 @@ end="mpegtsmux name=mux alignment=7 ! rtpmp2tpay ! udpsink host=$targetIp port=9
 
 encoder="nvvidconv ! nvv4l2h265enc bitrate=5000000 control-rate=0 maxperf-enable=true insert-sps-pps=true profile=1 qos=true ! mux."
 
-nightVision="v4l2src device=/dev/v4l/by-id/usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0 ! $encoder"
+nightVision="v4l2src device=/dev/v4l/by-id/usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0 ! jpegdec ! video/x-raw, height=1080 ! $encoder"
 
-SecondaryTopCam="v4l2src do-timestamp=true device=/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0 ! nvjpegdec ! video/x-raw, height=480, width=640, framerate=30/1 ! $encoder"
+SecondaryTopCam="v4l2src do-timestamp=true device=/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0 ! video/x-raw, height=480, width=640, framerate=30/1 ! $encoder"
 
 ArmScienceCam="v4l2src device=/dev/v4l/by-id/usb-HD_Camera_Manufacturer_USB_2.0_Camera-video-index0 ! video/x-raw, height=480, width=640, framerate=30/1 ! $encoder" # v4l2src stuff here
 

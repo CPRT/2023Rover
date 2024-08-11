@@ -24,7 +24,8 @@ def generate_launch_description():
                             {"I":0.0},
                             {"D":0.0},
                             {"max_voltage": 12.0},
-                            {"invert_sensor":True}],
+                            {"invert_sensor":True},
+                            {"brake_mode":True}],
                 
             ),
             ComposableNode(
@@ -34,7 +35,8 @@ def generate_launch_description():
                 parameters=[{"id": 8},
                             {"P":100.0},
                             {"I":0.0},
-                            {"D":0.0}],
+                            {"D":0.0},
+                            {"brake_mode":True}],
                 
             ),
         ],
@@ -43,17 +45,9 @@ def generate_launch_description():
 
     return launch.LaunchDescription([container,
         launch_ros.actions.Node(
-            package='joy',
-            executable='joy_node',
-            name='joystick'),
-        launch_ros.actions.Node(
             package='arm_interface',
             executable='joystick_science_controller',
             name='joystick_science_controller_node'),
-        launch_ros.actions.Node(
-            package='drive',
-            executable='joystick_breakout',
-            name='joystick_breakout_node'),
             
             
             ])

@@ -3,7 +3,7 @@ from ffmpeg.progress import Progress
 import os, sys, argparse, re
 from typing import Tuple
 
-CAMERA_PROFILE_NAMES = ['ZED', 'IR_ELP', 'PS3_EYE', 'ExpensiveAssLowLightCamera']
+CAMERA_PROFILE_NAMES = ['ZED', 'IR_ELP', 'PS3_EYE', 'ExpensiveAssLowLightCamera', 'PanoramaCamera']
 
 """
 Steps to add a new camera
@@ -21,6 +21,8 @@ def get_input_output_indexes(camera_profile: str) -> Tuple[int, int]:
         return IR_ELP()
     elif camera_profile == 'PS3_EYE'.lower():
         return PS3_EYE()
+    elif camera_profile == 'PanoramaCamera'.lower():
+        return PanoramaCamera()
     else:
         exit_with_error(os.EX_USAGE, f"Unable to determine camera_profile in get_input_output_indexes")
 
@@ -44,6 +46,10 @@ def PS3_EYE() -> Tuple[int, int]:
     camera_index = find_video_index_by_id("usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0")
     return camera_index, output_index
 
+def PanoramaCamera()-> Tuple[int, int]:
+    output_index = 16
+    camera_index = find_video_index_by_id("usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN5100-video-index0")
+    return camera_index, output_index
 
 def find_video_index_by_id(v4l_byid_name: str) -> int:
     """
@@ -108,16 +114,18 @@ def main():
     cam_index, output_index = get_input_output_indexes(selected_profile)
     printS(f"Camera Device: /dev/video{cam_index}, Output Device: /dev/video{output_index}")
 
-    try:
-        if not os.path.isfile(f"/dev/video{cam_index}"):
-            exit_with_error(os.EX_SOFTWARE, f"Camera device file does not exist: /dev/video{cam_index}")
+    # try:
+    #     if not os.path.isfile(f"/dev/video{cam_index}"):
+    #         exit_with_error(os.EX_SOFTWARE, f"Camera device file does not exist: /dev/video{cam_index}")
 
-        if not os.path.isfile(f"/dev/video{output_index}"):
-            exit_with_error(os.EX_SOFTWARE, f"Output device file does not exist: /dev/video{output_index}")
+    #     if not os.path.isfile(f"/dev/video{output_index}"):
+    #         exit_with_error(os.EX_SOFTWARE, f"Output device file does not exist: /dev/video{output_index}")
 
-    except Exception as e:
-        exit_with_error(os.EX_SOFTWARE, f"Failed to check if camera and output device files exist with exception: {e}")
+    # except Exception as e:
+    #     exit_with_error(os.EX_SOFTWARE, f"Failed to check if camera and output device files exist with exception: {e}")
 
+
+# 640 by 480 at a FPS of 30
     try:
         # Same as command: ffmpeg -f v4l2 -i /dev/video0 -f v4l2 /dev/video10
         ffmpeg = ffmpeg = (
@@ -125,11 +133,14 @@ def main():
             .option("y")
             .input(
                 '/dev/video' + str(cam_index),
-                f='v4l2',
+                f='rawvideo',
+                framerate=30,
+                video_size='640x480'
+                # pixel_format='yuv420p'
             )
             .output(
                 '/dev/video' + str(output_index), 
-                f='v4l2',
+                f='rawvideo',
             )
         )
     except Exception as e:
