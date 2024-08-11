@@ -11,13 +11,14 @@ class DetectArucoMarkers(Node):
 
         self.is_source_image_compressed = True
         self.should_publish_compressed = True
+        self._image_scaling = 0.3
 
         # source_image_topic = '/zed/camera1/image_raw'
-        source_image_topic = '/zed/camera1/image_compressed'
-        
-        source_image_topic = '/zed/source_image'
+        # source_image_topic = '/zed/camera1/image_compressed'
+        # source_image_topic = '/zed/source_image'
+        source_image_topic = '/published_image'
 
-        processed_image_topic = '/zed/acruco_processed'
+        processed_image_topic = '/acruco_processed'
 
         aruco_ids_array = 'aruco_tag_ids_array'
         aruco_id_largest = 'acruco_tag_id_largest'
@@ -29,7 +30,7 @@ class DetectArucoMarkers(Node):
 
         image_width = 640
         image_height = 480
-
+        
 
 
         # Subscribe to the get images
@@ -72,8 +73,10 @@ class DetectArucoMarkers(Node):
         )
         
         self.br = CvBridge()
-        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_100)
-        self.aruco_params = cv2.aruco.DetectorParameters_create()
+        self.aruco_dict_4x4 = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
+        self.aruco_params_4x4 =  cv2.aruco.DetectorParameters()
+        self.aruco_detector_4x4 = cv2.aruco.ArucoDetector(self.aruco_dict_4x4, self.aruco_params_4x4)
+
         self.frame_area = image_width * image_height
 
     def process_image(self, image: Image):
@@ -85,18 +88,20 @@ class DetectArucoMarkers(Node):
 
         self.detect_aruco(cv_image)
 
+        cv_image = cv2.resize(cv_image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
+    
         if self.should_publish_compressed:
             self.processed_image_publisher.publish(self.br.cv2_to_compressed_imgmsg(cv_image)) 
         else:
             self.processed_image_publisher.publish(self.br.cv2_to_imgmsg(cv_image))
 
     def detect_aruco(self, cv_image):
-        (corners, ids, rejected) = cv2.aruco.detectMarkers(cv_image, self.aruco_dict, parameters=self.aruco_params)
+        corners, ids, rejected = self.aruco_detector_4x4.detectMarkers(cv_image)
 
         # cv2 code from https://pyimagesearch.com/2020/12/21/detecting-aruco-markers-with-opencv-and-python/
 
         if len(corners) == 0:
-            self.get_logger().info('No aruco markers found')
+            # self.get_logger().info('No aruco markers found')
             return
         
         ids = ids.flatten()
@@ -130,10 +135,10 @@ class DetectArucoMarkers(Node):
             topLeft = (int(topLeft[0]), int(topLeft[1]))
 
             # draw the bounding box of the ArUCo detection
-            cv2.line(cv_image, topLeft, topRight, (0, 255, 0), 2)
-            cv2.line(cv_image, topRight, bottomRight, (0, 255, 0), 2)
-            cv2.line(cv_image, bottomRight, bottomLeft, (0, 255, 0), 2)
-            cv2.line(cv_image, bottomLeft, topLeft, (0, 255, 0), 2)
+            cv2.line(cv_image, topLeft, topRight, (0, 255, 0), 4)
+            cv2.line(cv_image, topRight, bottomRight, (0, 255, 0), 4)
+            cv2.line(cv_image, bottomRight, bottomLeft, (0, 255, 0), 4)
+            cv2.line(cv_image, bottomLeft, topLeft, (0, 255, 0), 4)
 
             # compute and draw the center (x, y)-coordinates of the ArUco
             # marker
@@ -144,7 +149,7 @@ class DetectArucoMarkers(Node):
             # draw the ArUco marker ID on the image
             cv2.putText(cv_image, str(markerID),
                 (topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,
-                0.5, (0, 255, 0), 2)
+                4, (0, 255, 0), 4)
 
         # Publish calculated data helpful for navigation
         if largest_marker_id == -1:

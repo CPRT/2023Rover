@@ -34,6 +34,7 @@ setup(
             'zed_node = camera_processing.zed_node:main',
             'hsv_image_explore = camera_processing.hsv_image_explore_node:main',
             'transform_zed_points_node = camera_processing.transform_zed_points_to_map:main',
+            'publish_image = camera_processing.publish_image_node:main',
         ],
     },
 )

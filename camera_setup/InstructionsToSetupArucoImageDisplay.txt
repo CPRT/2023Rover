@@ -1,0 +1,12 @@
+To run aruco tags and display it:
+
+On rover:
+
+ros2 run camera_processing publish_image
+
+ros2 run camera_processing aruco_markers
+
+
+On laptop at branch named erik-arucoarmtask:
+
+ros2 launch camera_processing display_image_locally.launch.py image_topic:=/acruco_processed

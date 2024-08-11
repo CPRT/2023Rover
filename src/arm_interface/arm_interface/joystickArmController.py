@@ -64,7 +64,7 @@ class joystickArmController(Node):
         self.estop = Bool()
         self.estopTimestamp = 0.0
         self.lastTimestamp = 0
-	self.gripperInc = 0.5
+        self.gripperInc = 0.5
         self.gripper.start(self.gripperVal)
         self.gripper.ChangeDutyCycle(self.gripperVal)
 

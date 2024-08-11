@@ -9,3 +9,4 @@ build/
 
 *.pyc
 __pycache__
+camera_setup/images/*

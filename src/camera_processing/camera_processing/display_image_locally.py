@@ -116,8 +116,13 @@ class DisplayImageLocally(Node):
         if self.is_depth_image:
             img = cv2.equalizeHist(img)
 
+        self.get_logger().info(f"Shape before: {img.shape}")
+        img = cv2.resize(img, (1920*2, 1080))
+        self.get_logger().info(f"Shape after: {img.shape}")
+        
         cv2.imshow(self.window_name, img)
-                   
+        
+
         self.image_count += 1
         self.get_logger().info(f"Image count: {self.image_count}")
         cv2.waitKey(500)

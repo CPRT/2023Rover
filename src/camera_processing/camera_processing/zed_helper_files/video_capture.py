@@ -6,13 +6,11 @@ import os
 import time
 from time import sleep
 
-from .detect_vision_targets import CameraType
-
 """
 Captures video from a camera and always gives the latest frame.
 """
 class VideoCapture:
-    def __init__(self, cam: CameraType):
+    def __init__(self, cam):
         self.xRes = cam.value.xRes
         self.yRes = cam.value.yRes
 

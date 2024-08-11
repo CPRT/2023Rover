@@ -7,7 +7,7 @@ start="gst-launch-1.0"
 
 end="mpegtsmux name=mux alignment=7 ! rtpmp2tpay ! udpsink host=$targetIp port=9000 sync=false"
 
-encoder="nvvidconv ! nvv4l2h265enc bitrate=5000000 control-rate=0 maxperf-enable=true insert-sps-pps=true profile=1 qos=true ! mux."
+encoder="nvvidconv ! nvv4l2h265enc bitrate=5000000 control-rate=0 maxperf-enable=true insert-sps-pps=true idrinterval=1 iframeinterval=1 profile=1 qos=true ! mux."
 
 nightVision="v4l2src device=/dev/v4l/by-id/usb-e-con_systems_See3CAM_CU27_3B1519112B010900-video-index0 ! $encoder"
 
