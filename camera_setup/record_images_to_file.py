@@ -25,7 +25,9 @@ def main():
     video_index = _find_video_index(v4l_byid_name)
 
     # If v4l2 is active it will pipe the camera to /dev/video16
-    video_index = 16
+    # video_index = 16
+
+    # video_index = 0
 
     parser = argparse.ArgumentParser(prog="Record images to file")
     
@@ -45,9 +47,9 @@ def main():
         print(f"Directory {dir_name} already exists. Moving on")
 
   
-    cap = cv2.VideoCapture(_find_video_index(v4l_byid_name))
+    cap = cv2.VideoCapture(video_index)
     if cap is None or not cap.isOpened():
-        raise ValueError("Could not open the camera as " + str(v4l_byid_name))
+        raise ValueError("Could not open the camera at /dev/video" + video_index)
 
     i = 1
     try:
