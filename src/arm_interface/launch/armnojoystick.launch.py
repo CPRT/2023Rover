@@ -85,4 +85,8 @@ def generate_launch_description():
         output="screen",
     )
 
-    return launch.LaunchDescription([container])
+    return launch.LaunchDescription([container,
+        launch_ros.actions.Node(
+            package='arm_interface',
+            executable='joystick_arm_controller',
+            name='joystick_arm_controller_node'),])

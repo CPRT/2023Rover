@@ -86,6 +86,9 @@ class DetectArucoMarkers(Node):
         else:
             cv_image = self.br.imgmsg_to_cv2(image)
 
+
+
+
         self.detect_aruco(cv_image)
 
         cv_image = cv2.resize(cv_image, None, fx=self._image_scaling, fy=self._image_scaling, interpolation = cv2.INTER_LINEAR)
@@ -114,6 +117,9 @@ class DetectArucoMarkers(Node):
 
         # loop over the detected ArUCo corners
         for (markerCorner, markerID) in zip(corners, ids):
+            if markerID in (85, 37, 17, 13):
+                continue
+
             # Publish helpful data for navigation
             percent_filled = self.calculate_percent_filled(markerCorner, markerID)
             percent_filled_array += [percent_filled]
@@ -170,6 +176,7 @@ class DetectArucoMarkers(Node):
             return 0
 
         return aruco_area / self.frame_area
+
 
 def main(args=None):
     rclpy.init(args=args)

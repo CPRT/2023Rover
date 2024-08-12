@@ -110,6 +110,7 @@ class joystickArmController(Node):
         self.elbow.mode = 0
         self.wristTilt.mode = 0
         self.wristTurn.mode = 0
+        # self.get_logger().info("bruh")
 
         if(msg.buttons[5]):#RIGHT BUMPER IDK THE VALUE
             self.base.value = 0.5
@@ -141,10 +142,14 @@ class joystickArmController(Node):
             self.estopTimestamp = msg.header.stamp.sec
         if(msg.buttons[8] and msg.header.stamp.sec - self.estopTimestamp > 2):
             self.estop.data = False
-        if(msg.buttons[3] and self.gripperVal < 50):
-            self.gripperVal = self.gripperVal - self.gripperInc
-        elif(msg.buttons[2] and self.gripperVal > 0):
+        if(msg.buttons[3] and self.gripperVal <= 70):
             self.gripperVal = self.gripperVal + self.gripperInc
+            if(self.gripperVal > 70.0):
+                self.gripperVal = 70.0
+        elif(msg.buttons[2] and self.gripperVal > 0):
+            self.gripperVal = self.gripperVal - self.gripperInc
+            if(self.gripperVal < 0.0):
+                self.gripperVal = 0.0
 
 
 def main(args=None):

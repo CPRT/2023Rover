@@ -51,8 +51,10 @@ class PublishImage(Node):
 
     def timer_callback(self):
         frame, delta = self.camera_capture.read()
-
-        self.get_logger().info("Publishing image " + str(self.count))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame = cv2.resize(frame, None, fx=0.1, fy=0.1, interpolation = cv2.INTER_LINEAR)
+        
+        self.get_logger().info("Publishing image " + str(self.count) + ", shape: " + str(frame.shape))
         self.image_pub.publish(self.cv_bridge.cv2_to_compressed_imgmsg(frame))
 
         self.count += 1
