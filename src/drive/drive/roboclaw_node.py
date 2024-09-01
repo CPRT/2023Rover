@@ -43,9 +43,16 @@ class Movement:
         self.stopped = True
 
     def run(self):
-        if self.twist is None or self.stopped is True:
+        if self.stopped is True:
+            try:
+                roboclaw.ForwardM1(self.address, 0)
+                roboclaw.ForwardM2(self.address, 0)
+            except OSError as e:
+                self.logger.warn("Stopping error: " + str(e.errno))
+                self.logger.debug(e)
             return
-
+        if self.twist is None:
+            return
         if self.twist.linear.x != 0 or self.twist.angular.z != 0:
             self.stopped = False
 

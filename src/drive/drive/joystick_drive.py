@@ -80,10 +80,19 @@ class joystickDrive(Node):
         self.lastTimestamp = msg.header.stamp.sec
         if(msg.buttons[0] == 1): #able to change buttons later on
             self.estop.data = True
+            self.twist.linear.x = 0.0
+            self.twist.angular.z = 0.0
+            self.setTwistPub.publish(self.twist)
             self.setEstop.publish(self.estop)
+            return
         if(msg.buttons[1] == 1): #have 2 different buttons to avoid double presses not stopping
             self.estop.data = False
+            self.twist.linear.x = 0.0 
+            self.twist.angular.z = 0.0
+            self.setTwistPub.publish(self.twist)
             self.setEstop.publish(self.estop)
+            return
+            
 
         if(self.pidMode == 1 and self.active):
             self.twist.linear.x = map_range(msg.axes[1], -1, 1, -self.MAX_PID_SPEED, self.MAX_PID_SPEED) 
