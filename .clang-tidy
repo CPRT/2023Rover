@@ -1,0 +1,3 @@
+---
+Checks: '-*,google-*,readability-*,readability-doxygen-comment,-google-runtime-references'
+FormatStyle: google
