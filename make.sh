@@ -39,14 +39,6 @@ find_files_excluding_dirs() {
     eval "$find_cmd"
 }
 
-run_as_root() {
-  if [ "$EUID" -ne 0 ]; then
-    sudo "$@"
-  else
-    "$@"
-  fi
-}
-
 
 python_files=find_files_excluding_dirs "py"
 
@@ -56,7 +48,7 @@ cpp_files=find_files_excluding_dirs "h" "hpp" "cpp"
 
 clang-format -i -style=file $cpp_files
 
-run_as_root rosdep install --from-paths src -r -y
+rosdep install --from-paths src -r -y
 
 colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 --symlink-install
 
