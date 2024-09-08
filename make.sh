@@ -3,7 +3,17 @@
 
 # List of directories to exclude
 # Only exclude third party code
-excluded_dirs=("ros_phoenix_humble" "ouster-ros" "spatio_temporal_voxel_layer" "ffmpeg_piping_scripts")
+excluded_dirs=( "build" \
+                "install" \
+                "log" \
+                "ros_phoenix_humble" \
+                "ouster-ros" \
+                "spatio_temporal_voxel_layer" \
+                "ffmpeg_piping_scripts" \
+                "openvdb_vendor" \
+                "ouster_sensor_msgs" \
+                "interfaces" \
+                "openvdb_vendor")
 
 # Function to find files excluding certain directories
 find_files_excluding_dirs() {
@@ -48,6 +58,7 @@ echo "Finished rosdep install"
 
 colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 --symlink-install || exit 1
 
-clang-tidy -p ./build $cpp_files $INCLUDE_PATHS || exit 1
+#TODO: Debug why clang tidy can't find std:: headers
+# clang-tidy -p ./build $cpp_files $INCLUDE_PATHS || exit 1
 
 source install/local_setup.bash
