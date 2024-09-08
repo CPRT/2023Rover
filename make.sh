@@ -3,54 +3,50 @@
 
 # List of directories to exclude
 # Only exclude third party code
-excluded_dirs=("ros_phoenix_humble" "ouster-ros" "spatio_temporal_voxel_layer")
+excluded_dirs=("ros_phoenix_humble" "ouster-ros" "spatio_temporal_voxel_layer" "ffmpeg_piping_scripts")
 
 # Function to find files excluding certain directories
 find_files_excluding_dirs() {
-    local extensions=("$@")
-    
-    # Remove the directory list from the extensions array
-    local ext_list=("${extensions[@]:0:${#extensions[@]}-1}")
-    local last_ext=${extensions[-1]}
-
+    local extension=("$1")
     # Build the find command dynamically
     local find_cmd="find . -type d \( "
     for dir in "${excluded_dirs[@]}"; do
-        find_cmd+=" -path ./$dir -o"
+        find_cmd+=" -name $dir -o"
     done
 
     # Remove the trailing '-o'
     find_cmd=${find_cmd%-o}
 
     find_cmd+=" \) -prune -o \( "
-
-    # Build the name pattern for multiple extensions
-    local ext_pattern=""
-    for ext in "${ext_list[@]}"; do
-        ext_pattern+=" -name '*.$ext' -o"
-    done
-
-    # Remove the trailing '-o'
-    ext_pattern=${ext_pattern%-o}
-
-    find_cmd+="$ext_pattern \) -print"
+    find_cmd+=" -name '*.$extension'"
+    find_cmd+=" \) -print"
 
     # Execute the find command
     eval "$find_cmd"
 }
 
+python_files=$(find_files_excluding_dirs "py")
+python -m black $python_files || exit 1
 
-python_files=find_files_excluding_dirs "py"
+echo "Starting to find c++ files..."
 
-black $python_files
+cpp_files="$(find_files_excluding_dirs "h") $(find_files_excluding_dirs "cpp") $(find_files_excluding_dirs "hpp")"
 
-cpp_files=find_files_excluding_dirs "h" "hpp" "cpp"
+echo "Found c++ files"
 
-clang-format -i -style=file $cpp_files
+echo "Starting clang-format..."
 
-rosdep install --from-paths src -r -y
+clang-format -i -style=file $cpp_files || exit 1
 
-colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 --symlink-install
+echo "Finished clang-format"
+
+echo "Starting rosdep install..."
+
+rosdep install --ignore-src --from-paths src -r -y || exit 1
+
+echo "Finished rosdep install"
+
+colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1 --symlink-install || exit 1
 
 clang-tidy -p ./build $cpp_files $INCLUDE_PATHS || exit 1
 

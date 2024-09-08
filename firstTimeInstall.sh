@@ -27,7 +27,9 @@ sudo apt install ros-humble-ros-base
 
 sudo apt install ros-dev-tools
 
-echo source /opt/ros/humble/setup.bash >> ~.bashrc
+source /opt/ros/humble/setup.bash
+
+echo source /opt/ros/humble/setup.bash >> ~/.bashrc
 
 sudo apt install python3-dev
 
