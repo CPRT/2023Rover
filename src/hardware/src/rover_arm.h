@@ -13,6 +13,7 @@
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "interfaces/srv/arm_pos.hpp"
 
 namespace ros2_control_rover_arm
 {
@@ -43,14 +44,14 @@ public:
   hardware_interface::return_type write(
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
     
-  void subscription_callback(const std::string);
+  //void subscription_callback(const std::string);
 
 private:
   // Store the command for the simulated robot
   std::vector<double> hw_commands_;
   std::vector<double> hw_position_states_;
   std::vector<double> hw_velocity_states_;
-  rclcpp::Subscription<std::string>::SharedPtr subscription_;
+  //rclcpp::Subscription<std::string>::SharedPtr subscription_;
 };
 
 }  // namespace ros2_control_demo_example_1

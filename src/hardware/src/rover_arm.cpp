@@ -72,9 +72,6 @@ hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
       return hardware_interface::CallbackReturn::ERROR;
     }
   }
-  
-  subscription_ = this->create_subscription<std::string>(
-  "random_topic", 10, std::bind(&RoverArmHardwareInterface::subscription_callback, this, std::placeholders::_1));
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -182,10 +179,10 @@ hardware_interface::return_type RoverArmHardwareInterface::write(
 
 }  // namespace ros2_control_demo_example_1
 
-void RoverArmHardwareInterface::subscription_callback(const std::string str)
+/*void RoverArmHardwareInterface::subscription_callback(const std::string str)
 {
   RCLCPP_INFO(rclcpp::get_logger("RRBotSystemPositionOnlyHardware"), "Wow!");
-}
+}*/
 
 #include "pluginlib/class_list_macros.hpp"
 
