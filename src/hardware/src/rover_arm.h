@@ -15,6 +15,8 @@
 #include "rclcpp_lifecycle/state.hpp"
 #include "interfaces/srv/arm_pos.hpp"
 
+using namespace std::chrono_literals;
+
 namespace ros2_control_rover_arm
 {
 class RoverArmHardwareInterface : public hardware_interface::SystemInterface
@@ -51,6 +53,8 @@ private:
   std::vector<double> hw_commands_;
   std::vector<double> hw_position_states_;
   std::vector<double> hw_velocity_states_;
+  std::shared_ptr<rclcpp::Node> node;
+  rclcpp::Client<interfaces::srv::ArmPos>::SharedPtr client;
   //rclcpp::Subscription<std::string>::SharedPtr subscription_;
 };
 

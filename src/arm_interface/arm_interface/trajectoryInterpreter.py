@@ -103,6 +103,7 @@ class trajectoryInterpreter(Node):
         self.anglePub.publish(out)
     
     def get_arm_pos_callback(self, request, response):
+        self.get_logger().info(f'Elbow: {self.elbowAngle}')
         response.base = self.elbowAngle 
         response.diff1 = self.diff1Angle 
         response.diff2 = self.diff2Angle
