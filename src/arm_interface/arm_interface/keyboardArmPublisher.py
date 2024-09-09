@@ -1,7 +1,9 @@
 from math import radians
+import threading
 import rclpy
 import rclpy.logging
 from rclpy.node import Node
+from std_msgs.msg import String
 
 import rclpy.time
 from sensor_msgs.msg import Joy
@@ -30,9 +32,12 @@ def joystick_to_motor_control(vertical, horizontal):
     
     return -left_motor, -right_motor
 
-class joystickArmController(Node):
+def elbow_rad_to_pos(rad):
+    return (rad*8300*2000)/(2*3.14159)
+
+class keyboardArmPublisher(Node):
     def __init__(self):
-        super().__init__("joystickControl")
+        super().__init__("keyboardControl")
 
         # GPIO.setmode(GPIO.BOARD)
         # output_pins = {
@@ -81,15 +86,24 @@ class joystickArmController(Node):
         self.wristTurnCommand = self.create_publisher(
             MotorControl, "/wristTurn/set", 1)
         
-        self.joystick = self.create_subscription(
-            Joy, "/joystick/arm", self.joy_callback, 5)
+        #self.joystick = self.create_subscription(
+         #   Joy, "/joystick/arm", self.joy_callback, 5)
         
         freq = 10
         self.rate = self.create_rate(freq)
         period = 1 / freq
         self.timer = self.create_timer(period, self.controlPublisher)
-
-
+        
+        self.base.mode = 0
+        self.diff1.mode = 0
+        self.diff2.mode = 0
+        self.elbow.mode = 0
+        self.wristTilt.mode = 0
+        self.wristTurn.mode = 0
+        
+        self.keyboard = self.create_subscription(
+            String, "/keyboard_arm", self.keyboard_callback, 5)
+        
 
     def controlPublisher(self):
         # if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
@@ -101,60 +115,25 @@ class joystickArmController(Node):
         self.wristTiltCommand.publish(self.wristTilt)
         self.wristTurnCommand.publish(self.wristTurn)
         # self.gripper.ChangeDutyCycle(self.gripperVal)
-
-    def joy_callback(self, msg: Joy):
-        self.lastTimestamp = msg.header.stamp.sec
-        self.base.mode = 0
-        self.diff1.mode = 0
-        self.diff2.mode = 0
-        self.elbow.mode = 0
-        self.wristTilt.mode = 0
-        self.wristTurn.mode = 0
-        # self.get_logger().info("bruh")
-
-        if(msg.buttons[4]):#RIGHT BUMPER IDK THE VALUE
-            self.base.value = 0.5
-        elif(msg.buttons[5]): #LEFT BUMPER
-            self.base.value = -0.5
-        else:
-            self.base.value = 0.0
-
-        if(msg.axes[2] < 1):#RIGHT TRIGGER IDK THE VALUE
-            self.wristTurn.value = 1.0
-        elif(msg.axes[5] < 1): #LEFT TRIGGER
-            self.wristTurn.value = -1.0
-        else:
-            self.wristTurn.value = 0.0
+    
+    def keyboard_callback(self, msg):
+        if msg.data == 'w':
+          self.get_logger().info('What')
+          self.elbow.value = 1.0
+        elif msg.data == 's':
+          self.elbow.value = -1.0
+        elif msg.data == 'q':
+          self.elbow.value = 0.0
+        elif msg.data == 'e':
+          self.elbow.mode = 1
+        elif msg.data == 'f':
+          self.elbow.value = elbow_rad_to_pos(0.5);
         
-        if(msg.buttons[1]):#A IDK THE VALUE
-            self.wristTilt.value = 1.0
-        elif(msg.buttons[0]): #B
-            self.wristTilt.value = -1.0
-        else:
-            self.wristTilt.value = 0.0
-        self.elbow.value = msg.axes[4] #LEFT VERTICAL
-        diff1, diff2 = joystick_to_motor_control(msg.axes[0], msg.axes[1])
-        # self.get_logger().info(f'diff1: {self.diff1.value}, diff2: {self.diff2.value}')
-        self.diff1.value = float(diff1)
-        self.diff2.value = float(diff2)
-        if(msg.buttons[9]):
-            self.estop.data = True
-            self.estopTimestamp = msg.header.stamp.sec
-        if(msg.buttons[8] and msg.header.stamp.sec - self.estopTimestamp > 2):
-            self.estop.data = False
-        # if(msg.buttons[3] and self.gripperVal <= 70):
-        #     self.gripperVal = self.gripperVal + self.gripperInc
-        #     if(self.gripperVal > 70.0):
-        #         self.gripperVal = 70.0
-        # elif(msg.buttons[2] and self.gripperVal > 0):
-        #     self.gripperVal = self.gripperVal - self.gripperInc
-        #     if(self.gripperVal < 0.0):
-        #         self.gripperVal = 0.0
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = joystickArmController()
+    node = keyboardArmPublisher()
     rclpy.spin(node)
     # GPIO.cleanup()
     node.destroy_node()

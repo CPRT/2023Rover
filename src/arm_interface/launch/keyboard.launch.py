@@ -92,12 +92,8 @@ def generate_launch_description():
             name='trajectory_interpreter_node'),
         launch_ros.actions.Node(
             package='arm_interface',
-            executable='joystick_arm_controller',
-            name='joystick_arm_controller_node'),            
-        launch_ros.actions.Node(
-            package='joy',
-            executable='joy_node',
-            name='joystick'),
+            executable='keyboard_arm_publisher',
+            name='keyboard_arm_publisher_node'),
         launch_ros.actions.Node(
             package='drive',
             executable='joystick_breakout',
