@@ -21,23 +21,18 @@ sudo apt update
 
 sudo apt upgrade
 
-sudo apt install ros-humble-desktop
-
-sudo apt install ros-humble-ros-base
-
-sudo apt install ros-dev-tools
+sudo apt install \
+ros-humble-desktop \
+ros-humble-ros-base \
+ros-dev-tools \
+python3-dev \
+python3-pip \
+clang-format \
+clang-tidy
 
 source /opt/ros/humble/setup.bash
 
 echo source /opt/ros/humble/setup.bash >> ~/.bashrc
 
-sudo apt install python3-dev
-
-sudo apt install python3-pip
-
 pip3 install black
-
-sudo apt install clang-format
-
-sudo apt install clang-tidy
 
