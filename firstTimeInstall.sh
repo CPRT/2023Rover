@@ -2,15 +2,17 @@
 
 locale  # check for UTF-8
 
-sudo apt update && sudo apt install locales
+set -e
+
+sudo apt update && sudo apt install -y locales
 sudo locale-gen en_US en_US.UTF-8
 sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 export LANG=en_US.UTF-8
 
 locale  # verify settings
 
-sudo apt install software-properties-common
-sudo add-apt-repository universe
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y universe
 
 sudo apt update && sudo apt install curl -y
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
@@ -19,9 +21,9 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-a
 
 sudo apt update
 
-sudo apt upgrade
+sudo apt upgrade -y
 
-sudo apt install \
+sudo apt install -y \
 ros-humble-desktop \
 ros-humble-ros-base \
 ros-dev-tools \
@@ -32,7 +34,11 @@ clang-tidy
 
 source /opt/ros/humble/setup.bash
 
-echo source /opt/ros/humble/setup.bash >> ~/.bashrc
+if ! grep -q "source /opt/ros/humble/setup.bash" ~/.bashrc; then
+  echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+  echo "ROS 2 sourced in bashrc"
+fi
 
 pip3 install black
 
+echo "ROS2 humble install complete!"
