@@ -173,7 +173,8 @@ hardware_interface::return_type RoverArmHardwareInterface::read(
   {
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Base: %f", result.get()->base);
     auto resultCopy = result.get();
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading %f for elbow", resultCopy->elbow);
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading %f for elbow", resultCopy->elbow);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading %f %f %f %f for elbow %f %f", resultCopy->base, resultCopy->diff1, resultCopy->diff2, resultCopy->elbow, resultCopy->wristtilt, resultCopy->wristturn);
     hw_position_states_[0] = resultCopy->base;
 		hw_position_states_[1] = resultCopy->diff1;
 		hw_position_states_[2] = resultCopy->diff2;

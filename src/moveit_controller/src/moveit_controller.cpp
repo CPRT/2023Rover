@@ -34,7 +34,7 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
   subscription_ = this->create_subscription<interfaces::msg::ArmCmd>(
   "arm_base_commands", 10, std::bind(&TestNode::topic_callback, this, std::placeholders::_1));
   
-  publisher_ = this->create_publisher<moveit_msgs::msg::RobotTrajectory>("arm_trajectory", 11);
+  publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("arm_trajectory", 11);
   
   //auto mgi_options = moveit::planning_interface::MoveGroupInterface::Options(node_name + "_ur_manipulator", node_name, "rover_arm");
   //auto psm = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
@@ -64,7 +64,7 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 		return std::make_pair(ok, msg);
 	}();
 	
-	publisher_->publish(plan.trajectory_);
+	publisher_->publish(plan.trajectory_.joint_trajectory);
 
 	// Execute the plan
 	if(success) {
@@ -185,7 +185,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 		// Execute the plan
 		if(success) {
 		  RCLCPP_INFO(this->get_logger(), "Number of joint trajectory points: %li, number of multiDOFjointtrajectorypoints: %li", std::size(plan.trajectory_.joint_trajectory.points), std::size(plan.trajectory_.multi_dof_joint_trajectory.points));
-		  publisher_->publish(plan.trajectory_);
+		  publisher_->publish(plan.trajectory_.joint_trajectory);
 			move_group_ptr->execute(plan);
 		} else {
 			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
@@ -226,7 +226,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 		// Execute the plan
 		if(success) {
 		  RCLCPP_INFO(this->get_logger(), "Number of joint trajectory points: %li, number of multiDOFjointtrajectorypoints: %li", std::size(plan.trajectory_.joint_trajectory.points), std::size(plan.trajectory_.multi_dof_joint_trajectory.points));
-		  publisher_->publish(plan.trajectory_);
+		  publisher_->publish(plan.trajectory_.joint_trajectory);
 			move_group_ptr->execute(plan);
 		} else {
 			RCLCPP_ERROR(this->get_logger(), "Planing failed!");
@@ -260,7 +260,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 			th.join();
 		}
 		RCLCPP_INFO(this->get_logger(), "What??");
-		publisher_->publish(trajectory);
+		publisher_->publish(trajectory.joint_trajectory);
 		th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
 		RCLCPP_INFO(this->get_logger(), "Why");
 	  
@@ -317,7 +317,7 @@ void TestNode::topic_callback(const interfaces::msg::ArmCmd & armMsg)
 		    RCLCPP_INFO(this->get_logger(), "acceleration: %f", trajectory.joint_trajectory.points[i].accelerations[j]);
 		  }
 		}
-		publisher_->publish(trajectory);
+		publisher_->publish(trajectory.joint_trajectory);
 		th = std::thread(executeTrajectory, std::ref(trajectory), move_group_ptr);
 		RCLCPP_INFO(this->get_logger(), "Why");
 	}

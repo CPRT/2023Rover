@@ -40,6 +40,8 @@ class keyboardArmController(Node):
          #   Joy, "/joystick/arm", self.joy_callback, 5)
         self.keyboard_publisher = self.create_publisher(String, "/keyboard_arm", 1)
         
+        #90 deg = 3000000
+        
         while True:
           cmd = String()
           cmd.data = input();

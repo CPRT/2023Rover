@@ -92,6 +92,10 @@ def generate_launch_description():
             name='trajectory_interpreter_node'),
         launch_ros.actions.Node(
             package='arm_interface',
+            executable='trajectory_publisher',
+            name='trajectory_publisher_node'),
+        launch_ros.actions.Node(
+            package='arm_interface',
             executable='keyboard_arm_publisher',
             name='keyboard_arm_publisher_node'),
         launch_ros.actions.Node(

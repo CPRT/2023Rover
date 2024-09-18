@@ -33,7 +33,7 @@ def joystick_to_motor_control(vertical, horizontal):
     return -left_motor, -right_motor
 
 def elbow_rad_to_pos(rad):
-    return (rad*8300*2000)/(2*3.14159)
+    return (rad*8300*4000*13/16)/(2*3.14159)
 
 class keyboardArmPublisher(Node):
     def __init__(self):
@@ -69,6 +69,7 @@ class keyboardArmPublisher(Node):
         self.estop = Bool()
         self.estopTimestamp = 0.0
         self.lastTimestamp = 0
+        self.shouldPub = True
         # self.gripperInc = 0.5
         # self.gripper.start(self.gripperVal)
         # self.gripper.ChangeDutyCycle(self.gripperVal)
@@ -108,26 +109,50 @@ class keyboardArmPublisher(Node):
     def controlPublisher(self):
         # if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
         #     return
-        self.baseCommand.publish(self.base)
-        self.diff1Command.publish(self.diff1)
-        self.diff2Command.publish(self.diff2)
-        self.elbowCommand.publish(self.elbow)
-        self.wristTiltCommand.publish(self.wristTilt)
-        self.wristTurnCommand.publish(self.wristTurn)
+        if (self.shouldPub):
+          self.baseCommand.publish(self.base)
+          self.diff1Command.publish(self.diff1)
+          self.diff2Command.publish(self.diff2)
+          self.elbowCommand.publish(self.elbow)
+          self.wristTiltCommand.publish(self.wristTilt)
+          self.wristTurnCommand.publish(self.wristTurn)
         # self.gripper.ChangeDutyCycle(self.gripperVal)
     
     def keyboard_callback(self, msg):
-        if msg.data == 'w':
+        if msg.data == 'w': #elbow up
           self.get_logger().info('What')
           self.elbow.value = 1.0
-        elif msg.data == 's':
+        elif msg.data == 's': #elbow down
           self.elbow.value = -1.0
         elif msg.data == 'q':
           self.elbow.value = 0.0
+          self.diff1.value = 0.0
+          self.diff2.value = 0.0
         elif msg.data == 'e':
           self.elbow.mode = 1
         elif msg.data == 'f':
-          self.elbow.value = elbow_rad_to_pos(0.5);
+          self.elbow.value = elbow_rad_to_pos(3.14159/2);
+        elif msg.data == 'g':
+          self.elbow.mode = 0
+        elif msg.data == 'a': #shift left and right
+          diff1, diff2 = joystick_to_motor_control(0.5, 0.0)
+          self.diff1.value = float(diff1)
+          self.diff2.value = float(diff2)
+        elif msg.data == 'd':
+          diff1, diff2 = joystick_to_motor_control(-0.5, 0.0)
+          self.diff1.value = float(diff1)
+          self.diff2.value = float(diff2)
+        elif msg.data == 'z': #shift left and right
+          diff1, diff2 = joystick_to_motor_control(0.0, 0.5)
+          self.diff1.value = float(diff1)
+          self.diff2.value = float(diff2)
+        elif msg.data == 'x':
+          diff1, diff2 = joystick_to_motor_control(0.0, -0.5)
+          self.diff1.value = float(diff1)
+          self.diff2.value = float(diff2)
+        elif msg.data == 'o':
+          self.shouldPub = not self.shouldPub
+          
         
 
 

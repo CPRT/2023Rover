@@ -42,7 +42,7 @@ class TestNode : public rclcpp::Node
     
     void topic_callback(const interfaces::msg::ArmCmd & armMsg);
     
-    rclcpp::Publisher<moveit_msgs::msg::RobotTrajectory>::SharedPtr publisher_;
+    rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr publisher_;
     moveit::core::RobotStatePtr robotStatePtr;
     const double num = 0;
     //moveit_rviz_plugin::MotionPlanningDisplay motionPlanningDisplay;
