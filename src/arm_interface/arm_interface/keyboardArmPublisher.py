@@ -35,6 +35,13 @@ def joystick_to_motor_control(vertical, horizontal):
 def elbow_rad_to_pos(rad):
     return (rad*8300*4000*13/16)/(2*3.14159)
 
+def diff_rad_to_pos(diff1, diff2):
+    diffCont2 = (diff2 - diff1)/2
+    diffCont2 = (diffCont2*8300*4000)/(2*3.14159)
+    diffCont1 = diff2 - diffCont2
+    diffCont1 = (diffCont1*8300*4000)/(2*3.14159)
+    return diffCont1, diffCont2
+
 class keyboardArmPublisher(Node):
     def __init__(self):
         super().__init__("keyboardControl")
@@ -128,12 +135,20 @@ class keyboardArmPublisher(Node):
           self.elbow.value = 0.0
           self.diff1.value = 0.0
           self.diff2.value = 0.0
+          self.base.value = 0.0
         elif msg.data == 'e':
           self.elbow.mode = 1
+          self.diff1.mode = 1
+          self.diff2.mode = 1
+          self.base.mode = 1
         elif msg.data == 'f':
-          self.elbow.value = elbow_rad_to_pos(3.14159/2);
+          #self.elbow.value = elbow_rad_to_pos(3.14159/2);
+          self.diff1.value, self.diff2.value = diff_rad_to_pos(3.1415/6, 3.1415/6)
         elif msg.data == 'g':
           self.elbow.mode = 0
+          self.diff1.mode = 0
+          self.diff2.mode = 0
+          self.base.mode = 0
         elif msg.data == 'a': #shift left and right
           diff1, diff2 = joystick_to_motor_control(0.5, 0.0)
           self.diff1.value = float(diff1)
@@ -152,6 +167,10 @@ class keyboardArmPublisher(Node):
           self.diff2.value = float(diff2)
         elif msg.data == 'o':
           self.shouldPub = not self.shouldPub
+        elif msg.data == 'c':
+          self.base.value = 0.5
+        elif msg.data == 'v':
+          self.base.value = -0.5
           
         
 

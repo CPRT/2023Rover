@@ -75,7 +75,7 @@ class trajectoryInterpreter(Node):
         period = 1 / freq
         self.timer = self.create_timer(period, self.anglepublisher)
 
-    def base_callback(self, msg: MotorStatus):
+    def base_callback(self, msg: MotorStatus): #14 - 58 (lower turns 58/14 times, upper turns once)
         self.baseAngle = 0.0
     def diff1_callback(self, msg: MotorStatus):
         #self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
