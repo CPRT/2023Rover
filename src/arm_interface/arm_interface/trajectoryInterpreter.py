@@ -79,12 +79,12 @@ class trajectoryInterpreter(Node):
         self.baseAngle = 0.0
     def diff1_callback(self, msg: MotorStatus):
         #self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/4000 * 1/83 * 1/100)
+        self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/8000 * 1/83 * 1/100)
         self.diff1Angle = (self.diff1Cont - self.diff2Cont)
         print("bruh1" + str(self.diff1Angle))
     def diff2_callback(self, msg: MotorStatus):
         #self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/4000 * 1/83 * 1/100) #diff drive: 83 100
+        self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/8000 * 1/83 * 1/100) #diff drive: 83 100
         self.diff2Angle = (self.diff1Cont + self.diff2Cont)
         print("bruh2" + str(self.diff2Angle))
     def elbow_callback(self, msg: MotorStatus):

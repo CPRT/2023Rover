@@ -25,8 +25,8 @@ def elbow_rad_to_pos(rad):
 def diff_rad_to_pos(diff1, diff2, node):
     diffCont2 = (diff2 - diff1)/2
     diffCont1 = diff2 - diffCont2
-    diffCont2 = (diffCont2*8300*4000)/(2*3.14159)
-    diffCont1 = (diffCont1*8300*4000)/(2*3.14159)
+    diffCont2 = (diffCont2*8300*8000)/(2*3.14159)
+    diffCont1 = (diffCont1*8300*8000)/(2*3.14159)
     node.get_logger().info(f'{diffCont1}, {diffCont2}')
     return diffCont1, diffCont2
 
@@ -117,13 +117,13 @@ class trajectoryPublisher(Node):
         self.baseAngle = 0.0
     def diff1_callback(self, msg: MotorStatus):
         #self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/4000 * 1/83 * 1/100)
+        self.diff1Cont = self.diff1ZeroPoint + msg.position * ((2*pi)/8000 * 1/83 * 1/100)
         self.diff1Angle = (self.diff1Cont - self.diff2Cont)
         self.diff1Pos = msg.position
         print("bruh1" + str(self.diff1Angle))
     def diff2_callback(self, msg: MotorStatus):
         #self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/1000 * 1/83 * 1/100)
-        self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/4000 * 1/83 * 1/100) #diff drive: 83 100
+        self.diff2Cont = self.diff2ZeroPoint + msg.position * ((2*pi)/8000 * 1/83 * 1/100) #diff drive: 83 100
         self.diff2Angle = (self.diff1Cont + self.diff2Cont)
         self.diff2Pos = msg.position
         print("bruh2" + str(self.diff2Angle))
@@ -211,7 +211,7 @@ class trajectoryPublisher(Node):
             #self.get_logger().info(f'On traj {self.trajIndex} with diff1 target {elbowTarget} and current pos {self.elbowAngle} {diff1Target} {self.diff1Angle} {diff2Target} {self.diff2Angle} {self.elbowAngle - elbowTarget} {self.diff1Angle - diff1Target} {self.diff2Angle - diff2Target} {self.elbow.value}')
             #self.get_logger().info(f'On traj {self.trajIndex} Elbow pos {self.elbowPos} target pos {self.elbow.value} difference {abs(self.elbowAngle - elbowTarget)} Problem: {abs(self.elbowAngle - elbowTarget) < 0.05} {abs(self.diff1Angle - diff1Target) < 0.01} {abs(self.diff2Angle - diff2Target) < 0.01} Angle {self.elbowAngle} target {elbowTarget}')
             self.get_logger().info(f'On traj {self.trajIndex} Elbow pos {self.diff1Pos} target pos {self.diff1.value} difference {abs(self.diff1Angle - diff1Target)} Problem: {abs(self.elbowAngle - elbowTarget) < 0.05} {abs(self.diff1Angle - diff1Target) < 0.01} {abs(self.diff2Angle - diff2Target) < 0.01} Angle {self.diff1Angle} target {diff1Target}')
-            if (abs(self.elbowAngle - elbowTarget) < 0.05 and abs(self.diff1Angle - diff1Target) < 0.01 and abs(self.diff2Angle - diff2Target) < 0.01): #within 3 deg
+            if (abs(self.elbowAngle - elbowTarget) < 0.01 and abs(self.diff1Angle - diff1Target) < 0.005 and abs(self.diff2Angle - diff2Target) < 0.005): #within 3 deg
               self.trajIndex += 1
               if (self.trajIndex >= len(self.points)):
                 self.hasTraj = False

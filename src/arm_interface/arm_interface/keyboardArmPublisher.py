@@ -33,13 +33,14 @@ def joystick_to_motor_control(vertical, horizontal):
     return -left_motor, -right_motor
 
 def elbow_rad_to_pos(rad):
-    return (rad*8300*4000*13/16)/(2*3.14159)
+    return (rad*8300*2000*13/16)/(2*3.14159)
 
-def diff_rad_to_pos(diff1, diff2):
+def diff_rad_to_pos(diff1, diff2, node):
     diffCont2 = (diff2 - diff1)/2
-    diffCont2 = (diffCont2*8300*4000)/(2*3.14159)
     diffCont1 = diff2 - diffCont2
-    diffCont1 = (diffCont1*8300*4000)/(2*3.14159)
+    diffCont2 = (diffCont2*8300*8000)/(2*3.14159)
+    diffCont1 = (diffCont1*8300*8000)/(2*3.14159)
+    node.get_logger().info(f'{diffCont1}, {diffCont2}')
     return diffCont1, diffCont2
 
 class keyboardArmPublisher(Node):
@@ -143,7 +144,7 @@ class keyboardArmPublisher(Node):
           self.base.mode = 1
         elif msg.data == 'f':
           #self.elbow.value = elbow_rad_to_pos(3.14159/2);
-          self.diff1.value, self.diff2.value = diff_rad_to_pos(3.1415/6, 3.1415/6)
+          self.diff1.value, self.diff2.value = diff_rad_to_pos(3.1415/2, 0, self)
         elif msg.data == 'g':
           self.elbow.mode = 0
           self.diff1.mode = 0
