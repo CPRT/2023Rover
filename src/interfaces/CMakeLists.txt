@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PointArray.msg"
   "msg/ArmCmd.msg"
   "srv/ArmPos.srv"
+  "srv/ChangeRes.srv"
   "msg/GPIOmsg.msg" #ik its goofy the actual gpio package is GPIO
   "srv/NavToGPSGeopose.srv"
   DEPENDENCIES 
