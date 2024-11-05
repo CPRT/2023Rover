@@ -7,6 +7,7 @@ import rclpy.time
 from std_msgs.msg import Int8, Float32, Bool
 from interfaces.msg import SixFloats
 from interfaces.srv import ArmPos
+from interfaces.srv import ArmCmd
 from trajectory_msgs.msg import JointTrajectoryPoint
 from ros_phoenix.msg import MotorControl, MotorStatus
 from math import pi
@@ -46,6 +47,8 @@ class trajectoryInterpreter(Node):
         self.lastTimestamp = 0
 
         self.srv = self.create_service(ArmPos, 'arm_pos', self.get_arm_pos_callback)
+        
+        self.srv2 = self.create_service(ArmCmd, 'arm_cmd', self.get_arm_cmd_callback)
 
         self.setEstop = self.create_publisher(
             Bool, "/drive/estop", 1)
@@ -115,6 +118,17 @@ class trajectoryInterpreter(Node):
         response.elbow = self.elbowAngle
         response.wristturn = self.wristTurnAngle
         response.wristtilt = self.wristTiltAngle
+        return response
+    
+    def get_arm_cmd_callback(self, request, response):
+        #self.get_logger().info(f'Elbow: {self.elbowAngle}')
+        #response.base = self.elbowAngle 
+        self.get_logger().info("I received something!");
+        #time for elbow 90 degrees: 9.37 s
+        #time for diff2 90 degrees: 31.15 s
+        #time for 
+        #self.get_logger().info(f'Arm cmd: {request.base}, {request.diff1}, {request.diff2}, {request.elbow}, {request.wristtilt}, {request.wristturn}');
+        response.success = True
         return response
 
     def cmd_traj_callback(self, msg: JointTrajectoryPoint):

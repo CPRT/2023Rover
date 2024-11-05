@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 
+#include <chrono>
+#include <cmath>
+#include <limits>
+
+#include "hardware_interface/types/hardware_interface_type_values.hpp"
+
 #include <rclcpp/rclcpp.hpp>
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -14,6 +20,7 @@
 #include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "interfaces/srv/arm_pos.hpp"
+#include "interfaces/srv/arm_cmd.hpp"
 
 using namespace std::chrono_literals;
 
@@ -55,6 +62,8 @@ private:
   std::vector<double> hw_velocity_states_;
   std::shared_ptr<rclcpp::Node> node;
   rclcpp::Client<interfaces::srv::ArmPos>::SharedPtr client;
+  std::shared_ptr<rclcpp::Node> write_node;
+  rclcpp::Client<interfaces::srv::ArmCmd>::SharedPtr write_client;
   //rclcpp::Subscription<std::string>::SharedPtr subscription_;
 };
 
