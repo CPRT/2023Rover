@@ -1,0 +1,29 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG USERNAME="cprtdev"
+ARG ROSDEP_TEMPORARY_REPOS="/opt/rosdep_temporary_workspace"
+ARG REPO_NAME="2023Rover"
+
+RUN apt-get update && apt-get install -y \ 
+    git \
+    python3-colcon-common-extensions
+
+USER ${USERNAME}
+
+RUN sudo mkdir -p ${ROSDEP_TEMPORARY_REPOS} && \
+    sudo chown ${USERNAME}: ${ROSDEP_TEMPORARY_REPOS} && \
+    sudo chmod u+w ${ROSDEP_TEMPORARY_REPOS} && \
+    mkdir -p ${ROSDEP_TEMPORARY_REPOS}/src
+
+COPY --from=cprt_repo ./ ${ROSDEP_TEMPORARY_REPOS}/src/${REPO_NAME}
+
+# Install dependencies with rosdep. Reports success if there are no dependencies. 
+# Log of the errors are saved in /workspaces/rosdep_err_${REPO_NAME}.log
+RUN --mount=type=cache,target=/var/cache/apt \
+    sudo apt update && \
+    cd ${ROSDEP_TEMPORARY_REPOS}/src && \
+    rosdep install --from-paths ${REPO_NAME}/src/ --ignore-src -r -y 2>/workspaces/rosdep_err_${REPO_NAME}.log >/workspaces/rosdep_log_${REPO_NAME}.log; \
+    sudo rm -rf ${ROSDEP_TEMPORARY_REPOS}/src/${REPO_NAME}; \
+    exit 0
+
