@@ -62,7 +62,7 @@ apt-get update && apt-get install -y \
     ros-humble-launch-xml \
     ros-humble-launch-yaml \
     ros-humble-rosbridge-suite \
-    ros-humble-rosx-introspection \
+    ros-humble-rosx-introspection
 
 # Add Isaac apt repository
 RUN --mount=type=cache,target=/var/cache/apt \
