@@ -184,14 +184,14 @@ class trajectoryInterpreter(Node):
         self.elbow.value = elbow_rad_to_pos(request.elbow);
         self.diff1.value, self.diff2.value = diff_rad_to_pos(request.diff1, request.diff2);
         #self.get_logger().info(f'Arm cmd: {request.base}, {request.diff1}, {request.diff2}, {request.elbow}, {request.wristtilt}, {request.wristturn}');
-        self.get_logger().info(f'Elbow target: {self.elbow.value}, {self.elbowPos}, {abs(self.elbow.value - self.elbowPos)}, {self.elbowAngle}, {request.elbow}')
-        
-        if (abs(self.elbow.value - self.elbowPos) > 1000):
-          self.elbowCommand.publish(self.elbow)
-        if (abs(self.diff2.value - self.diff2Pos) > 1000 and abs(self.diff1.value - self.diff1Pos) > 1000):
-          #pass
-          self.diff2Command.publish(self.diff2)
-          self.diff1Command.publish(self.diff1)
+        if (self.shouldPub):
+          self.get_logger().info(f'Elbow target: {self.elbow.value}, {self.elbowPos}, {abs(self.elbow.value - self.elbowPos)}, {self.elbowAngle}, {request.elbow}')
+          if (abs(self.elbow.value - self.elbowPos) > 1000):
+            self.elbowCommand.publish(self.elbow)
+          if (abs(self.diff2.value - self.diff2Pos) > 1000 and abs(self.diff1.value - self.diff1Pos) > 1000):
+            #pass
+            self.diff2Command.publish(self.diff2)
+            self.diff1Command.publish(self.diff1)
         response.success = True
         return response
         
