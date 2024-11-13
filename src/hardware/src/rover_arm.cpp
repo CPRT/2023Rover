@@ -1,14 +1,5 @@
 #include "rover_arm.h"
 
-#include <chrono>
-#include <cmath>
-#include <limits>
-#include <memory>
-#include <vector>
-
-#include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "rclcpp/rclcpp.hpp"
-
 namespace ros2_control_rover_arm
 {
 hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
@@ -79,6 +70,17 @@ hardware_interface::CallbackReturn RoverArmHardwareInterface::on_init(
   client = node->create_client<interfaces::srv::ArmPos>("arm_pos");
 
   while (!client->wait_for_service(1s)) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
+      return hardware_interface::CallbackReturn::SUCCESS;
+    }
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
+  }
+  
+  write_node = rclcpp::Node::make_shared("set_angle_client");
+  write_client = write_node->create_client<interfaces::srv::ArmCmd>("arm_cmd");
+
+  while (!write_client->wait_for_service(1s)) {
     if (!rclcpp::ok()) {
       RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
       return hardware_interface::CallbackReturn::SUCCESS;
@@ -208,10 +210,35 @@ hardware_interface::return_type RoverArmHardwareInterface::read(
 hardware_interface::return_type RoverArmHardwareInterface::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  for (uint i = 0; i < hw_commands_.size(); i++)
+  /*for (uint i = 0; i < hw_commands_.size(); i++)
   {
-    hw_commands_[i] = 0;
+    hw_commands_[i];
+  }*/
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware writing %f %f %f %f for elbow %f %f", hw_commands_[0], hw_commands_[1], hw_commands_[2], hw_commands_[3], hw_commands_[4], hw_commands_[5]);
+  
+  auto request = std::make_shared<interfaces::srv::ArmCmd::Request>();
+  request->base = hw_commands_[0];
+  request->diff1 = hw_commands_[1];
+  request->diff2 = hw_commands_[2];
+  request->elbow = hw_commands_[3];
+  request->wristtilt = hw_commands_[4];
+  request->wristturn = hw_commands_[5];
+  //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Writing request sent");
+  auto result = write_client->async_send_request(request);
+  //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading");
+  // Wait for the result.
+  if (rclcpp::spin_until_future_complete(write_node, result) ==
+    rclcpp::FutureReturnCode::SUCCESS)
+  {
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Base: %f", result.get()->base);
+    auto resultCopy = result.get();
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Hardware reading %f for elbow", resultCopy->elbow);
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sent angles");
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service add_two_ints");
   }
+  
+  //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Writing request received");//*/
 
   return hardware_interface::return_type::OK;
 }

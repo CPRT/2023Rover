@@ -55,6 +55,8 @@ TestNode::TestNode(const rclcpp::NodeOptions &options)
 		msg.position.z = 0.678810;
 		return msg;
 	}();
+	move_group_ptr->setMaxVelocityScalingFactor(1.0);
+	move_group_ptr->setMaxAccelerationScalingFactor(1.0);
 	move_group_ptr->setPoseTarget(target_pose);
 
 	// Create a plan to that target pose

@@ -118,6 +118,7 @@ class keyboardArmPublisher(Node):
         # if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
         #     return
         if (self.shouldPub):
+          self.get_logger().info("Keyboard arm publisher");
           self.baseCommand.publish(self.base)
           self.diff1Command.publish(self.diff1)
           self.diff2Command.publish(self.diff2)

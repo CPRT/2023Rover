@@ -162,7 +162,7 @@ class trajectoryPublisher(Node):
         # if(Node.get_clock(self).now().seconds_nanoseconds()[0] - self.lastTimestamp > 2 or self.estop.data == True):
         #     return
         if (self.hasTraj):
-          #self.get_logger().info("Im publishing")
+          self.get_logger().info("Trajectory Publisher")
           self.baseCommand.publish(self.base)
           self.diff1Command.publish(self.diff1)
           self.diff2Command.publish(self.diff2)
@@ -176,7 +176,8 @@ class trajectoryPublisher(Node):
         self.get_logger().info(f'Traj with {len(msg.points)} points received')
         if (len(msg.points) > 0):
           self.points = msg.points
-          self.hasTraj = True
+          #self.hasTraj = True
+          self.hasTraj = False
           self.trajIndex = 0
         
     def trajToTalon(pt: JointTrajectoryPoint):
