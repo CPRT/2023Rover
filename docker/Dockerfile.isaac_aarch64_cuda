@@ -53,6 +53,17 @@ apt-get update && apt-get install -y \
     wget \
     zlib1g-dev
 
+# Packages moved from Dockerfile.ros2_humble to here by Erik.
+RUN --mount=type=cache,target=/var/cache/apt \
+apt-get update && apt-get install -y \
+    ros-humble-compressed-image-transport \
+    ros-humble-compressed-depth-image-transport \
+    ros-humble-cv-bridge \
+    ros-humble-launch-xml \
+    ros-humble-launch-yaml \
+    ros-humble-rosbridge-suite \
+    ros-humble-rosx-introspection \
+
 # Add Isaac apt repository
 RUN --mount=type=cache,target=/var/cache/apt \
     wget -qO - https://isaac.download.nvidia.com/isaac-ros/repos.key | apt-key add - && \
@@ -246,6 +257,52 @@ apt-add-repository ppa:mosquitto-dev/mosquitto-ppa \
 # Install jtop
 RUN python3 -m pip install -U \
     jetson-stats
+
+####### -- Install updated packages over installed debians
+
+# Install negotiated from source
+RUN --mount=type=cache,target=/var/cache/apt \
+    mkdir -p ${ROS_ROOT}/src && cd ${ROS_ROOT}/src \
+    && git clone https://github.com/osrf/negotiated && cd negotiated && git checkout master \
+    && source ${ROS_ROOT}/setup.bash \
+    && cd negotiated_interfaces && bloom-generate rosdebian && fakeroot debian/rules binary \
+    && cd ../ && apt-get install -y ./*.deb && rm ./*.deb \
+    && cd negotiated && bloom-generate rosdebian && fakeroot debian/rules binary \
+    && cd ../ && apt-get install -y ./*.deb && rm ./*.deb
+
+# Install image_proc from 55bf2a38 with backported resize node fix
+# https://github.com/ros-perception/image_pipeline/pull/786/commits/969d6c763df99b42844742946f7a70c605a72a15
+# Revert breaking QoS changes in https://github.com/ros-perception/image_pipeline/pull/814
+RUN --mount=type=cache,target=/var/cache/apt \
+    mkdir -p ${ROS_ROOT}/src && cd ${ROS_ROOT}/src \
+    && git clone https://github.com/ros-perception/image_pipeline.git && cd image_pipeline && git checkout 55bf2a38c327b829c3da444f963a6c66bfe0598f \
+    && git config user.email "builder@nvidia.com" && git config user.name "NVIDIA Builder" \
+    && git remote add fork https://github.com/schornakj/image_pipeline.git && git fetch fork && git cherry-pick 969d6c763df99b42844742946f7a70c605a72a15 \
+    && source ${ROS_ROOT}/setup.bash \
+    && cd image_proc && bloom-generate rosdebian && fakeroot debian/rules binary \
+    && cd ../ && apt-get install -y --allow-downgrades ./*.deb \
+    && echo "image_pipeline (image_proc) https://github.com/ros-perception/image_pipeline/pull/786/commits/969d6c763df99b42844742946f7a70c605a72a15 on 55bf2a38" >> ${ROS_ROOT}/VERSION \
+    && cd ../ && rm -Rf src build log
+
+# Install patched rclcpp package with backported multithreadedexecutor fix
+# https://github.com/ros2/rclcpp/commit/232262c02a1265830c7785b7547bd51e1124fcd8
+COPY patches/rclcpp-disable-tests.patch /tmp/
+RUN --mount=type=cache,target=/var/cache/apt \
+    mkdir -p ${ROS_ROOT}/src && cd ${ROS_ROOT}/src \
+    && export RCLCPP_VERSION="release/humble/rclcpp/$(apt-cache madison ros-humble-rclcpp | grep -m1 -oP 'ros-humble-rclcpp \| \K[^j]+(?=jammy)')" \
+    && echo ${RCLCPP_VERSION} \
+    && git clone https://github.com/ros2-gbp/rclcpp-release.git && cd rclcpp-release && git checkout ${RCLCPP_VERSION} \
+    && patch -i /tmp/rclcpp-disable-tests.patch \
+    && unset RCLCPP_VERSION \
+    && git config user.email "builder@nvidia.com" && git config user.name "NVIDIA Builder" \
+    && git remote add rclcpp https://github.com/ros2/rclcpp.git && git fetch rclcpp \
+    && git cherry-pick 232262c02a1265830c7785b7547bd51e1124fcd8 \
+    && source ${ROS_ROOT}/setup.bash \
+    && cd ../ && rosdep install -i -r --from-paths rclcpp-release/ --rosdistro humble -y \
+    && cd rclcpp-release && bloom-generate rosdebian && fakeroot debian/rules binary \
+    && cd ../ && apt-get install -y --allow-downgrades ./*.deb \
+    && echo "rclcpp https://github.com/ros2/rclcpp/commit/232262c02a1265830c7785b7547bd51e1124fcd8" >> ${ROS_ROOT}/VERSION \
+    && cd ../ && rm -Rf src build log
 
 # Store list of packages (must be last)
 RUN mkdir -p /opt/nvidia/isaac_ros_dev_base && dpkg-query -W | sort > /opt/nvidia/isaac_ros_dev_base/aarch64-end-packages.csv

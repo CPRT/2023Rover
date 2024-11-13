@@ -27,3 +27,5 @@ RUN --mount=type=cache,target=/var/cache/apt \
     sudo rm -rf ${ROSDEP_TEMPORARY_REPOS}/src/${REPO_NAME}; \
     exit 0
 
+RUN echo "source /workspaces/2023Rover/install/setup.bash" >> ~/.bashrc
+

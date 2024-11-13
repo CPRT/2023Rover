@@ -7,13 +7,9 @@ sudo apt-get install --no-install-recommends lsb-release wget less zstd udev sud
 # Download zed SDK installation RUN file to /tmp directory
 cd /tmp
 
-if [ -z "$ZED_SDK_DOWNLOAD_LINK" ]; then
-    echo "ZED_SDK_DOWNLOAD_LINK environment variable is not set."
-    exit 1
-fi
-
+ZED_SDK_DOWNLOAD_LINK=https://stereolabs.sfo2.cdn.digitaloceanspaces.com/zedsdk/4.2/ZED_SDK_Tegra_L4T36.3_v4.2.1.zstd.run
 wget -q --no-check-certificate -O ZED_SDK_Linux.run +wget -q --no-check-certificate -O ZED_SDK_Linux.run "$ZED_SDK_DOWNLOAD_LINK"
-chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent skip_od_module skip_python skip_drivers
+chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent skip_od_module skip_drivers
 
 # Symlink required to use the streaming features on Jetson inside a container, based on
 # https://github.com/stereolabs/zed-docker/blob/fd514606174d8bb09f21a229f1099205b284ecb6/4.X/l4t/devel/Dockerfile#L27C5-L27C95

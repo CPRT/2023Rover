@@ -14,7 +14,6 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
-ENV ZED_SDK_DOWNLOAD_LINK=https://stereolabs.sfo2.cdn.digitaloceanspaces.com/zedsdk/4.2/ZED_SDK_Tegra_L4T36.3_v4.2.1.zstd.run
 ARG ROSDEP_TEMPORARY_REPOS="/opt/rosdep_temporary_workspace"
 
 # zed-ros2-wrapper dependencies
@@ -32,10 +31,16 @@ ENV USER=${USERNAME}
 USER ${USERNAME}
 
 COPY scripts/container_scripts/install-zed-aarch64.sh /opt/zed/install-zed-aarch64.sh
+COPY scripts/container_scripts/install-zed-x86_64.sh /opt/zed/install-zed-x86_64.sh
 
 RUN --mount=type=cache,target=/var/cache/apt \
-  sudo chmod +x /opt/zed/install-zed-aarch64.sh; \
-  /opt/zed/install-zed-aarch64.sh;
+  if [ "$(uname -m)" = "aarch64" ]; then \
+    sudo chmod +x /opt/zed/install-zed-aarch64.sh; \
+    /opt/zed/install-zed-aarch64.sh; \
+  else \
+    sudo chmod +x /opt/zed/install-zed-x86_64.sh; \
+    /opt/zed/install-zed-x86_64.sh; \
+  fi
 
 RUN --mount=type=cache,target=/var/cache/apt \
   sudo apt-get update && \

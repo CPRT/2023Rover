@@ -68,6 +68,5 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rosdep update
 
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
-RUN echo "source /workspaces/isaac_ros-dev/install/setup.bash" >> ~/.bashrc
 
 USER root
