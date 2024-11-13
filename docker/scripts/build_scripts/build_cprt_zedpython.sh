@@ -7,7 +7,7 @@
 ##########################################################
 
 PLATFORM="$(uname -m)"
-IMAGE_NAME="cprt_zed_python:2023Rover"
+IMAGE_NAME="cprt_zedpython:2023Rover"
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SCRIPT_NAME=$(basename "$0")
@@ -80,7 +80,7 @@ docker build -f "$DOCKERFILE_DIR"/Dockerfile.user \
     || exit 22
 
 print_docker_build "Building Dockerfile.zed as zed from user"
-docker build -f "$DOCKERFILE_DIR"/Dockerfile.user \
+docker build -f "$DOCKERFILE_DIR"/Dockerfile.zed \
     --network host \
     --build-arg BASE_IMAGE=user:cprt_ros2_2023Rover \
     -t zed:cprt_ros2_2023Rover . \

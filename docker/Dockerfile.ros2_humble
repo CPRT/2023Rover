@@ -22,14 +22,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV SHELL /bin/bash
 SHELL ["/bin/bash", "-c"]
 
-# Env setup
-RUN locale-gen en_US en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-ENV LANG=en_US.UTF-8
-ENV ROS_PYTHON_VERSION=3
-ENV ROS_DISTRO=humble
-ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
-ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-
 # Fundamentals
 RUN --mount=type=cache,target=/var/cache/apt \
 apt-get update && apt-get install -y \
@@ -52,6 +44,14 @@ apt-get update && apt-get install -y \
     vim \
     wget \
     zlib1g-dev
+
+# Env setup
+RUN locale-gen en_US en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV ROS_PYTHON_VERSION=3
+ENV ROS_DISTRO=humble
+ENV ROS_ROOT=/opt/ros/${ROS_DISTRO}
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
 # Avoid setup.py and easy_install deprecation warnings caused by colcon and setuptools
 # https://github.com/colcon/colcon-core/issues/454
@@ -83,6 +83,7 @@ apt-get update && apt-get install -y \
 
 # ROS Python fundamentals
 RUN python3 -m pip install -U \
+        wheel \
         flake8-blind-except \
         flake8-builtins \
         flake8-class-newline \
@@ -94,7 +95,19 @@ RUN python3 -m pip install -U \
         matplotlib \
         pandas \
         rosbags \
-        setuptools==65.7.0
+        setuptools==65.7.0 \
+        Cython \
+        "numpy>=1.24.4,<2" \
+        numpy-quaternion \
+        pyyaml \
+        "setuptools_scm>=6.2" \
+        trimesh \
+        "yourdfpy>=0.0.53" \
+        "warp-lang>=0.9.0" \
+        "scipy>=1.7.0" \
+        importlib_resources \
+        opencv-python  \
+        pyopengl
 
 # Install ROS 2 Humble
 RUN --mount=type=cache,target=/var/cache/apt \

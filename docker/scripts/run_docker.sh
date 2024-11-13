@@ -252,8 +252,6 @@ fi
 DOCKER_ARGS+=("-v /tmp/.X11-unix:/tmp/.X11-unix")
 DOCKER_ARGS+=("-v $HOME/.Xauthority:/home/$CONTAINER_USER/.Xauthority:rw")
 DOCKER_ARGS+=("-e DISPLAY")
-DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=all")
-DOCKER_ARGS+=("-e NVIDIA_DRIVER_CAPABILITIES=all")
 DOCKER_ARGS+=("-e FASTRTPS_DEFAULT_PROFILES_FILE=/usr/local/share/middleware_profiles/rtps_udp_profile.xml")
 DOCKER_ARGS+=("-e ROS_DOMAIN_ID")
 DOCKER_ARGS+=("-e USER=$CONTAINER_USER")
@@ -261,6 +259,12 @@ DOCKER_ARGS+=("-e CPRT_WS=/workspaces/$WORKSPACE_NAME")
 DOCKER_ARGS+=("-v $SCRIPT_DIR/persistent_container_files:/home/$CONTAINER_USER/persistent_container_files")
 DOCKER_ARGS+=("-e BASH_HISTORY_FILE=/home/$CONTAINER_USER/persistent_container_files/bash_histories/$CONTAINER_NAME-bash_history")
 DOCKER_ARGS+=("-e PERSISTENT_DIR=/home/$CONTAINER_USER/persistent_container_files")
+
+if [[ $PLATFORM == "aarch64" ]] || [[ $HAS_CUDA_GPU == "1" ]]; then
+    DOCKER_ARGS+=("-e NVIDIA_VISIBLE_DEVICES=all")
+    DOCKER_ARGS+=("-e NVIDIA_DRIVER_CAPABILITIES=all")
+    DOCKER_ARGS+=("--runtime nvidia")
+fi
 
 if [[ $PLATFORM == "aarch64" ]]; then
     DOCKER_ARGS+=("-v /usr/bin/tegrastats:/usr/bin/tegrastats")
@@ -296,7 +300,6 @@ docker run -it --rm \
     -v "$WORKSPACE_DIR:/workspaces/$WORKSPACE_NAME" \
     -v /etc/localtime:/etc/localtime:ro \
     --name "$CONTAINER_NAME" \
-    --runtime nvidia \
     --user="$CONTAINER_USER" \
     --entrypoint /usr/local/bin/scripts/workspace-entrypoint.sh \
     --workdir "/workspaces/$WORKSPACE_NAME" \

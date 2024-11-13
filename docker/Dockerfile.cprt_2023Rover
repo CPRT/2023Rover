@@ -23,9 +23,11 @@ COPY --from=cprt_repo ./ ${ROSDEP_TEMPORARY_REPOS}/src/${REPO_NAME}
 RUN --mount=type=cache,target=/var/cache/apt \
     sudo apt update && \
     cd ${ROSDEP_TEMPORARY_REPOS}/src && \
-    rosdep install --from-paths ${REPO_NAME}/src/ --ignore-src -r -y 2>/workspaces/rosdep_err_${REPO_NAME}.log >/workspaces/rosdep_log_${REPO_NAME}.log; \
+    rosdep install --from-paths ${REPO_NAME}/src/ --ignore-src -r -y 2>/workspaces/rosdep_err_${REPO_NAME}.log | tee /workspaces/rosdep_log_${REPO_NAME}.log; \
     sudo rm -rf ${ROSDEP_TEMPORARY_REPOS}/src/${REPO_NAME}; \
     exit 0
 
 RUN echo "source /workspaces/2023Rover/install/setup.bash" >> ~/.bashrc
+
+USER root
 
