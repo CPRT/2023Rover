@@ -34,7 +34,7 @@ COPY scripts/container_scripts/install-zed-aarch64.sh /opt/zed/install-zed-aarch
 COPY scripts/container_scripts/install-zed-x86_64.sh /opt/zed/install-zed-x86_64.sh
 
 RUN --mount=type=cache,target=/var/cache/apt \
-  if [ "$(uname -m)" = "aarch64" ]; then \
+  if [ "$(uname -m)" == "aarch64" ]; then \
     sudo chmod +x /opt/zed/install-zed-aarch64.sh; \
     /opt/zed/install-zed-aarch64.sh; \
   else \
