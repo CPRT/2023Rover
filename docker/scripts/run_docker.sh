@@ -82,7 +82,9 @@ usage()
     echo "    -i or --image <image_name>          Specify the base image name to use."
     echo "    -c or --container <container_name>  Specify the container name to use."
     echo "    -b or --skip-image-build            Skip building the container."
-    echo "    -p or --print-constants                   Print the script's constants and exit."
+    echo "    -k or --kill-existing               Force Kill existing containers instead of"
+    echo "                                             attaching to existing containers."
+    echo "    -p or --print-constants             Print the script's constants and exit."
     echo "    -h or --help                        Print this help."
     echo
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -90,6 +92,7 @@ usage()
 }
 
 SKIP_IMAGE_BUILD=0
+KILL_EXISTING_CONTAINER=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -103,6 +106,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -b|--skip-image-build)
             SKIP_IMAGE_BUILD=1
+            shift
+            ;;
+        -k|--kill-existing)
+            KILL_EXISTING_CONTAINER=1
             shift
             ;;
         -p|--print-constants)
@@ -207,10 +214,15 @@ fi
 
 # Re-use existing container.
 if [ "$(docker ps -a --quiet --filter status=running --filter name=$CONTAINER_NAME)" ]; then
-    print_info "Attaching to running container: $CONTAINER_NAME"
-    # shellcheck disable=SC2068
-    docker exec -i -t -u "$CONTAINER_USER" --workdir "/workspaces/$WORKSPACE_NAME" $CONTAINER_NAME /bin/bash $@
-    exit 0
+    if [ "$KILL_EXISTING_CONTAINER" = "0" ]; then
+      print_info "Attaching to running container: $CONTAINER_NAME"
+      # shellcheck disable=SC2068
+      docker exec -i -t -u "$CONTAINER_USER" --workdir "/workspaces/$WORKSPACE_NAME" $CONTAINER_NAME /bin/bash $@
+      exit 0
+    else
+      print_info "Killing the container already running with the same container name: $CONTAINER_NAME"
+      docker stop "$CONTAINER_NAME" --time 15
+    fi
 fi
 
 # Summarize launch
