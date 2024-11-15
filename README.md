@@ -1,3 +1,5 @@
+First-time instructions:
+
 git clone https://github.com/CPRT/2023Rover.git
 
 cd 2023Rover
@@ -10,13 +12,17 @@ colcon build
 
 source install/setup.bash 
 
-ros2 launch rover_arm_config demo.launch.py
+Get peak-usb-driver installed:
+Step 1: Plug arm usb into computer
 
-takes maybe a minute or 2 to get the planner running, if you see a ton of green text saying its ready in the console try moving around the ball and pressing plan/ plan and execute
+Step 2: Download https://www.peak-system.com/Details.114+M5331421eb48.0.html?&L=1
+
+Step 3: Copy the 2023Rover/drivers/installnet.sh into the newly downloaded peak-driver-8.18.0 folder
+
+Step 4: cd into the driver folder, and run "./installnet.sh"
 
 
-
-Launch simple controller:
+Launch simple controller for inverse kinematics:
 
 Terminal 1:
 source ros and install
@@ -36,3 +42,8 @@ q to stop
 n to reset to original position
 b + 6 numbers to set angles in degrees from orange arm in rviz
 (Example command: b35 67 12 -42 5 1)
+
+Terminal 4:
+ros2 launch arm_interface keyboard.launch.py
+
+Once RViz is running, you can pick and place the orange ball and press "plan and execute"
