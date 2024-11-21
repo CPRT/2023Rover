@@ -3,6 +3,7 @@ install/
 log/
 build/
 *.vscode
+git_ignored_trial_repos/
 
 #Files
 *metadata.json

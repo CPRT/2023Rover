@@ -1,0 +1,65 @@
+# Copyright (c) 2023, NVIDIA CORPORATION.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+
+#
+# Written by Erik Caldwell for Carleton University's rover team called CPRT
+# Tests a ros2 elevation_map package without requiring any setup on the host machine
+#
+
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG USERNAME="cprtdev"
+ARG ROSDEP_TEMPORARY_REPOS="/opt/temporary_elevation_mapping_ws2"
+
+# Ensure basic packages are installed
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y \ 
+    git \
+    python3-colcon-common-extensions
+
+    
+# >>>> Switch to non-root user
+ENV USER=${USERNAME}
+USER ${USERNAME}
+
+RUN sudo mkdir -p ${ROSDEP_TEMPORARY_REPOS} && \
+    sudo chown ${USERNAME}: ${ROSDEP_TEMPORARY_REPOS} && \
+    sudo chmod u+w ${ROSDEP_TEMPORARY_REPOS} && \
+    mkdir -p ${ROSDEP_TEMPORARY_REPOS}/src
+
+COPY --from=em_repo ./ ${ROSDEP_TEMPORARY_REPOS}
+
+# Install dependencies with rosdep. Reports success if there are no dependencies. 
+# Log of the errors are saved in /workspaces/rosdep_err_${REPO_NAME}.log
+RUN --mount=type=cache,target=/var/cache/apt \
+    sudo apt update && \
+    cd ${ROSDEP_TEMPORARY_REPOS} && \
+    rosdep install --from-paths src/ --ignore-src -r -y 2>/workspaces/rosdep_err_${REPO_NAME}.log | tee /workspaces/rosdep_log_${REPO_NAME}.log; \
+    sudo rm -rf ${ROSDEP_TEMPORARY_REPOS}; \
+    exit 0
+
+#
+# Install elevation_mapping_ros2 dependancies based on script called install_dependencies.sh
+# https://github.com/norlab-ulaval/elevation_mapping_ros2/blob/ros2/install_dependencies.sh
+#
+RUN sudo apt-get update && sudo apt-get install -y \ 
+    ros-humble-grid-map
+
+# Clone and install kindr
+RUN mkdir ~/repos ; cd ~/repos && \
+    git clone https://github.com/ANYbotics/kindr.git && \
+    cd kindr && \
+    mkdir build ; cd build && \
+    cmake .. -DUSE_CMAKE=true && \
+    sudo make install
+
+RUN echo "source /workspaces/2023Rover/git_ignored_trial_repos/$REPO_NAME/install/setup.bash" >> ~/.bashrc
+
+# <<<< Switch back to root user
+USER root
