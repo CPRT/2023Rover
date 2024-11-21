@@ -8,8 +8,6 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Int8, Float32, Bool
 from ros_phoenix.msg import MotorControl, MotorStatus
 from math import pi
-import Jetson.GPIO as GPIO
-import interfaces.msg as GPIOmsg
 
 def map_range(value, old_min, old_max, new_min, new_max):
     old_range = old_max - old_min
@@ -30,29 +28,35 @@ def joystick_to_motor_control(vertical, horizontal):
     
     return -left_motor, -right_motor
 
-class joystickArmController(Node):
+class joystickArmController(Node, use_gpio=False):
     def __init__(self):
         super().__init__("joystickControl")
+        self.use_gpio = use_gpio  # Set this flag based on user input or configuration
 
-        GPIO.setmode(GPIO.BOARD)
-        output_pins = {
-            'JETSON_XAVIER': 18,
-            'JETSON_NANO': 33,
-            'JETSON_NX': 33,
-            'CLARA_AGX_XAVIER': 18,
-            'JETSON_TX2_NX': 32,
-            'JETSON_ORIN': 18,
-            'JETSON_ORIN_NX': 33,
-            'JETSON_ORIN_NANO': 33
-        }
-        output_pin = output_pins.get(GPIO.model, None)
-        if output_pin is None:
-            raise Exception('PWM not supported on this board')
-        
-
-        GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
-        self.gripper = GPIO.PWM(output_pin, 50)
-
+        if self.use_gpio:
+            # Initialize GPIO only if use_gpio is True
+            import Jetson.GPIO as GPIO
+            GPIO.setmode(GPIO.BOARD)
+            output_pins = {
+                'JETSON_XAVIER': 18,
+                'JETSON_NANO': 33,
+                'JETSON_NX': 33,
+                'CLARA_AGX_XAVIER': 18,
+                'JETSON_TX2_NX': 32,
+                'JETSON_ORIN': 18,
+                'JETSON_ORIN_NX': 33,
+                'JETSON_ORIN_NANO': 33
+            }
+            output_pin = output_pins.get(GPIO.model, None)
+            if output_pin is None:
+                raise Exception('PWM not supported on this board')
+            
+            GPIO.setup(output_pin, GPIO.OUT, initial=GPIO.HIGH)
+            self.gripper = GPIO.PWM(output_pin, 50)
+            self.gripperInc = 0.5
+            self.gripperVal = 5.555
+            self.gripper.start(self.gripperVal)
+            self.gripper.ChangeDutyCycle(self.gripperVal)
         
         self.base = MotorControl()
         self.diff1 = MotorControl()
@@ -64,9 +68,6 @@ class joystickArmController(Node):
         self.estop = Bool()
         self.estopTimestamp = 0.0
         self.lastTimestamp = 0
-        self.gripperInc = 0.5
-        self.gripper.start(self.gripperVal)
-        self.gripper.ChangeDutyCycle(self.gripperVal)
 
         self.baseCommand = self.create_publisher(
             MotorControl, "/base/set", 1)
@@ -100,7 +101,8 @@ class joystickArmController(Node):
         self.elbowCommand.publish(self.elbow)
         self.wristTiltCommand.publish(self.wristTilt)
         self.wristTurnCommand.publish(self.wristTurn)
-        self.gripper.ChangeDutyCycle(self.gripperVal)
+        if self.use_gpio:
+            self.gripper.ChangeDutyCycle(self.gripperVal)
 
     def joy_callback(self, msg: Joy):
         self.lastTimestamp = msg.header.stamp.sec
@@ -112,16 +114,16 @@ class joystickArmController(Node):
         self.wristTurn.mode = 0
         # self.get_logger().info("bruh")
 
-        if(msg.buttons[5]):#RIGHT BUMPER IDK THE VALUE
+        if(msg.buttons[4]):#RIGHT BUMPER IDK THE VALUE
             self.base.value = 0.5
-        elif(msg.buttons[4]): #LEFT BUMPER
+        elif(msg.buttons[5]): #LEFT BUMPER
             self.base.value = -0.5
         else:
             self.base.value = 0.0
 
-        if(msg.buttons[7]):#RIGHT TRIGGER IDK THE VALUE
+        if(msg.axes[2] < 1):#RIGHT TRIGGER IDK THE VALUE
             self.wristTurn.value = 1.0
-        elif(msg.buttons[6]): #LEFT TRIGGER
+        elif(msg.axes[5] < 1): #LEFT TRIGGER
             self.wristTurn.value = -1.0
         else:
             self.wristTurn.value = 0.0
@@ -132,7 +134,7 @@ class joystickArmController(Node):
             self.wristTilt.value = -1.0
         else:
             self.wristTilt.value = 0.0
-        self.elbow.value = msg.axes[3] #LEFT VERTICAL
+        self.elbow.value = msg.axes[4] #LEFT VERTICAL
         diff1, diff2 = joystick_to_motor_control(msg.axes[0], msg.axes[1])
         # self.get_logger().info(f'diff1: {self.diff1.value}, diff2: {self.diff2.value}')
         self.diff1.value = float(diff1)
@@ -142,21 +144,26 @@ class joystickArmController(Node):
             self.estopTimestamp = msg.header.stamp.sec
         if(msg.buttons[8] and msg.header.stamp.sec - self.estopTimestamp > 2):
             self.estop.data = False
-        if(msg.buttons[3] and self.gripperVal <= 70):
-            self.gripperVal = self.gripperVal + self.gripperInc
-            if(self.gripperVal > 70.0):
-                self.gripperVal = 70.0
-        elif(msg.buttons[2] and self.gripperVal > 0):
-            self.gripperVal = self.gripperVal - self.gripperInc
-            if(self.gripperVal < 0.0):
-                self.gripperVal = 0.0
+        if self.use_gpio:
+            if(msg.buttons[3] and self.gripperVal <= 70):
+                self.gripperVal = self.gripperVal + self.gripperInc
+                if(self.gripperVal > 70.0):
+                    self.gripperVal = 70.0
+            elif(msg.buttons[2] and self.gripperVal > 0):
+                self.gripperVal = self.gripperVal - self.gripperInc
+                if(self.gripperVal < 0.0):
+                    self.gripperVal = 0.0
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = joystickArmController()
+    use_gpio = False
+    rclpy.init(args=args)    
+    use_gpio = True
+    node = joystickArmController(use_gpio=use_gpio)
     rclpy.spin(node)
-    GPIO.cleanup()
+    if use_gpio:
+        import Jetson.GPIO as GPIO
+        GPIO.cleanup()
     node.destroy_node()
     rclpy.shutdown()
     
