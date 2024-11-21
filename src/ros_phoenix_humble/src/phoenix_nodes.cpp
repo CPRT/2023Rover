@@ -44,6 +44,8 @@ void TalonSRXNode::configure_sensor()
 {
     if (this->get_parameter("analog_input").as_bool())
         this->controller_->ConfigSelectedFeedbackSensor(TalonSRXFeedbackDevice::Analog);
+    if (this->get_parameter("abs_encoder").as_bool())
+        this->controller_->ConfigSelectedFeedbackSensor(TalonSRXFeedbackDevice::CTRE_MagEncoder_Absolute, 1, 0);
     else
         this->controller_->ConfigSelectedFeedbackSensor(
             TalonSRXFeedbackDevice::CTRE_MagEncoder_Relative);

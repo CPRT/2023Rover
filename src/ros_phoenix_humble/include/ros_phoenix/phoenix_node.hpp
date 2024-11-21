@@ -44,8 +44,15 @@ public:
         status->output_voltage = this->controller_->GetMotorOutputVoltage();
         status->output_current = this->get_output_current();
 
-        status->position
-            = this->controller_->GetSelectedSensorPosition() * this->sensor_multiplier_;
+        if (this->get_parameter("abs_encoder").as_bool())
+        {
+            status->position = this->controller_->GetSelectedSensorPosition(1);
+        }
+        else
+        {
+            status->position = this->controller_->GetSelectedSensorPosition() * this->sensor_multiplier_;
+        }
+
         // CTRE library returns velocity in units/100ms. Multiply by 10 to get units/s.
         status->velocity
             = this->controller_->GetSelectedSensorVelocity() * 10.0 * this->sensor_multiplier_;
