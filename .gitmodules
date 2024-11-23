@@ -6,3 +6,10 @@
 	path = src/spatio_temporal_voxel_layer
 	url = git@github.com:CPRT/spatio_temporal_voxel_layer.git
 	branch = ros2
+[submodule "src/elevation_mapping_ros2"]
+	path = src/elevation_mapping_ros2
+	url = https://github.com/ErikCald/elevation_mapping.git
+[submodule "src/kindr_ros"]
+	path = src/kindr_ros
+	url = https://github.com/ANYbotics/kindr_ros.git
+	branch = ros2
