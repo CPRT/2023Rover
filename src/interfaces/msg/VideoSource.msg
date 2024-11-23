@@ -1,3 +1,5 @@
+# VideoSource.msg
+
 string name
 
 # Dimensions are percent of total
