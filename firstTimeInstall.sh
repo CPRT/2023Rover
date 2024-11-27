@@ -42,9 +42,11 @@ fi
 
 # Add lines in .bashrc to source the cprt_bash_aliases file if it exists
 if ! grep -qF "cprt_bash_aliases" ~/.bashrc; then
-   echo "if [ -f "$SCRIPT_DIR/cprt_bash_aliases" ]; then"  >> ~/.bashrc
-   echo "   . $SCRIPT_DIR/cprt_bash_aliases"               >> ~/.bashrc
-   echo "fi"                                               >> ~/.bashrc
+   {
+      echo "if [ -f $SCRIPT_DIR/cprt_bash_aliases ]; then"
+      echo "   . $SCRIPT_DIR/cprt_bash_aliases"
+      echo "fi"
+   } >> ~/.bashrc
 fi
 
 pip3 install black
