@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# CPRT bash aliases
+# firstTimeInstall.sh will handle adding code to bashrc to source this file
+
+cprt_bash_alias_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+export CPRT_BASH_ALIAS_FILE="$cprt_bash_alias_dir/cprt_bash_aliases"
+alias eaCPRT='vim $CPRT_BASH_ALIAS_FILE'
