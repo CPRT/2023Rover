@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "tf_keyboard = tf_keyboard.tf_keyboard:main"
+            "tf_keyboard = tf_keyboard.tf_keyboard:main",
+            "tf_keyboard2 = tf_keyboard.tf_keyboard2:main"
         ],
     },
 )

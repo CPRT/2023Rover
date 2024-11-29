@@ -55,7 +55,21 @@ class tfKeyboard(Node):
     self.category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
     
     #run a thing
-    self.infer("/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/images/keyboard2.jpg")
+    #self.infer("/home/will/2023Rover/keycap_demo/images/keyboard2.jpg")
+    
+    cam = cv.VideoCapture(0);
+    
+    ret, frame = cam.read()
+    #jpg_image = cv.imencode('.jpg', frame);
+    
+    #jpg_data = jpg_image.tobytes()
+    
+    nparray = np.array(frame)
+    
+    plt.imshow(nparray)
+    plt.show()
+    
+    self.infer(nparray)
   
   @tf.function
   def detect_fn(self, image):
@@ -71,10 +85,10 @@ class tfKeyboard(Node):
   def load_image_into_numpy_array(self, path):
     return np.array(Image.open(path))
 
-  def infer(self, image_path):
-    print('Running inference for {}... '.format(image_path), end='')
+  def infer(self, image_np):
+    '''print('Running inference for {}... '.format(image_path), end='')
 
-    image_np = self.load_image_into_numpy_array(image_path)
+    image_np = self.load_image_into_numpy_array(image_path)'''
     #image_np = np.array(image_path)
 
     # Things to try:
