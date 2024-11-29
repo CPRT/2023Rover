@@ -28,7 +28,7 @@ add_library(
 )
 target_compile_features(ros2_control_rover_arm PUBLIC c_std_99 cxx_std_17)
 target_include_directories(ros2_control_rover_arm PUBLIC
-$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
+$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/src>
 $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(
@@ -41,8 +41,8 @@ pluginlib_export_plugin_description_file(hardware_interface ros2_control_rover_a
 
 # INSTALL
 install(
-  DIRECTORY include/
-  DESTINATION include/ros2_control_rover_arm
+  DIRECTORY src/
+  DESTINATION src/ros2_control_rover_arm
 )
 
 install(TARGETS ros2_control_rover_arm
