@@ -55,7 +55,8 @@ class tfKeyboard(Node):
     self.category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
     
     #run a thing
-    self.infer("/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/images/keyboard2.jpg")
+    #self.infer("/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/images/keyboard2.jpg")
+    self.infer("/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/images/test13.jpg")
   
   @tf.function
   def detect_fn(self, image):

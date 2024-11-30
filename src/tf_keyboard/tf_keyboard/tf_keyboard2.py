@@ -57,7 +57,7 @@ class tfKeyboard(Node):
     #run a thing
     #self.infer("/home/will/2023Rover/keycap_demo/images/keyboard2.jpg")
     
-    cam = cv.VideoCapture(0);
+    cam = cv.VideoCapture("/dev/video0");
     
     ret, frame = cam.read()
     #jpg_image = cv.imencode('.jpg', frame);
