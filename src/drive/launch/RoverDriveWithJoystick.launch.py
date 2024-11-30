@@ -29,7 +29,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/front'},
+                {'dev': '/dev/ttyACM0'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
@@ -46,7 +46,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/mid'},
+                {'dev': '/dev/ttyACM1'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},
@@ -63,7 +63,7 @@ def generate_launch_description():
             executable='roboclaw_node',
             name='roboclaw_node',
             parameters=[
-                {'dev': '/dev/roboclaws/back'},
+                {'dev': '/dev/ttyACM2'},
                 {'baud': 115200},
                 {'address': 128},
                 {'max_speed': 1.0},

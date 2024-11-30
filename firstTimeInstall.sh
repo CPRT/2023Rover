@@ -33,7 +33,7 @@ clang-format \
 clang-tidy
 
 source /opt/ros/humble/setup.bash
-
+sudo usermod -a -G dialout $USER
 if ! grep -q "source /opt/ros/humble/setup.bash" ~/.bashrc; then
   echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
   echo "ROS 2 sourced in bashrc"
