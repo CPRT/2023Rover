@@ -26,7 +26,7 @@ PATH_TO_CFG = "/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_d
 PATH_TO_CKPT = "/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/exported-models/my_model/checkpoint"
 PATH_TO_LABELS = "/data_disk/will/python/TensorFlow/workspace/keycap_demo2/keycap_demo/annotations/label_map.pbtxt"
 
-matplotlib.use('Qt5Agg')
+#matplotlib.use('Qt5Agg')
 
 print('Loading model... ', end='')
 start_time = time.time()
